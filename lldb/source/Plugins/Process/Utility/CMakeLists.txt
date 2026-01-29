@@ -29,6 +29,7 @@ add_lldb_library(lldbPluginProcessUtility
   RegisterContextFreeBSD_i386.cpp
   RegisterContextFreeBSD_mips64.cpp
   RegisterContextFreeBSD_powerpc.cpp
+  RegisterContextFreeBSD_ppc64le.cpp
   RegisterContextFreeBSD_x86_64.cpp
   RegisterContextHistory.cpp
   RegisterContextLinux_i386.cpp
