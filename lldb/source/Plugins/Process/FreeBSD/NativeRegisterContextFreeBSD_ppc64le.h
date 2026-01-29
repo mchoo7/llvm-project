@@ -1,4 +1,4 @@
-//===-- NativeRegisterContextFreeBSD_powerpc.h ------------------*- C++ -*-===//
+//===-- NativeRegisterContextFreeBSD_ppc64le.h ------------------*- C++ -*-===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -6,10 +6,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-#if defined(__powerpc__) && !defined(__LITTLE_ENDIAN__)
+#if defined(__powerpc64__) && defined(__LITTLE_ENDIAN__)
 
-#ifndef lldb_NativeRegisterContextFreeBSD_powerpc_h
-#define lldb_NativeRegisterContextFreeBSD_powerpc_h
+#ifndef lldb_NativeRegisterContextFreeBSD_ppc64le_h
+#define lldb_NativeRegisterContextFreeBSD_ppc64le_h
 
 // clang-format off
 #include <sys/types.h>
@@ -17,7 +17,7 @@
 // clang-format on
 
 #include "Plugins/Process/FreeBSD/NativeRegisterContextFreeBSD.h"
-#include "Plugins/Process/Utility/RegisterContextFreeBSD_powerpc.h"
+#include "Plugins/Process/Utility/RegisterContextFreeBSD_ppc64le.h"
 
 #include <array>
 #include <optional>
@@ -27,10 +27,10 @@ namespace process_freebsd {
 
 class NativeProcessFreeBSD;
 
-class NativeRegisterContextFreeBSD_powerpc
+class NativeRegisterContextFreeBSD_ppc64le
     : public NativeRegisterContextFreeBSD {
 public:
-  NativeRegisterContextFreeBSD_powerpc(const ArchSpec &target_arch,
+  NativeRegisterContextFreeBSD_ppc64le(const ArchSpec &target_arch,
                                        NativeThreadFreeBSD &native_thread);
 
   uint32_t GetRegisterSetCount() const override;
@@ -64,12 +64,12 @@ private:
   Status ReadRegisterSet(RegSetKind set);
   Status WriteRegisterSet(RegSetKind set);
 
-  RegisterContextFreeBSD_powerpc &GetRegisterInfo() const;
+  RegisterContextFreeBSD_ppc64le &GetRegisterInfo() const;
 };
 
 } // namespace process_freebsd
 } // namespace lldb_private
 
-#endif // #ifndef lldb_NativeRegisterContextFreeBSD_powerpc_h
+#endif // #ifndef lldb_NativeRegisterContextFreeBSD_ppc64le_h
 
-#endif // defined (__powerpc__) && !defined(__LITTLE_ENDIAN__)
+#endif // defined(__powerpc64__) && defined(__LITTLE_ENDIAN__)

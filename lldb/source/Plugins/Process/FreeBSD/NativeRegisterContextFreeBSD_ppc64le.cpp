@@ -1,4 +1,4 @@
-//===-- NativeRegisterContextFreeBSD_powerpc.cpp --------------------------===//
+//===-- NativeRegisterContextFreeBSD_ppc64le.cpp --------------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -6,9 +6,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#if defined(__powerpc__) && !defined(__LITTLE_ENDIAN__)
+#if defined(__powerpc64__) && defined(__LITTLE_ENDIAN__)
 
-#include "NativeRegisterContextFreeBSD_powerpc.h"
+#include "NativeRegisterContextFreeBSD_ppc64le.h"
 
 #include "lldb/Host/HostInfo.h"
 #include "lldb/Utility/DataBufferHeap.h"
@@ -17,7 +17,7 @@
 
 #include "Plugins/Process/FreeBSD/NativeProcessFreeBSD.h"
 // for register enum definitions
-#include "Plugins/Process/Utility/RegisterContextPOSIX_powerpc.h"
+#include "Plugins/Process/Utility/RegisterContextPOSIX_ppc64le.h"
 
 // clang-format off
 #include <sys/param.h>
@@ -31,88 +31,82 @@ using namespace lldb_private;
 using namespace lldb_private::process_freebsd;
 
 static const uint32_t g_gpr_regnums[] = {
-    gpr_r0_powerpc,  gpr_r1_powerpc,  gpr_r2_powerpc,  gpr_r3_powerpc,
-    gpr_r4_powerpc,  gpr_r5_powerpc,  gpr_r6_powerpc,  gpr_r7_powerpc,
-    gpr_r8_powerpc,  gpr_r9_powerpc,  gpr_r10_powerpc, gpr_r11_powerpc,
-    gpr_r12_powerpc, gpr_r13_powerpc, gpr_r14_powerpc, gpr_r15_powerpc,
-    gpr_r16_powerpc, gpr_r17_powerpc, gpr_r18_powerpc, gpr_r19_powerpc,
-    gpr_r20_powerpc, gpr_r21_powerpc, gpr_r22_powerpc, gpr_r23_powerpc,
-    gpr_r24_powerpc, gpr_r25_powerpc, gpr_r26_powerpc, gpr_r27_powerpc,
-    gpr_r28_powerpc, gpr_r29_powerpc, gpr_r30_powerpc, gpr_r31_powerpc,
-    gpr_lr_powerpc,  gpr_cr_powerpc,  gpr_xer_powerpc, gpr_ctr_powerpc,
-    gpr_pc_powerpc,
+    gpr_r0_ppc64le,  gpr_r1_ppc64le,  gpr_r2_ppc64le,  gpr_r3_ppc64le,
+    gpr_r4_ppc64le,  gpr_r5_ppc64le,  gpr_r6_ppc64le,  gpr_r7_ppc64le,
+    gpr_r8_ppc64le,  gpr_r9_ppc64le,  gpr_r10_ppc64le, gpr_r11_ppc64le,
+    gpr_r12_ppc64le, gpr_r13_ppc64le, gpr_r14_ppc64le, gpr_r15_ppc64le,
+    gpr_r16_ppc64le, gpr_r17_ppc64le, gpr_r18_ppc64le, gpr_r19_ppc64le,
+    gpr_r20_ppc64le, gpr_r21_ppc64le, gpr_r22_ppc64le, gpr_r23_ppc64le,
+    gpr_r24_ppc64le, gpr_r25_ppc64le, gpr_r26_ppc64le, gpr_r27_ppc64le,
+    gpr_r28_ppc64le, gpr_r29_ppc64le, gpr_r30_ppc64le, gpr_r31_ppc64le,
+    gpr_lr_ppc64le,  gpr_cr_ppc64le,  gpr_xer_ppc64le, gpr_ctr_ppc64le,
+    gpr_pc_ppc64le,
 };
 
 static const uint32_t g_fpr_regnums[] = {
-    fpr_f0_powerpc,    fpr_f1_powerpc,  fpr_f2_powerpc,  fpr_f3_powerpc,
-    fpr_f4_powerpc,    fpr_f5_powerpc,  fpr_f6_powerpc,  fpr_f7_powerpc,
-    fpr_f8_powerpc,    fpr_f9_powerpc,  fpr_f10_powerpc, fpr_f11_powerpc,
-    fpr_f12_powerpc,   fpr_f13_powerpc, fpr_f14_powerpc, fpr_f15_powerpc,
-    fpr_f16_powerpc,   fpr_f17_powerpc, fpr_f18_powerpc, fpr_f19_powerpc,
-    fpr_f20_powerpc,   fpr_f21_powerpc, fpr_f22_powerpc, fpr_f23_powerpc,
-    fpr_f24_powerpc,   fpr_f25_powerpc, fpr_f26_powerpc, fpr_f27_powerpc,
-    fpr_f28_powerpc,   fpr_f29_powerpc, fpr_f30_powerpc, fpr_f31_powerpc,
-    fpr_fpscr_powerpc,
+    fpr_f0_ppc64le,    fpr_f1_ppc64le,  fpr_f2_ppc64le,  fpr_f3_ppc64le,
+    fpr_f4_ppc64le,    fpr_f5_ppc64le,  fpr_f6_ppc64le,  fpr_f7_ppc64le,
+    fpr_f8_ppc64le,    fpr_f9_ppc64le,  fpr_f10_ppc64le, fpr_f11_ppc64le,
+    fpr_f12_ppc64le,   fpr_f13_ppc64le, fpr_f14_ppc64le, fpr_f15_ppc64le,
+    fpr_f16_ppc64le,   fpr_f17_ppc64le, fpr_f18_ppc64le, fpr_f19_ppc64le,
+    fpr_f20_ppc64le,   fpr_f21_ppc64le, fpr_f22_ppc64le, fpr_f23_ppc64le,
+    fpr_f24_ppc64le,   fpr_f25_ppc64le, fpr_f26_ppc64le, fpr_f27_ppc64le,
+    fpr_f28_ppc64le,   fpr_f29_ppc64le, fpr_f30_ppc64le, fpr_f31_ppc64le,
+    fpr_fpscr_ppc64le,
 };
 
 // Number of register sets provided by this context.
 enum { k_num_register_sets = 2 };
 
-static const RegisterSet g_reg_sets_powerpc[k_num_register_sets] = {
-    {"General Purpose Registers", "gpr", k_num_gpr_registers_powerpc,
+static const RegisterSet g_reg_sets_ppc64le[k_num_register_sets] = {
+    {"General Purpose Registers", "gpr", k_num_gpr_registers_ppc64le,
      g_gpr_regnums},
-    {"Floating Point Registers", "fpr", k_num_fpr_registers_powerpc,
+    {"Floating Point Registers", "fpr", k_num_fpr_registers_ppc64le,
      g_fpr_regnums},
 };
 
 NativeRegisterContextFreeBSD *
 NativeRegisterContextFreeBSD::CreateHostNativeRegisterContextFreeBSD(
     const ArchSpec &target_arch, NativeThreadFreeBSD &native_thread) {
-  return new NativeRegisterContextFreeBSD_powerpc(target_arch, native_thread);
+  return new NativeRegisterContextFreeBSD_ppc64le(target_arch, native_thread);
 }
 
 static RegisterInfoInterface *
 CreateRegisterInfoInterface(const ArchSpec &target_arch) {
-  if (HostInfo::GetArchitecture().GetAddressByteSize() == 4) {
-    return new RegisterContextFreeBSD_powerpc32(target_arch);
-  } else {
-    assert((HostInfo::GetArchitecture().GetAddressByteSize() == 8) &&
-           "Register setting path assumes this is a 64-bit host");
-    return new RegisterContextFreeBSD_powerpc64(target_arch);
-  }
+  return new RegisterContextFreeBSD_ppc64le(target_arch);
 }
 
-NativeRegisterContextFreeBSD_powerpc::NativeRegisterContextFreeBSD_powerpc(
+NativeRegisterContextFreeBSD_ppc64le::NativeRegisterContextFreeBSD_ppc64le(
     const ArchSpec &target_arch, NativeThreadFreeBSD &native_thread)
     : NativeRegisterContextRegisterInfo(
           native_thread, CreateRegisterInfoInterface(target_arch)) {}
 
-RegisterContextFreeBSD_powerpc &
-NativeRegisterContextFreeBSD_powerpc::GetRegisterInfo() const {
-  return static_cast<RegisterContextFreeBSD_powerpc &>(
+RegisterContextFreeBSD_ppc64le &
+NativeRegisterContextFreeBSD_ppc64le::GetRegisterInfo() const {
+  return static_cast<RegisterContextFreeBSD_ppc64le &>(
       *m_register_info_interface_up);
 }
 
-uint32_t NativeRegisterContextFreeBSD_powerpc::GetRegisterSetCount() const {
+uint32_t NativeRegisterContextFreeBSD_ppc64le::GetRegisterSetCount() const {
   return k_num_register_sets;
 }
 
 const RegisterSet *
-NativeRegisterContextFreeBSD_powerpc::GetRegisterSet(uint32_t set_index) const {
+NativeRegisterContextFreeBSD_ppc64le::GetRegisterSet(uint32_t set_index) const {
   switch (GetRegisterInfoInterface().GetTargetArchitecture().GetMachine()) {
-  case llvm::Triple::ppc:
-    return &g_reg_sets_powerpc[set_index];
+  case llvm::Triple::ppc64le:
+    return &g_reg_sets_ppc64le[set_index];
   default:
     llvm_unreachable("Unhandled target architecture.");
   }
 }
 
-std::optional<NativeRegisterContextFreeBSD_powerpc::RegSetKind>
-NativeRegisterContextFreeBSD_powerpc::GetSetForNativeRegNum(
+std::optional<NativeRegisterContextFreeBSD_ppc64le::RegSetKind>
+NativeRegisterContextFreeBSD_ppc64le::GetSetForNativeRegNum(
     uint32_t reg_num) const {
   switch (GetRegisterInfoInterface().GetTargetArchitecture().GetMachine()) {
-  case llvm::Triple::ppc:
-    if (reg_num >= k_first_gpr_powerpc && reg_num <= k_last_gpr_powerpc)
+  case llvm::Triple::ppc64le:
+    if (reg_num >= k_first_gpr_ppc64le && reg_num <= k_last_gpr_ppc64le)
       return GPRegSet;
     if (reg_num >= k_first_fpr && reg_num <= k_last_fpr)
       return FPRegSet;
@@ -124,14 +118,14 @@ NativeRegisterContextFreeBSD_powerpc::GetSetForNativeRegNum(
   llvm_unreachable("Register does not belong to any register set");
 }
 
-uint32_t NativeRegisterContextFreeBSD_powerpc::GetUserRegisterCount() const {
+uint32_t NativeRegisterContextFreeBSD_ppc64le::GetUserRegisterCount() const {
   uint32_t count = 0;
   for (uint32_t set_index = 0; set_index < GetRegisterSetCount(); ++set_index)
     count += GetRegisterSet(set_index)->num_registers;
   return count;
 }
 
-Status NativeRegisterContextFreeBSD_powerpc::ReadRegisterSet(RegSetKind set) {
+Status NativeRegisterContextFreeBSD_ppc64le::ReadRegisterSet(RegSetKind set) {
   switch (set) {
   case GPRegSet:
     return NativeProcessFreeBSD::PtraceWrapper(PT_GETREGS, m_thread.GetID(),
@@ -140,10 +134,10 @@ Status NativeRegisterContextFreeBSD_powerpc::ReadRegisterSet(RegSetKind set) {
     return NativeProcessFreeBSD::PtraceWrapper(PT_GETFPREGS, m_thread.GetID(),
                                                m_reg_data.data() + sizeof(reg));
   }
-  llvm_unreachable("NativeRegisterContextFreeBSD_powerpc::ReadRegisterSet");
+  llvm_unreachable("NativeRegisterContextFreeBSD_ppc64le::ReadRegisterSet");
 }
 
-Status NativeRegisterContextFreeBSD_powerpc::WriteRegisterSet(RegSetKind set) {
+Status NativeRegisterContextFreeBSD_ppc64le::WriteRegisterSet(RegSetKind set) {
   switch (set) {
   case GPRegSet:
     return NativeProcessFreeBSD::PtraceWrapper(PT_SETREGS, m_thread.GetID(),
@@ -152,11 +146,11 @@ Status NativeRegisterContextFreeBSD_powerpc::WriteRegisterSet(RegSetKind set) {
     return NativeProcessFreeBSD::PtraceWrapper(PT_SETFPREGS, m_thread.GetID(),
                                                m_reg_data.data() + sizeof(reg));
   }
-  llvm_unreachable("NativeRegisterContextFreeBSD_powerpc::WriteRegisterSet");
+  llvm_unreachable("NativeRegisterContextFreeBSD_ppc64le::WriteRegisterSet");
 }
 
 Status
-NativeRegisterContextFreeBSD_powerpc::ReadRegister(const RegisterInfo *reg_info,
+NativeRegisterContextFreeBSD_ppc64le::ReadRegister(const RegisterInfo *reg_info,
                                                    RegisterValue &reg_value) {
   Status error;
 
@@ -192,7 +186,7 @@ NativeRegisterContextFreeBSD_powerpc::ReadRegister(const RegisterInfo *reg_info,
   return error;
 }
 
-Status NativeRegisterContextFreeBSD_powerpc::WriteRegister(
+Status NativeRegisterContextFreeBSD_ppc64le::WriteRegister(
     const RegisterInfo *reg_info, const RegisterValue &reg_value) {
   Status error;
 
@@ -227,7 +221,7 @@ Status NativeRegisterContextFreeBSD_powerpc::WriteRegister(
   return WriteRegisterSet(set);
 }
 
-Status NativeRegisterContextFreeBSD_powerpc::ReadAllRegisterValues(
+Status NativeRegisterContextFreeBSD_ppc64le::ReadAllRegisterValues(
     lldb::WritableDataBufferSP &data_sp) {
   Status error;
 
@@ -246,20 +240,20 @@ Status NativeRegisterContextFreeBSD_powerpc::ReadAllRegisterValues(
   return error;
 }
 
-Status NativeRegisterContextFreeBSD_powerpc::WriteAllRegisterValues(
+Status NativeRegisterContextFreeBSD_ppc64le::WriteAllRegisterValues(
     const lldb::DataBufferSP &data_sp) {
   Status error;
 
   if (!data_sp) {
     error = Status::FromErrorStringWithFormat(
-        "NativeRegisterContextFreeBSD_powerpc::%s invalid data_sp provided",
+        "NativeRegisterContextFreeBSD_ppc64le::%s invalid data_sp provided",
         __FUNCTION__);
     return error;
   }
 
   if (data_sp->GetByteSize() != m_reg_data.size()) {
     error = Status::FromErrorStringWithFormat(
-        "NativeRegisterContextFreeBSD_powerpc::%s data_sp contained mismatched "
+        "NativeRegisterContextFreeBSD_ppc64le::%s data_sp contained mismatched "
         "data size, expected %zu, actual %" PRIu64,
         __FUNCTION__, m_reg_data.size(), data_sp->GetByteSize());
     return error;
@@ -268,7 +262,7 @@ Status NativeRegisterContextFreeBSD_powerpc::WriteAllRegisterValues(
   const uint8_t *src = data_sp->GetBytes();
   if (src == nullptr) {
     error = Status::FromErrorStringWithFormat(
-        "NativeRegisterContextFreeBSD_powerpc::%s "
+        "NativeRegisterContextFreeBSD_ppc64le::%s "
         "DataBuffer::GetBytes() returned a null "
         "pointer",
         __FUNCTION__);
@@ -283,9 +277,9 @@ Status NativeRegisterContextFreeBSD_powerpc::WriteAllRegisterValues(
   return WriteRegisterSet(FPRegSet);
 }
 
-llvm::Error NativeRegisterContextFreeBSD_powerpc::CopyHardwareWatchpointsFrom(
+llvm::Error NativeRegisterContextFreeBSD_ppc64le::CopyHardwareWatchpointsFrom(
     NativeRegisterContextFreeBSD &source) {
   return llvm::Error::success();
 }
 
-#endif // defined (__powerpc__) && !defined(__LITTLE_ENDIAN__)
+#endif // defined(__powerpc64__) && defined(__LITTLE_ENDIAN__)
