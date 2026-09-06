@@ -7,6 +7,7 @@ add_lldb_unittest(EmulatorTests
   LINK_COMPONENTS
     Support
   LINK_LIBS
+    lldbRegisterSupport
     lldbCore
     lldbSymbol
     lldbTarget
