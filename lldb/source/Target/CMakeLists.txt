@@ -17,19 +17,23 @@ add_lldb_library(lldbTarget
   DynamicRegisterInfo.cpp
   CoreFileMemoryRanges.cpp
   ExecutionContext.cpp
+  FreeBSDSignals.cpp
   InstrumentationRuntime.cpp
   InstrumentationRuntimeStopInfo.cpp
   JITLoader.cpp
   JITLoaderList.cpp
   Language.cpp
   LanguageRuntime.cpp
+  LinuxSignals.cpp
   Memory.cpp
   MemoryHistory.cpp
   MemoryRegionInfo.cpp
   MemoryRegionInfoCache.cpp
   MemoryTagMap.cpp
   ModuleCache.cpp
+  NetBSDSignals.cpp
   OperatingSystem.cpp
+  OpenBSDSignals.cpp
   PathMappingList.cpp
   Platform.cpp
   Process.cpp
@@ -103,7 +107,6 @@ add_lldb_library(lldbTarget
     lldbSymbol
     lldbUtility
     lldbValueObject
-    lldbPluginProcessUtility
   )
 
 add_dependencies(lldbTarget

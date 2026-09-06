@@ -20,13 +20,11 @@ static_library("Utility") {
   include_dirs = [ "//lldb/source" ]
   sources = [
     "AuxVector.cpp",
-    "FreeBSDSignals.cpp",
     "GDBRemoteSignals.cpp",
     "HistoryThread.cpp",
     "HistoryUnwind.cpp",
     "InferiorCallPOSIX.cpp",
     "LinuxProcMaps.cpp",
-    "LinuxSignals.cpp",
     "MemoryTagManagerAArch64MTE.cpp",
     "NativeProcessSoftwareSingleStep.cpp",
     "NativeRegisterContextDBReg.cpp",
@@ -35,8 +33,6 @@ static_library("Utility") {
     "NativeRegisterContextDBReg_loongarch.cpp",
     "NativeRegisterContextDBReg_x86.cpp",
     "NativeRegisterContextRegisterInfo.cpp",
-    "NetBSDSignals.cpp",
-    "OpenBSDSignals.cpp",
     "RegisterContextDarwin_arm.cpp",
     "RegisterContextDarwin_arm64.cpp",
     "RegisterContextDarwin_riscv32.cpp",

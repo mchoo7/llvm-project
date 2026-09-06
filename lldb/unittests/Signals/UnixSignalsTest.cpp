@@ -10,10 +10,33 @@
 #include "gtest/gtest.h"
 
 #include "lldb/Target/UnixSignals.h"
+#include "lldb/Utility/ArchSpec.h"
 #include "llvm/Support/FormatVariadic.h"
 
 using namespace lldb;
 using namespace lldb_private;
+
+TEST(UnixSignalsTest, FactoryUsesTargetOS) {
+  struct TestCase {
+    const char *triple;
+    int signo;
+    const char *name;
+  };
+  const TestCase test_cases[] = {
+      {"x86_64-unknown-linux", 34, "SIGRTMIN"},
+      {"x86_64-unknown-freebsd", 33, "SIGLIBRT"},
+      {"x86_64-unknown-netbsd", 32, "SIGPWR"},
+      {"x86_64-unknown-openbsd", 32, "SIGTHR"},
+  };
+
+  for (const TestCase &test : test_cases) {
+    ArchSpec arch(test.triple);
+    lldb::UnixSignalsSP signals = UnixSignals::Create(arch);
+    ASSERT_TRUE(signals) << test.triple;
+    EXPECT_EQ(test.name, signals->GetSignalAsStringRef(test.signo))
+        << test.triple;
+  }
+}
 
 class TestSignals : public UnixSignals {
 public:
