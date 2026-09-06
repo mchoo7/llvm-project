@@ -9,7 +9,7 @@
 #ifndef LLDB_SOURCE_PLUGINS_PROCESS_ELF_CORE_REGISTERCONTEXTPOSIXCORE_LOONGARCH64_H
 #define LLDB_SOURCE_PLUGINS_PROCESS_ELF_CORE_REGISTERCONTEXTPOSIXCORE_LOONGARCH64_H
 
-#include "Plugins/Process/Utility/RegisterContextPOSIX_loongarch64.h"
+#include "Plugins/Register/POSIX/RegisterContextPOSIX_loongarch64.h"
 #include "Register/Common/RegisterInfo_loongarch64.h"
 
 #include "Plugins/Process/elf-core/RegisterUtilities.h"

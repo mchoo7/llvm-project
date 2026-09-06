@@ -1,0 +1,23 @@
+static_library("POSIX") {
+  output_name = "lldbPluginRegisterPOSIX"
+  configs += [ "//llvm/utils/gn/build:lldb_code" ]
+  deps = [
+    "//lldb/source/Register",
+    "//lldb/source/Target",
+    "//lldb/source/Utility",
+    "//llvm/lib/Support",
+  ]
+
+  include_dirs = [ "//lldb/source" ]
+  sources = [
+    "RegisterContextPOSIX_arm.cpp",
+    "RegisterContextPOSIX_arm64.cpp",
+    "RegisterContextPOSIX_loongarch64.cpp",
+    "RegisterContextPOSIX_powerpc.cpp",
+    "RegisterContextPOSIX_ppc64le.cpp",
+    "RegisterContextPOSIX_riscv32.cpp",
+    "RegisterContextPOSIX_riscv64.cpp",
+    "RegisterContextPOSIX_s390x.cpp",
+    "RegisterContextPOSIX_x86.cpp",
+  ]
+}
