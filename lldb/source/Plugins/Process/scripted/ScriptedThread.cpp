@@ -10,7 +10,7 @@
 #include "ScriptedFrame.h"
 
 #include "Target/RegisterContextThreadMemory.h"
-#include "Plugins/Process/Utility/StopInfoMachException.h"
+#include "Target/StopInfoMachException.h"
 #include "lldb/Core/Debugger.h"
 #include "lldb/Target/OperatingSystem.h"
 #include "lldb/Target/Process.h"

@@ -21,7 +21,7 @@
 #include "lldb/Utility/State.h"
 #include "lldb/Utility/StreamString.h"
 
-#include "Plugins/Process/Utility/StopInfoMachException.h"
+#include "Target/StopInfoMachException.h"
 #include "ProcessKDP.h"
 #include "ProcessKDPLog.h"
 #include "RegisterContextKDP_arm.h"

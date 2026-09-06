@@ -55,7 +55,6 @@ add_lldb_library(lldbPluginProcessUtility
   RegisterContextPOSIX_riscv64.cpp
   RegisterContextPOSIX_s390x.cpp
   RegisterContextPOSIX_x86.cpp
-  StopInfoMachException.cpp
 
   LINK_COMPONENTS
     Support

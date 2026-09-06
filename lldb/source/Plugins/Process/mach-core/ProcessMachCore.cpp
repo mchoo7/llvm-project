@@ -29,7 +29,7 @@
 #include "llvm/Support/MathExtras.h"
 
 #include "ProcessMachCore.h"
-#include "Plugins/Process/Utility/StopInfoMachException.h"
+#include "Target/StopInfoMachException.h"
 #include "ThreadMachCore.h"
 
 // Needed for the plug-in names for the dynamic loaders.

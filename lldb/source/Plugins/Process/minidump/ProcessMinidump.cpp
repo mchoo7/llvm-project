@@ -37,7 +37,7 @@
 
 #include "Plugins/DynamicLoader/POSIX-DYLD/DynamicLoaderPOSIXDYLD.h"
 #include "Plugins/ObjectFile/Placeholder/ObjectFilePlaceholder.h"
-#include "Plugins/Process/Utility/StopInfoMachException.h"
+#include "Target/StopInfoMachException.h"
 
 #include <memory>
 #include <optional>

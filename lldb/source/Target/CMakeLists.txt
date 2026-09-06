@@ -63,6 +63,7 @@ add_lldb_library(lldbTarget
   StackID.cpp
   Statistics.cpp
   StopInfo.cpp
+  StopInfoMachException.cpp
   StructuredDataPlugin.cpp
   SystemRuntime.cpp
   Target.cpp
