@@ -44,13 +44,6 @@ add_lldb_library(lldbPluginProcessUtility
   InferiorCallPOSIX.cpp
   LinuxProcMaps.cpp
   MemoryTagManagerAArch64MTE.cpp
-  NativeProcessSoftwareSingleStep.cpp
-  NativeRegisterContextDBReg.cpp
-  NativeRegisterContextDBReg_arm.cpp
-  NativeRegisterContextDBReg_arm64.cpp
-  NativeRegisterContextDBReg_loongarch.cpp
-  NativeRegisterContextDBReg_x86.cpp
-  NativeRegisterContextRegisterInfo.cpp
   RegisterContextDarwin_arm.cpp
   RegisterContextDarwin_arm64.cpp
   RegisterContextDarwin_riscv32.cpp

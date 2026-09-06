@@ -12,7 +12,7 @@
 #define lldb_NativeRegisterContextLinux_x86_h
 
 #include "Plugins/Process/Linux/NativeRegisterContextLinux.h"
-#include "Plugins/Process/Utility/NativeRegisterContextDBReg_x86.h"
+#include "Plugins/Process/NativeCommon/NativeRegisterContextDBReg_x86.h"
 #include "Plugins/Process/Utility/RegisterInfoLinux_x86.h"
 #include "Plugins/Process/Utility/RegisterContext_x86.h"
 #include "Plugins/Process/Utility/lldb-x86-register-enums.h"

@@ -12,7 +12,7 @@
 
 #include "NativeRegisterContextWindows.h"
 
-#include "Plugins/Process/Utility/NativeRegisterContextDBReg_arm64.h"
+#include "Plugins/Process/NativeCommon/NativeRegisterContextDBReg_arm64.h"
 #include "Plugins/Process/Utility/RegisterInfoCommon_arm64.h"
 #include "Plugins/Process/Utility/lldb-arm64-register-enums.h"
 

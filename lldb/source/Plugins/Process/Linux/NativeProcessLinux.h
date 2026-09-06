@@ -12,7 +12,7 @@
 #include "Plugins/Process/Linux/IntelPTCollector.h"
 #include "Plugins/Process/Linux/NativeThreadLinux.h"
 #include "Plugins/Process/POSIX/NativeProcessELF.h"
-#include "Plugins/Process/Utility/NativeProcessSoftwareSingleStep.h"
+#include "Plugins/Process/NativeCommon/NativeProcessSoftwareSingleStep.h"
 #include "lldb/Host/Debug.h"
 #include "lldb/Host/HostThread.h"
 #include "lldb/Host/linux/Support.h"

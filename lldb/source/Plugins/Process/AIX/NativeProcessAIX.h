@@ -9,7 +9,7 @@
 #ifndef LLDB_SOURCE_PLUGINS_PROCESS_AIX_NATIVEPROCESSAIX_H
 #define LLDB_SOURCE_PLUGINS_PROCESS_AIX_NATIVEPROCESSAIX_H
 
-#include "Plugins/Process/Utility/NativeProcessSoftwareSingleStep.h"
+#include "Plugins/Process/NativeCommon/NativeProcessSoftwareSingleStep.h"
 #include "lldb/Host/Debug.h"
 #include "lldb/Host/common/NativeProcessProtocol.h"
 #include "lldb/Host/posix/Support.h"
