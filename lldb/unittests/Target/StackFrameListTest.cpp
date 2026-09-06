@@ -8,7 +8,7 @@
 
 #include "Plugins/ObjectFile/ELF/ObjectFileELF.h"
 #include "Plugins/Platform/Linux/PlatformLinux.h"
-#include "Plugins/Process/Utility/HistoryThread.h"
+#include "Target/HistoryThread.h"
 #include "Plugins/ScriptInterpreter/None/ScriptInterpreterNone.h"
 #include "Plugins/SymbolFile/DWARF/SymbolFileDWARF.h"
 #include "Plugins/TypeSystem/Clang/TypeSystemClang.h"

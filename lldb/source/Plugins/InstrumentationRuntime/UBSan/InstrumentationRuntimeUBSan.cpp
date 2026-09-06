@@ -8,7 +8,7 @@
 
 #include "InstrumentationRuntimeUBSan.h"
 
-#include "Plugins/Process/Utility/HistoryThread.h"
+#include "Target/HistoryThread.h"
 #include "lldb/Breakpoint/StoppointCallbackContext.h"
 #include "lldb/Core/Debugger.h"
 #include "lldb/Core/Module.h"

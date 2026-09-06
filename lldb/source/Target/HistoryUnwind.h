@@ -6,8 +6,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLDB_SOURCE_PLUGINS_PROCESS_UTILITY_HISTORYUNWIND_H
-#define LLDB_SOURCE_PLUGINS_PROCESS_UTILITY_HISTORYUNWIND_H
+#ifndef LLDB_SOURCE_TARGET_HISTORYUNWIND_H
+#define LLDB_SOURCE_TARGET_HISTORYUNWIND_H
 
 #include <vector>
 
@@ -41,4 +41,4 @@ private:
 
 } // namespace lldb_private
 
-#endif // LLDB_SOURCE_PLUGINS_PROCESS_UTILITY_HISTORYUNWIND_H
+#endif // LLDB_SOURCE_TARGET_HISTORYUNWIND_H

@@ -13,7 +13,7 @@
 
 #include "ScriptedProcess.h"
 
-#include "Plugins/Process/Utility/RegisterContextMemory.h"
+#include "Target/RegisterContextMemory.h"
 #include "lldb/Interpreter/ScriptInterpreter.h"
 #include "lldb/Target/DynamicRegisterInfo.h"
 #include "lldb/Target/Thread.h"

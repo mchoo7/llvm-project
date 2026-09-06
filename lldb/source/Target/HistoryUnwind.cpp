@@ -8,8 +8,8 @@
 
 #include "lldb/lldb-private.h"
 
-#include "Plugins/Process/Utility/HistoryUnwind.h"
-#include "Plugins/Process/Utility/RegisterContextHistory.h"
+#include "Target/HistoryUnwind.h"
+#include "Target/RegisterContextHistory.h"
 
 #include "lldb/Target/Process.h"
 #include "lldb/Target/StackFrame.h"

@@ -39,8 +39,6 @@ add_lldb_library(lldbPluginProcessUtility
   PARTIAL_SOURCES_INTENDED
   AuxVector.cpp
   GDBRemoteSignals.cpp
-  HistoryThread.cpp
-  HistoryUnwind.cpp
   InferiorCallPOSIX.cpp
   LinuxProcMaps.cpp
   MemoryTagManagerAArch64MTE.cpp
@@ -48,11 +46,8 @@ add_lldb_library(lldbPluginProcessUtility
   RegisterContextDarwin_arm64.cpp
   RegisterContextDarwin_riscv32.cpp
   RegisterContextDarwin_x86_64.cpp
-  RegisterContextDummy.cpp
-  RegisterContextHistory.cpp
   RegisterContextMach_arm.cpp
   RegisterContextMach_x86_64.cpp
-  RegisterContextMemory.cpp
   RegisterContextPOSIX_arm.cpp
   RegisterContextPOSIX_arm64.cpp
   RegisterContextPOSIX_loongarch64.cpp
@@ -62,9 +57,7 @@ add_lldb_library(lldbPluginProcessUtility
   RegisterContextPOSIX_riscv64.cpp
   RegisterContextPOSIX_s390x.cpp
   RegisterContextPOSIX_x86.cpp
-  RegisterContextThreadMemory.cpp
   StopInfoMachException.cpp
-  ThreadMemory.cpp
 
   LINK_COMPONENTS
     Support

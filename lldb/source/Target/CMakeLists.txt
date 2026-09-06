@@ -18,6 +18,8 @@ add_lldb_library(lldbTarget
   CoreFileMemoryRanges.cpp
   ExecutionContext.cpp
   FreeBSDSignals.cpp
+  HistoryThread.cpp
+  HistoryUnwind.cpp
   InstrumentationRuntime.cpp
   InstrumentationRuntimeStopInfo.cpp
   JITLoader.cpp
@@ -43,6 +45,10 @@ add_lldb_library(lldbTarget
   QueueItem.cpp
   QueueList.cpp
   RegisterContext.cpp
+  RegisterContextDummy.cpp
+  RegisterContextHistory.cpp
+  RegisterContextMemory.cpp
+  RegisterContextThreadMemory.cpp
   RegisterContextUnwind.cpp
   RegisterNumber.cpp
   RemoteAwarePlatform.cpp
@@ -65,6 +71,7 @@ add_lldb_library(lldbTarget
   Thread.cpp
   ThreadCollection.cpp
   ThreadList.cpp
+  ThreadMemory.cpp
   ThreadPlan.cpp
   ThreadPlanBase.cpp
   ThreadPlanCallFunction.cpp

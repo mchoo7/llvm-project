@@ -7,7 +7,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "ScriptedFrame.h"
-#include "Plugins/Process/Utility/RegisterContextMemory.h"
+#include "Target/RegisterContextMemory.h"
 
 #include "lldb/Core/Address.h"
 #include "lldb/Core/Debugger.h"

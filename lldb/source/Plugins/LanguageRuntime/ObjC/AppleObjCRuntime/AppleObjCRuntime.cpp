@@ -11,7 +11,7 @@
 #include "AppleObjCTrampolineHandler.h"
 #include "Plugins/Language/ObjC/NSString.h"
 #include "Plugins/LanguageRuntime/CPlusPlus/CPPLanguageRuntime.h"
-#include "Plugins/Process/Utility/HistoryThread.h"
+#include "Target/HistoryThread.h"
 #include "lldb/Breakpoint/BreakpointLocation.h"
 #include "lldb/Core/Module.h"
 #include "lldb/Core/ModuleList.h"

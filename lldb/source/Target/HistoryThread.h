@@ -6,8 +6,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLDB_SOURCE_PLUGINS_PROCESS_UTILITY_HISTORYTHREAD_H
-#define LLDB_SOURCE_PLUGINS_PROCESS_UTILITY_HISTORYTHREAD_H
+#ifndef LLDB_SOURCE_TARGET_HISTORYTHREAD_H
+#define LLDB_SOURCE_TARGET_HISTORYTHREAD_H
 
 #include <mutex>
 
@@ -89,4 +89,4 @@ protected:
 
 } // namespace lldb_private
 
-#endif // LLDB_SOURCE_PLUGINS_PROCESS_UTILITY_HISTORYTHREAD_H
+#endif // LLDB_SOURCE_TARGET_HISTORYTHREAD_H
