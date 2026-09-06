@@ -31,7 +31,7 @@
 #include "llvm/ADT/StringSet.h"
 #include "llvm/Support/FormatAdapters.h"
 
-#include "Plugins/Process/Utility/GDBRemoteSignals.h"
+#include "Plugins/Process/gdb-remote/GDBRemoteSignals.h"
 #include "Plugins/Process/gdb-remote/ProcessGDBRemote.h"
 #include <mutex>
 #include <optional>

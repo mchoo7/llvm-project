@@ -14,6 +14,18 @@ set(LLDB_PLUGINS
   lldbPluginProcessUtility
 )
 
+add_lldb_library(lldbGDBRemoteSupport NO_PLUGIN_DEPENDENCIES
+  PARTIAL_SOURCES_INTENDED
+  GDBRemoteSignals.cpp
+
+  LINK_COMPONENTS
+    Support
+  LINK_LIBS
+    lldbTarget
+  ALLOWED_INTERNAL_DEPENDENCIES
+    lldbTarget
+  )
+
 if(HAVE_LIBCOMPRESSION)
   set(LIBCOMPRESSION compression)
 endif()
@@ -23,6 +35,7 @@ if(LLVM_ENABLE_ZLIB)
 endif()
 
 add_lldb_library(lldbPluginProcessGDBRemote PLUGIN
+  PARTIAL_SOURCES_INTENDED
   GDBRemoteClientBase.cpp
   GDBRemoteCommunication.cpp
   GDBRemoteCommunicationClient.cpp
@@ -34,6 +47,7 @@ add_lldb_library(lldbPluginProcessGDBRemote PLUGIN
   LLDBServerAcceleratorPlugin.cpp
   GDBRemoteRegisterContext.cpp
   GDBRemoteRegisterFallback.cpp
+  InferiorCallPOSIX.cpp
   ProcessGDBRemote.cpp
   ProcessGDBRemoteLog.cpp
   ThreadGDBRemote.cpp
@@ -47,6 +61,7 @@ add_lldb_library(lldbPluginProcessGDBRemote PLUGIN
     lldbDataFormatters
     lldbHost
     lldbInterpreter
+    lldbGDBRemoteSupport
     lldbSymbol
     lldbTarget
     lldbUtility

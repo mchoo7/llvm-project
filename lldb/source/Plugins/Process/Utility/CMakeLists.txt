@@ -38,8 +38,6 @@ add_lldb_library(lldbRegisterSupport NO_PLUGIN_DEPENDENCIES
 add_lldb_library(lldbPluginProcessUtility
   PARTIAL_SOURCES_INTENDED
   AuxVector.cpp
-  GDBRemoteSignals.cpp
-  InferiorCallPOSIX.cpp
   LinuxProcMaps.cpp
   MemoryTagManagerAArch64MTE.cpp
   RegisterContextDarwin_arm.cpp

@@ -4,8 +4,8 @@ add_lldb_library(lldbPluginPlatformGDB PLUGIN
    LINK_LIBS
     lldbBreakpoint
     lldbCore
+    lldbGDBRemoteSupport
     lldbHost
     lldbTarget
-    lldbPluginProcessUtility
     lldbPluginProcessGDBRemote
   )

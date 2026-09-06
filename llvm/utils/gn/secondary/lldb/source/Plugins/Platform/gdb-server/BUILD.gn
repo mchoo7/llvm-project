@@ -8,7 +8,7 @@ static_library("gdb-server") {
     "//lldb/source/Breakpoint",
     "//lldb/source/Core",
     "//lldb/source/Host",
-    "//lldb/source/Plugins/Process/Utility",
+    "//lldb/source/Plugins/Process/gdb-remote:GDBRemoteSupport",
 
     #"//lldb/source/Plugins/Process/gdb-remote",  # 4-deep dependency cycle
     "//lldb/source/Target",

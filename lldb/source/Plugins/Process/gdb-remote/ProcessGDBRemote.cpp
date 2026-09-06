@@ -90,8 +90,8 @@
 
 #include "GDBRemoteRegisterContext.h"
 #include "GDBRemoteRegisterFallback.h"
-#include "Plugins/Process/Utility/GDBRemoteSignals.h"
-#include "Plugins/Process/Utility/InferiorCallPOSIX.h"
+#include "Plugins/Process/gdb-remote/GDBRemoteSignals.h"
+#include "Plugins/Process/gdb-remote/InferiorCallPOSIX.h"
 #include "Plugins/Process/Utility/StopInfoMachException.h"
 #include "ProcessGDBRemote.h"
 #include "ProcessGDBRemoteLog.h"

@@ -6,8 +6,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLDB_SOURCE_PLUGINS_PROCESS_UTILITY_INFERIORCALLPOSIX_H
-#define LLDB_SOURCE_PLUGINS_PROCESS_UTILITY_INFERIORCALLPOSIX_H
+#ifndef LLDB_SOURCE_PLUGINS_PROCESS_GDB_REMOTE_INFERIORCALLPOSIX_H
+#define LLDB_SOURCE_PLUGINS_PROCESS_GDB_REMOTE_INFERIORCALLPOSIX_H
 
 // Inferior execution of POSIX functions.
 
@@ -32,4 +32,4 @@ bool InferiorCallMunmap(Process *proc, lldb::addr_t addr, lldb::addr_t length);
 
 } // namespace lldb_private
 
-#endif // LLDB_SOURCE_PLUGINS_PROCESS_UTILITY_INFERIORCALLPOSIX_H
+#endif // LLDB_SOURCE_PLUGINS_PROCESS_GDB_REMOTE_INFERIORCALLPOSIX_H

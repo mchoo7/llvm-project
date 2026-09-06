@@ -59,8 +59,6 @@ static_library("Utility") {
   include_dirs = [ "//lldb/source" ]
   sources = [
     "AuxVector.cpp",
-    "GDBRemoteSignals.cpp",
-    "InferiorCallPOSIX.cpp",
     "LinuxProcMaps.cpp",
     "MemoryTagManagerAArch64MTE.cpp",
     "RegisterContextDarwin_arm.cpp",

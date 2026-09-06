@@ -9,12 +9,25 @@ lldb_tablegen("ProcessGDBRemotePropertiesEnum") {
   td_file = "ProcessGDBRemoteProperties.td"
 }
 
+static_library("GDBRemoteSupport") {
+  output_name = "lldbGDBRemoteSupport"
+  configs += [ "//llvm/utils/gn/build:lldb_code" ]
+  deps = [
+    "//lldb/source/Target",
+    "//llvm/lib/Support",
+  ]
+
+  include_dirs = [ "//lldb/source" ]
+  sources = [ "GDBRemoteSignals.cpp" ]
+}
+
 static_library("gdb-remote") {
   output_name = "lldbPluginProcessGDBRemote"
   configs += [ "//llvm/utils/gn/build:lldb_code" ]
   deps = [
     ":ProcessGDBRemoteProperties",
     ":ProcessGDBRemotePropertiesEnum",
+    ":GDBRemoteSupport",
     "//lldb/source/Breakpoint",
     "//lldb/source/Core",
     "//lldb/source/DataFormatters",
@@ -43,6 +56,7 @@ static_library("gdb-remote") {
     "GDBRemoteCommunicationServerPlatform.cpp",
     "GDBRemoteRegisterContext.cpp",
     "GDBRemoteRegisterFallback.cpp",
+    "InferiorCallPOSIX.cpp",
     "LLDBServerAcceleratorPlugin.cpp",
     "ProcessGDBRemote.cpp",
     "ProcessGDBRemoteLog.cpp",
