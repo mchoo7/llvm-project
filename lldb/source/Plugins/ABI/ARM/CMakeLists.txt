@@ -10,6 +10,5 @@ add_lldb_library(lldbPluginABIARM PLUGIN
     lldbCore
     lldbSymbol
     lldbTarget
-    lldbPluginProcessUtility
     lldbValueObject
   )

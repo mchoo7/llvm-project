@@ -35,30 +35,3 @@ static_library("RegisterSupport") {
     "RegisterTypeDetector_arm64.cpp",
   ]
 }
-
-static_library("Utility") {
-  output_name = "lldbPluginProcessUtility"
-  configs += [ "//llvm/utils/gn/build:lldb_code" ]
-  deps = [
-    ":RegisterSupport",
-    #"//lldb/source/Breakpoint", # 3-hop dependency cycle.
-    "//lldb/source/Core",
-    "//lldb/source/DataFormatters",
-    "//lldb/source/Expression",
-    "//lldb/source/Host",
-    "//lldb/source/Symbol",
-
-    #"//lldb/source/Target", # Dependency cycle.
-    "//lldb/source/Utility",
-    "//lldb/source/ValueObject",
-    "//llvm/lib/Support",
-    "//llvm/lib/TargetParser",
-  ]
-
-  # Uses source-relative includes for own headers.
-  include_dirs = [ "//lldb/source" ]
-  sources = [
-    "AuxVector.cpp",
-    "LinuxProcMaps.cpp",
-  ]
-}

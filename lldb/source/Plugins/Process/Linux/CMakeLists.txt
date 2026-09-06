@@ -23,6 +23,7 @@ add_lldb_library(lldbPluginProcessLinux
     Support
     TargetParser
   LINK_LIBS
+    lldbELFProcessSupport
     lldbNativeProcessSupport
     lldbCore
     lldbHost
@@ -30,5 +31,5 @@ add_lldb_library(lldbPluginProcessLinux
     lldbTarget
     lldbUtility
     lldbPluginProcessPOSIX
-    lldbPluginProcessUtility
+    lldbRegisterSupport
   )

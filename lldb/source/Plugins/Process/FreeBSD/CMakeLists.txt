@@ -12,10 +12,10 @@ add_lldb_library(lldbPluginProcessFreeBSD
   LINK_LIBS
     lldbNativeProcessSupport
     lldbProcessContextSupport
+    lldbRegisterSupport
     lldbHost
     lldbSymbol
     lldbTarget
     lldbUtility
     lldbPluginProcessPOSIX
-    lldbPluginProcessUtility
   )

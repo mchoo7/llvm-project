@@ -10,10 +10,6 @@ lldb_tablegen(ProcessGDBRemoteProperties.json -dump-json
   SOURCE ProcessGDBRemoteProperties.td
   TARGET LLDBPluginProcessGDBRemotePropertiesJsonGen)
 
-set(LLDB_PLUGINS
-  lldbPluginProcessUtility
-)
-
 add_lldb_library(lldbGDBRemoteSupport NO_PLUGIN_DEPENDENCIES
   PARTIAL_SOURCES_INTENDED
   GDBRemoteSignals.cpp
@@ -66,7 +62,6 @@ add_lldb_library(lldbPluginProcessGDBRemote PLUGIN
     lldbTarget
     lldbUtility
     ${LLDB_SYSTEM_LIBS}
-    ${LLDB_PLUGINS}
     ${LIBCOMPRESSION}
   )
 

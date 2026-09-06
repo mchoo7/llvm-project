@@ -10,5 +10,4 @@ add_lldb_library(lldbPluginObjectFileMinidump PLUGIN
     lldbSymbol
     lldbTarget
     lldbUtility
-    lldbPluginProcessUtility
   )

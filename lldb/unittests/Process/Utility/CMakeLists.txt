@@ -14,15 +14,6 @@ set(LLVM_OPTIONAL_SOURCES
   ${FREEBSD_SOURCES}
   ${NETBSD_SOURCES})
 
-add_lldb_unittest(ProcessUtilityTests
-  PARTIAL_SOURCES_INTENDED
-  LinuxProcMapsTest.cpp
-  CoreFileMemoryRangesTest.cpp
-
-  LINK_LIBS
-    lldbPluginProcessUtility
-    LLVMTestingSupport)
-
 add_lldb_unittest(RegisterSupportTests
   PARTIAL_SOURCES_INTENDED
   RegisterInfo_x86Test.cpp

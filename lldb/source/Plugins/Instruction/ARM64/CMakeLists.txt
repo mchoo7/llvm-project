@@ -7,5 +7,4 @@ add_lldb_library(lldbPluginInstructionARM64 PLUGIN
     lldbCore
     lldbInterpreter
     lldbSymbol
-    lldbPluginProcessUtility
   )

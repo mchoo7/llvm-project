@@ -6,5 +6,4 @@ add_lldb_library(lldbPluginMemoryHistoryASan PLUGIN
     lldbExpression
     lldbTarget
     lldbValueObject
-    lldbPluginProcessUtility
   )

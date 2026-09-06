@@ -14,5 +14,4 @@ add_lldb_library(lldbPluginInstructionMIPS64 PLUGIN
     lldbHost
     lldbInterpreter
     lldbSymbol
-    lldbPluginProcessUtility
   )

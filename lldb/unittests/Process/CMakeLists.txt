@@ -1,4 +1,5 @@
 add_subdirectory(gdb-remote)
+add_subdirectory(ELFCommon)
 if (CMAKE_SYSTEM_NAME MATCHES "Linux|Android")
   add_subdirectory(elf-core)
   add_subdirectory(Linux)

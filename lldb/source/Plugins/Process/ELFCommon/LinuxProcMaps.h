@@ -6,8 +6,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLDB_SOURCE_PLUGINS_PROCESS_UTILITY_LINUXPROCMAPS_H
-#define LLDB_SOURCE_PLUGINS_PROCESS_UTILITY_LINUXPROCMAPS_H
+#ifndef LLDB_SOURCE_PLUGINS_PROCESS_ELFCOMMON_LINUXPROCMAPS_H
+#define LLDB_SOURCE_PLUGINS_PROCESS_ELFCOMMON_LINUXPROCMAPS_H
 
 #include "lldb/lldb-forward.h"
 #include "llvm/ADT/StringRef.h"
@@ -24,4 +24,4 @@ void ParseLinuxSMapRegions(llvm::StringRef linux_smap,
 
 } // namespace lldb_private
 
-#endif // LLDB_SOURCE_PLUGINS_PROCESS_UTILITY_LINUXPROCMAPS_H
+#endif // LLDB_SOURCE_PLUGINS_PROCESS_ELFCOMMON_LINUXPROCMAPS_H

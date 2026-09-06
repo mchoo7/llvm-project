@@ -8,5 +8,4 @@ add_lldb_library(lldbPluginABILoongArch PLUGIN
     lldbCore
     lldbSymbol
     lldbTarget
-    lldbPluginProcessUtility
   )

@@ -11,7 +11,7 @@
 #include "Plugins/Process/Linux/NativeThreadLinux.h"
 #include "Plugins/Process/Linux/Procfs.h"
 #include "Plugins/Process/POSIX/ProcessPOSIXLog.h"
-#include "Plugins/Process/Utility/LinuxProcMaps.h"
+#include "Plugins/Process/ELFCommon/LinuxProcMaps.h"
 #include "lldb/Core/ModuleSpec.h"
 #include "lldb/Host/Host.h"
 #include "lldb/Host/HostProcess.h"

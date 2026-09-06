@@ -10,7 +10,7 @@
 #define liblldb_NativeProcessELF_H_
 
 #include "Plugins/Process/POSIX/ProcessPOSIXLog.h"
-#include "Plugins/Process/Utility/AuxVector.h"
+#include "Plugins/Process/ELFCommon/AuxVector.h"
 #include "lldb/Host/common/NativeProcessProtocol.h"
 #include "lldb/Target/MemoryRegionInfo.h"
 #include "llvm/BinaryFormat/ELF.h"

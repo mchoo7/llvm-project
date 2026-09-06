@@ -29,12 +29,12 @@ if ("RISCV" IN_LIST LLVM_TARGETS_TO_BUILD)
       Support
       ${LLVM_TARGETS_TO_BUILD}
     LINK_LIBS
+      lldbRegisterSupport
       lldbCore
       lldbSymbol
       lldbTarget
       lldbPluginInstructionRISCV
       lldbPluginDisassemblerLLVMC
       lldbPluginUnwindAssemblyInstEmulation
-      lldbPluginProcessUtility
     )
 endif()

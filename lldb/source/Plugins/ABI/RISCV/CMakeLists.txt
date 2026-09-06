@@ -8,6 +8,5 @@ add_lldb_library(lldbPluginABIRISCV PLUGIN
     lldbCore
     lldbSymbol
     lldbTarget
-    lldbPluginProcessUtility
     lldbValueObject
   )

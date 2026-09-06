@@ -13,7 +13,6 @@ add_lldb_unittest(ProcessGdbRemoteTests
     lldbCore
     lldbHost
     lldbPluginPlatformMacOSX
-    lldbPluginProcessUtility
     lldbPluginProcessGDBRemote
 
     LLVMTestingSupport

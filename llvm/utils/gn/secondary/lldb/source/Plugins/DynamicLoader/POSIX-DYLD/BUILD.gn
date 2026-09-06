@@ -10,7 +10,7 @@ static_library("POSIX-DYLD") {
     "//lldb/source/Host",
 
     #"//lldb/source/Plugins/Process/elf-core", # Dependency cycle.
-    "//lldb/source/Plugins/Process/Utility",
+    "//lldb/source/Plugins/Process/ELFCommon",
     "//lldb/source/Symbol",
     "//lldb/source/Target",
     "//llvm/lib/Support",

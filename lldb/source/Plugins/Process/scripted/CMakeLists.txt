@@ -11,5 +11,4 @@ add_lldb_library(lldbPluginScriptedProcess PLUGIN
     lldbCore
     lldbTarget
     lldbUtility
-    lldbPluginProcessUtility
   )

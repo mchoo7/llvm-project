@@ -22,6 +22,7 @@ elseif (CMAKE_SYSTEM_NAME MATCHES "Windows")
 endif()
 
 add_subdirectory(FreeBSD-Kernel-Core)
+add_subdirectory(ELFCommon)
 add_subdirectory(MacOSX-Kernel)
 add_subdirectory(Common)
 add_subdirectory(NativeCommon)

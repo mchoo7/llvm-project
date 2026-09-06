@@ -31,6 +31,5 @@ if (disas_srcs)
       lldbSymbol
       lldbTarget
       lldbPluginDisassemblerLLVMC
-      lldbPluginProcessUtility
     )
 endif()

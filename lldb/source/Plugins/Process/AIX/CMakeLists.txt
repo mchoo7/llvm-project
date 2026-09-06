@@ -8,13 +8,13 @@ add_lldb_library(lldbPluginProcessAIX
     Support
   LINK_LIBS
     lldbNativeProcessSupport
+    lldbRegisterSupport
     lldbCore
     lldbHost
     lldbSymbol
     lldbTarget
     lldbUtility
     lldbPluginProcessPOSIX
-    lldbPluginProcessUtility
   )
 
 target_compile_definitions(lldbPluginProcessAIX PRIVATE "-D_ALL_SOURCE")

@@ -13,7 +13,7 @@
 #include <memory>
 
 #include "DYLDRendezvous.h"
-#include "Plugins/Process/Utility/AuxVector.h"
+#include "Plugins/Process/ELFCommon/AuxVector.h"
 #include "lldb/Breakpoint/StoppointCallbackContext.h"
 #include "lldb/Core/ModuleList.h"
 #include "lldb/Target/DynamicLoader.h"

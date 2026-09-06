@@ -34,7 +34,6 @@ static_library("gdb-remote") {
     "//lldb/source/Host",
     "//lldb/source/Interpreter",
     "//lldb/source/Plugins/Platform/MacOSX",
-    "//lldb/source/Plugins/Process/Utility",
     "//lldb/source/Symbol",
     "//lldb/source/Target",
     "//lldb/source/Utility",

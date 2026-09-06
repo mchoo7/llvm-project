@@ -6,6 +6,6 @@ add_lldb_library(lldbPluginProcessPOSIX
   LINK_COMPONENTS
     Support
   LINK_LIBS
-    lldbPluginProcessUtility
+    lldbELFProcessSupport
     lldbUtility
   )

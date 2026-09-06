@@ -2,7 +2,7 @@ static_library("POSIX") {
   output_name = "lldbPluginProcessPOSIX"
   configs += [ "//llvm/utils/gn/build:lldb_code" ]
   deps = [
-    "//lldb/source/Plugins/Process/Utility",
+    "//lldb/source/Plugins/Process/ELFCommon",
     "//lldb/source/Utility",
     "//llvm/lib/Support",
   ]

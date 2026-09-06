@@ -13,10 +13,11 @@ add_lldb_library(lldbPluginProcessMinidump PLUGIN
     Object
     Support
   LINK_LIBS
+    lldbELFProcessSupport
+    lldbRegisterSupport
     lldbCore
     lldbTarget
     lldbUtility
-    lldbPluginProcessUtility
     lldbPluginProcessElfCore
     lldbPluginObjectFilePlaceholder
   )

@@ -9,7 +9,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
-#include "Plugins/Process/Utility/LinuxProcMaps.h"
+#include "Plugins/Process/ELFCommon/LinuxProcMaps.h"
 #include "lldb/Target/MemoryRegionInfo.h"
 #include "lldb/Utility/Status.h"
 #include <tuple>

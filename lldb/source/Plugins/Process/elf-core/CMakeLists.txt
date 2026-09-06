@@ -17,11 +17,12 @@ add_lldb_library(lldbPluginProcessElfCore PLUGIN
     BinaryFormat
     Support
   LINK_LIBS
+    lldbELFProcessSupport
     lldbProcessContextSupport
+    lldbRegisterSupport
     lldbCore
     lldbTarget
     lldbPluginDynamicLoaderPosixDYLD
     lldbPluginObjectFilePlaceholder
     lldbPluginObjectFileELF
-    lldbPluginProcessUtility
   )

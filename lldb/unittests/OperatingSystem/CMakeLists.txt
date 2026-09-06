@@ -13,7 +13,6 @@ add_lldb_unittest(ProcessGdbRemoteTests
     lldbCore
     lldbHost
     lldbInterpreter
-    lldbPluginProcessUtility
     lldbSymbol
     lldbTarget
     lldbValueObject

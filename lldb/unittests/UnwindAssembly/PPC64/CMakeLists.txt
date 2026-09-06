@@ -10,5 +10,4 @@ add_lldb_unittest(PPC64InstEmulationTests
     lldbPluginUnwindAssemblyInstEmulation
     lldbPluginDisassemblerLLVMC
     lldbPluginInstructionPPC64
-    lldbPluginProcessUtility
   )

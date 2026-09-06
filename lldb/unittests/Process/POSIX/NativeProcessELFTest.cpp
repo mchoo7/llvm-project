@@ -9,7 +9,7 @@
 #include "TestingSupport/Host/NativeProcessTestUtils.h"
 
 #include "Plugins/Process/POSIX/NativeProcessELF.h"
-#include "Plugins/Process/Utility/AuxVector.h"
+#include "Plugins/Process/ELFCommon/AuxVector.h"
 #include "lldb/Utility/DataBufferHeap.h"
 #include "lldb/Utility/DataEncoder.h"
 #include "lldb/Utility/DataExtractor.h"

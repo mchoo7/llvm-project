@@ -10,7 +10,7 @@
 #include "NtStructures.h"
 #include "RegisterContextMinidump_x86_32.h"
 
-#include "Plugins/Process/Utility/LinuxProcMaps.h"
+#include "Plugins/Process/ELFCommon/LinuxProcMaps.h"
 #include "lldb/Utility/LLDBAssert.h"
 #include "lldb/Utility/LLDBLog.h"
 #include "lldb/Utility/Log.h"

@@ -4,7 +4,6 @@ add_lldb_library(lldbPluginArchitecturePPC64 PLUGIN
   LINK_COMPONENTS
     Support
   LINK_LIBS
-    lldbPluginProcessUtility
     lldbCore
     lldbTarget
     lldbUtility

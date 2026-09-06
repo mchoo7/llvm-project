@@ -4,8 +4,8 @@ add_lldb_library(lldbPluginInstructionLoongArch PLUGIN
   LINK_COMPONENTS
     Support
   LINK_LIBS
+    lldbRegisterSupport
     lldbCore
     lldbInterpreter
-    lldbPluginProcessUtility
     lldbSymbol
   )

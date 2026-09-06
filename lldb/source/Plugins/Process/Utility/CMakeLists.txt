@@ -1,7 +1,4 @@
-set_property(DIRECTORY PROPERTY LLDB_PLUGIN_KIND ProcessUtility)
-
 add_lldb_library(lldbRegisterSupport NO_PLUGIN_DEPENDENCIES
-  PARTIAL_SOURCES_INTENDED
   RegisterContext_x86.cpp
   RegisterInfoFreeBSD_i386.cpp
   RegisterInfoFreeBSD_powerpc.cpp
@@ -33,25 +30,4 @@ add_lldb_library(lldbRegisterSupport NO_PLUGIN_DEPENDENCIES
     lldbUtility
   ALLOWED_INTERNAL_DEPENDENCIES
     lldbUtility
-  )
-
-add_lldb_library(lldbPluginProcessUtility
-  PARTIAL_SOURCES_INTENDED
-  AuxVector.cpp
-  LinuxProcMaps.cpp
-
-  LINK_COMPONENTS
-    Support
-    TargetParser
-  LINK_LIBS
-    lldbRegisterSupport
-    lldbBreakpoint
-    lldbCore
-    lldbDataFormatters
-    lldbExpression
-    lldbHost
-    lldbSymbol
-    lldbTarget
-    lldbUtility
-    lldbValueObject
   )

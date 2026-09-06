@@ -10,7 +10,6 @@ add_lldb_unittest(LLDBMinidumpTests
     lldbCore
     lldbHost
     lldbTarget
-    lldbPluginProcessUtility
     lldbPluginProcessMinidump
     lldbUtilityHelpers
     LLVMTestingSupport

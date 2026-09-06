@@ -10,5 +10,4 @@ add_lldb_unittest(Arm64InstEmulationTests
     lldbPluginUnwindAssemblyInstEmulation
     lldbPluginDisassemblerLLVMC
     lldbPluginInstructionARM64
-    lldbPluginProcessUtility
   )

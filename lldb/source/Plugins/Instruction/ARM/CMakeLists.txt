@@ -10,5 +10,4 @@ add_lldb_library(lldbPluginInstructionARM PLUGIN
     lldbInterpreter
     lldbSymbol
     lldbTarget
-    lldbPluginProcessUtility
   )

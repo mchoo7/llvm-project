@@ -15,6 +15,5 @@ add_lldb_library(lldbPluginSystemRuntimeMacOSX PLUGIN
     lldbTarget
     lldbUtility
     lldbValueObject
-    lldbPluginProcessUtility
     lldbPluginTypeSystemClang
   )

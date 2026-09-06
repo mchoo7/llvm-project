@@ -5,7 +5,6 @@ static_library("ARM") {
     "//lldb/source/Core",
     "//lldb/source/Host",
     "//lldb/source/Interpreter",
-    "//lldb/source/Plugins/Process/Utility",
     "//lldb/source/Symbol",
     "//lldb/source/Target",
     "//llvm/lib/Support",

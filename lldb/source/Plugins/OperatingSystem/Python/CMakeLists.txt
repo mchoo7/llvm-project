@@ -7,5 +7,4 @@ add_lldb_library(lldbPluginOperatingSystemPython PLUGIN
     lldbSymbol
     lldbTarget
     lldbValueObject
-    lldbPluginProcessUtility
   )
