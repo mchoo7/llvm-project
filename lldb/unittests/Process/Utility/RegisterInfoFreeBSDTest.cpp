@@ -20,7 +20,7 @@
 #include "Plugins/Process/Utility/RegisterInfoFreeBSD_i386.h"
 #include "Plugins/Process/Utility/RegisterInfoFreeBSD_powerpc.h"
 #include "Plugins/Process/Utility/RegisterInfoFreeBSD_x86_64.h"
-#include "Plugins/Process/Utility/RegisterContextPOSIX_powerpc.h"
+#include "Plugins/Process/Common/RegisterContext/POSIX/RegisterContextPOSIX_powerpc.h"
 #include "Plugins/Process/Utility/RegisterInfoCommon_arm.h"
 #include "Plugins/Process/Utility/RegisterInfoCommon_arm64.h"
 #include "Plugins/Process/Utility/lldb-arm-register-enums.h"

@@ -6,12 +6,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLDB_SOURCE_PLUGINS_PROCESS_UTILITY_REGISTERCONTEXTPOSIX_LOONGARCH64_H
-#define LLDB_SOURCE_PLUGINS_PROCESS_UTILITY_REGISTERCONTEXTPOSIX_LOONGARCH64_H
+#ifndef LLDB_SOURCE_PLUGINS_PROCESS_COMMON_REGISTERCONTEXT_POSIX_REGISTERCONTEXTPOSIX_LOONGARCH64_H
+#define LLDB_SOURCE_PLUGINS_PROCESS_COMMON_REGISTERCONTEXT_POSIX_REGISTERCONTEXTPOSIX_LOONGARCH64_H
 
-#include "RegisterInfoInterface.h"
-#include "RegisterInfoCommon_loongarch64.h"
-#include "lldb-loongarch-register-enums.h"
+#include "Plugins/Process/Utility/RegisterInfoInterface.h"
+#include "Plugins/Process/Utility/RegisterInfoCommon_loongarch64.h"
+#include "Plugins/Process/Utility/lldb-loongarch-register-enums.h"
 #include "lldb/Target/RegisterContext.h"
 #include "lldb/Utility/Log.h"
 
@@ -68,4 +68,4 @@ protected:
   virtual bool WriteLASX() { return false; }
 };
 
-#endif // LLDB_SOURCE_PLUGINS_PROCESS_UTILITY_REGISTERCONTEXTPOSIX_LOONGARCH64_H
+#endif // LLDB_SOURCE_PLUGINS_PROCESS_COMMON_REGISTERCONTEXT_POSIX_REGISTERCONTEXTPOSIX_LOONGARCH64_H

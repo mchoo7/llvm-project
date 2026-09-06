@@ -6,13 +6,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLDB_SOURCE_PLUGINS_PROCESS_UTILITY_REGISTERCONTEXTPOSIX_X86_H
-#define LLDB_SOURCE_PLUGINS_PROCESS_UTILITY_REGISTERCONTEXTPOSIX_X86_H
+#ifndef LLDB_SOURCE_PLUGINS_PROCESS_COMMON_REGISTERCONTEXT_POSIX_REGISTERCONTEXTPOSIX_X86_H
+#define LLDB_SOURCE_PLUGINS_PROCESS_COMMON_REGISTERCONTEXT_POSIX_REGISTERCONTEXTPOSIX_X86_H
 
-#include "RegisterContext_x86.h"
-#include "RegisterInfoInterface.h"
-#include "RegisterInfos_x86_64_with_base_shared.h"
-#include "lldb-x86-register-enums.h"
+#include "Plugins/Process/Utility/RegisterContext_x86.h"
+#include "Plugins/Process/Utility/RegisterInfoInterface.h"
+#include "Plugins/Process/Utility/RegisterInfos_x86_64_with_base_shared.h"
+#include "Plugins/Process/Utility/lldb-x86-register-enums.h"
 #include "lldb/Target/RegisterContext.h"
 #include "lldb/Utility/Log.h"
 
@@ -89,4 +89,4 @@ protected:
   virtual lldb_private::RegInfo &GetRegInfo();
 };
 
-#endif // LLDB_SOURCE_PLUGINS_PROCESS_UTILITY_REGISTERCONTEXTPOSIX_X86_H
+#endif // LLDB_SOURCE_PLUGINS_PROCESS_COMMON_REGISTERCONTEXT_POSIX_REGISTERCONTEXTPOSIX_X86_H

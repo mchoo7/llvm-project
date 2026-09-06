@@ -6,12 +6,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLDB_SOURCE_PLUGINS_PROCESS_UTILITY_REGISTERCONTEXTPOSIX_RISCV32_H
-#define LLDB_SOURCE_PLUGINS_PROCESS_UTILITY_REGISTERCONTEXTPOSIX_RISCV32_H
+#ifndef LLDB_SOURCE_PLUGINS_PROCESS_COMMON_REGISTERCONTEXT_POSIX_REGISTERCONTEXTPOSIX_RISCV32_H
+#define LLDB_SOURCE_PLUGINS_PROCESS_COMMON_REGISTERCONTEXT_POSIX_REGISTERCONTEXTPOSIX_RISCV32_H
 
-#include "RegisterInfoInterface.h"
-#include "RegisterInfoCommon_riscv32.h"
-#include "lldb-riscv-register-enums.h"
+#include "Plugins/Process/Utility/RegisterInfoInterface.h"
+#include "Plugins/Process/Utility/RegisterInfoCommon_riscv32.h"
+#include "Plugins/Process/Utility/lldb-riscv-register-enums.h"
 #include "lldb/Target/RegisterContext.h"
 #include "lldb/Utility/Log.h"
 
@@ -60,4 +60,4 @@ protected:
   virtual bool WriteFPR() = 0;
 };
 
-#endif // LLDB_SOURCE_PLUGINS_PROCESS_UTILITY_REGISTERCONTEXTPOSIX_RISCV32_H
+#endif // LLDB_SOURCE_PLUGINS_PROCESS_COMMON_REGISTERCONTEXT_POSIX_REGISTERCONTEXTPOSIX_RISCV32_H

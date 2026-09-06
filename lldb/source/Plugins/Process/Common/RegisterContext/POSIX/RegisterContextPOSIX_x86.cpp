@@ -21,7 +21,7 @@
 #include "llvm/Support/Compiler.h"
 
 #include "RegisterContextPOSIX_x86.h"
-#include "RegisterContext_x86.h"
+#include "Plugins/Process/Utility/RegisterContext_x86.h"
 
 using namespace lldb_private;
 using namespace lldb;

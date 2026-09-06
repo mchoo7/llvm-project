@@ -7,7 +7,8 @@
 //===---------------------------------------------------------------------===//
 
 #include "RegisterInfoFreeBSD_powerpc.h"
-#include "RegisterContextPOSIX_powerpc.h"
+#include "RegisterContext_powerpc.h"
+#include "lldb/lldb-defines.h"
 #include <vector>
 
 using namespace lldb_private;

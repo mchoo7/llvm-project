@@ -6,11 +6,11 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLDB_SOURCE_PLUGINS_PROCESS_UTILITY_REGISTERCONTEXTPOSIX_ARM_H
-#define LLDB_SOURCE_PLUGINS_PROCESS_UTILITY_REGISTERCONTEXTPOSIX_ARM_H
+#ifndef LLDB_SOURCE_PLUGINS_PROCESS_COMMON_REGISTERCONTEXT_POSIX_REGISTERCONTEXTPOSIX_ARM_H
+#define LLDB_SOURCE_PLUGINS_PROCESS_COMMON_REGISTERCONTEXT_POSIX_REGISTERCONTEXTPOSIX_ARM_H
 
-#include "RegisterInfoInterface.h"
-#include "RegisterInfoCommon_arm.h"
+#include "Plugins/Process/Utility/RegisterInfoInterface.h"
+#include "Plugins/Process/Utility/RegisterInfoCommon_arm.h"
 #include "lldb/Target/RegisterContext.h"
 #include "lldb/Utility/Log.h"
 
@@ -59,4 +59,4 @@ protected:
   virtual bool WriteFPR() = 0;
 };
 
-#endif // LLDB_SOURCE_PLUGINS_PROCESS_UTILITY_REGISTERCONTEXTPOSIX_ARM_H
+#endif // LLDB_SOURCE_PLUGINS_PROCESS_COMMON_REGISTERCONTEXT_POSIX_REGISTERCONTEXTPOSIX_ARM_H
