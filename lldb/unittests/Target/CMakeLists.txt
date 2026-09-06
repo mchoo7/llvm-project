@@ -7,6 +7,7 @@ add_lldb_unittest(TargetTests
   MemoryRegionInfoTest.cpp
   MemoryTest.cpp
   MemoryTagMapTest.cpp
+  MemoryTagManagerAArch64MTETest.cpp
   ModuleCacheTest.cpp
   PathMappingListTest.cpp
   ProcessPropertiesTest.cpp
@@ -30,7 +31,6 @@ add_lldb_unittest(TargetTests
       lldbPluginPlatformLinux
       lldbPluginPlatformMacOSX
       lldbPluginPlatformAndroid
-      lldbPluginProcessUtility
       lldbPluginRegisterTypeBuilderClang
       lldbPluginScriptInterpreterNone
       lldbPluginSymbolFileBreakpad

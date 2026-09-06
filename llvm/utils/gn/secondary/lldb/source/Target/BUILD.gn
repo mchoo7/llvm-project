@@ -53,6 +53,7 @@ static_library("Target") {
     "MemoryRegionInfo.cpp",
     "MemoryRegionInfoCache.cpp",
     "MemoryTagMap.cpp",
+    "MemoryTagManagerAArch64MTE.cpp",
     "ModuleCache.cpp",
     "NetBSDSignals.cpp",
     "OpenBSDSignals.cpp",

@@ -7,7 +7,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "lldb/Target/MemoryTagMap.h"
-#include "Plugins/Process/Utility/MemoryTagManagerAArch64MTE.h"
+#include "Target/MemoryTagManagerAArch64MTE.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include <optional>

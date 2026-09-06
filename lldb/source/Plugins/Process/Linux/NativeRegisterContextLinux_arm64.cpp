@@ -15,7 +15,7 @@
 #include "Plugins/Process/Linux/NativeRegisterContextLinux_arm64dbreg.h"
 #include "Plugins/Process/Linux/Procfs.h"
 #include "Plugins/Process/POSIX/ProcessPOSIXLog.h"
-#include "Plugins/Process/Utility/MemoryTagManagerAArch64MTE.h"
+#include "Target/MemoryTagManagerAArch64MTE.h"
 #include "Plugins/Process/Utility/RegisterInfoCommon_arm64.h"
 #include "Plugins/Process/Utility/RegisterTypeDetector_arm64.h"
 #include "lldb/Host/HostInfo.h"

@@ -39,7 +39,6 @@ add_lldb_library(lldbPluginProcessUtility
   PARTIAL_SOURCES_INTENDED
   AuxVector.cpp
   LinuxProcMaps.cpp
-  MemoryTagManagerAArch64MTE.cpp
 
   LINK_COMPONENTS
     Support

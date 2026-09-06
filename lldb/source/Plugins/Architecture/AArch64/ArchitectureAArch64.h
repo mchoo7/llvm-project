@@ -9,7 +9,7 @@
 #ifndef LLDB_SOURCE_PLUGINS_ARCHITECTURE_AARCH64_ARCHITECTUREAARCH64_H
 #define LLDB_SOURCE_PLUGINS_ARCHITECTURE_AARCH64_ARCHITECTUREAARCH64_H
 
-#include "Plugins/Process/Utility/MemoryTagManagerAArch64MTE.h"
+#include "Target/MemoryTagManagerAArch64MTE.h"
 #include "lldb/Core/Architecture.h"
 
 namespace lldb_private {

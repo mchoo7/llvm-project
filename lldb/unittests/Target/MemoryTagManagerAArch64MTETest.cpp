@@ -6,7 +6,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "Plugins/Process/Utility/MemoryTagManagerAArch64MTE.h"
+#include "Target/MemoryTagManagerAArch64MTE.h"
 #include "llvm/Testing/Support/Error.h"
 #include "gtest/gtest.h"
 

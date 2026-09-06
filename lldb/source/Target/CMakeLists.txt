@@ -32,6 +32,7 @@ add_lldb_library(lldbTarget
   MemoryRegionInfo.cpp
   MemoryRegionInfoCache.cpp
   MemoryTagMap.cpp
+  MemoryTagManagerAArch64MTE.cpp
   ModuleCache.cpp
   NetBSDSignals.cpp
   OperatingSystem.cpp

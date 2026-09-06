@@ -60,6 +60,5 @@ static_library("Utility") {
   sources = [
     "AuxVector.cpp",
     "LinuxProcMaps.cpp",
-    "MemoryTagManagerAArch64MTE.cpp",
   ]
 }

@@ -12,7 +12,7 @@
 #include "Plugins/Process/Linux/NativeRegisterContextLinux.h"
 #include "Plugins/Process/Linux/SingleStepCheck.h"
 #include "Plugins/Process/POSIX/CrashReason.h"
-#include "Plugins/Process/Utility/MemoryTagManagerAArch64MTE.h"
+#include "Target/MemoryTagManagerAArch64MTE.h"
 #include "lldb/Host/HostNativeThread.h"
 #include "lldb/Host/linux/Support.h"
 #include "lldb/Utility/LLDBAssert.h"
