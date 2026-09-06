@@ -40,12 +40,6 @@ add_lldb_library(lldbPluginProcessUtility
   AuxVector.cpp
   LinuxProcMaps.cpp
   MemoryTagManagerAArch64MTE.cpp
-  RegisterContextDarwin_arm.cpp
-  RegisterContextDarwin_arm64.cpp
-  RegisterContextDarwin_riscv32.cpp
-  RegisterContextDarwin_x86_64.cpp
-  RegisterContextMach_arm.cpp
-  RegisterContextMach_x86_64.cpp
 
   LINK_COMPONENTS
     Support
