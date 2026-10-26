@@ -1082,6 +1082,14 @@ def checkPexpectSupport():
         if configuration.verbose:
             print("pexpect tests will be skipped because of unsupported platform")
         configuration.skip_categories.append("pexpect")
+        return
+
+    try:
+        import pexpect
+    except ImportError:
+        if configuration.verbose:
+            print("pexpect tests will be skipped because the pexpect module is missing")
+        configuration.skip_categories.append("pexpect")
 
 
 def checkDAPSupport():
