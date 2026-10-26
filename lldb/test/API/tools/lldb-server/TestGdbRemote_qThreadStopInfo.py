@@ -64,7 +64,6 @@ class TestGdbRemote_qThreadStopInfo(gdbremote_testcase.GdbRemoteTestCaseBase):
         else:
             self.assertEqual(len(stop_replies), self.THREAD_COUNT)
 
-    @expectedFailureAll(oslist=["freebsd"], bugnumber="llvm.org/pr48418")
     @expectedFailureNetBSD
     def test_qThreadStopInfo_only_reports_one_thread_stop_reason_during_interrupt(self):
         self.build()

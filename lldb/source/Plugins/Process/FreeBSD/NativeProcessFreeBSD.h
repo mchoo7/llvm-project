@@ -112,7 +112,6 @@ private:
 
   void MonitorCallback(lldb::pid_t pid, int signal);
   void MonitorExited(lldb::pid_t pid, WaitStatus status);
-  void MonitorSIGSTOP(lldb::pid_t pid);
   void MonitorSIGTRAP(lldb::pid_t pid);
   void MonitorSignal(lldb::pid_t pid, int signal);
   void MonitorClone(::pid_t child_pid, bool is_vfork,

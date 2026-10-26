@@ -177,8 +177,6 @@ void NativeProcessFreeBSD::MonitorCallback(lldb::pid_t pid, int signal) {
   switch (signal) {
   case SIGTRAP:
     return MonitorSIGTRAP(pid);
-  case SIGSTOP:
-    return MonitorSIGSTOP(pid);
   default:
     return MonitorSignal(pid, signal);
   }
@@ -196,15 +194,6 @@ void NativeProcessFreeBSD::MonitorExited(lldb::pid_t pid, WaitStatus status) {
 
   // Notify delegate that our process has exited.
   SetState(StateType::eStateExited, true);
-}
-
-void NativeProcessFreeBSD::MonitorSIGSTOP(lldb::pid_t pid) {
-  /* Stop all Threads attached to Process */
-  for (const auto &thread : m_threads) {
-    static_cast<NativeThreadFreeBSD &>(*thread).SetStoppedBySignal(SIGSTOP,
-                                                                   nullptr);
-  }
-  SetState(StateType::eStateStopped, true);
 }
 
 void NativeProcessFreeBSD::MonitorSIGTRAP(lldb::pid_t pid) {
