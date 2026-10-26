@@ -1,3 +1,4 @@
+#include <atomic>
 #include <condition_variable>
 #include <iostream>
 #include <mutex>
@@ -7,9 +8,12 @@ std::mutex mtx;
 std::condition_variable cv;
 int ready_thread_id = 0;
 int signal_main_thread = 0;
+std::atomic<bool> first_worker_started{false};
 
 void worker(int id) {
   std::cout << "Worker " << id << " executing..." << std::endl;
+  if (id == 1)
+    first_worker_started = true;
 
   // lldb test should change signal_main_thread to true to break the loop.
   while (!signal_main_thread) {
@@ -37,6 +41,11 @@ void deadlock_func(std::unique_lock<std::mutex> &lock) {
 
 int simulate_thread() {
   std::thread t1(worker, 1);
+  // pthread_create can return before the worker reports its debugger birth
+  // event. Make sure it is tracked before the test requests a single-thread
+  // step, so it can be suspended along with the other non-stepping threads.
+  while (!first_worker_started.load())
+    std::this_thread::yield();
 
   std::unique_lock<std::mutex> lock(mtx);
   deadlock_func(lock); // Set breakpoint1 here
