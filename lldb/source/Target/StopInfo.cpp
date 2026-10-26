@@ -394,9 +394,14 @@ protected:
         size_t num_constituents = m_async_stopped_locs.GetSize();
 
         if (num_constituents == 0) {
-          m_should_stop = true;
-          actually_hit_any_locations = true;  // We're going to stop, don't 
-                                              // change the stop info.
+          // A synchronous callback may already have said to continue, leaving
+          // no locations to process asynchronously. Preserve that decision
+          // when another thread's breakpoint causes a public stop.
+          if (!m_should_stop_is_valid)
+            m_should_stop = true;
+          // The breakpoint was hit even if its synchronous callback said to
+          // continue, so keep the stop info.
+          actually_hit_any_locations = true;
         } else {
           // We go through each location, and test first its precondition -
           // this overrides everything.  Note, we only do this once per
