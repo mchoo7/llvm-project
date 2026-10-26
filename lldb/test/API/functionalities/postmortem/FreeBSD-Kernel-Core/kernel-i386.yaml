@@ -126,3 +126,22 @@ Symbols:
     Binding:         STB_GLOBAL
     Value:           0x1D21540
     Size:            0x4
+# Synthetic metadata in unused bytes near hz; see update-fixtures.py.
+  - Name:            stopped_cpus
+    Type:            STT_OBJECT
+    Section:         .bss
+    Binding:         STB_GLOBAL
+    Value:           0x1D405E0
+    Size:            0x8
+  - Name:            mp_maxid
+    Type:            STT_OBJECT
+    Section:         .bss
+    Binding:         STB_GLOBAL
+    Value:           0x1D405E8
+    Size:            0x4
+  - Name:            osreldate
+    Type:            STT_OBJECT
+    Section:         .bss
+    Binding:         STB_GLOBAL
+    Value:           0x1D405EC
+    Size:            0x4

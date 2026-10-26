@@ -1,4 +1,5 @@
 import bz2
+import os
 import shutil
 import struct
 
@@ -15,13 +16,13 @@ class FreeBSDKernelVMCoreTestCase(TestBase):
 
     def make_target(self, src_filename):
         src = self.getSourcePath(src_filename)
-        dest = self.getBuildArtifact("kernel")
+        dest = self.getBuildArtifact(os.path.splitext(src_filename)[0])
         self.yaml2obj(src, dest, max_size=30 * 1024 * 1024)
         return self.dbg.CreateTarget(dest)
 
     def make_vmcore(self, src_filename):
         src = self.getSourcePath(src_filename)
-        dest = self.getBuildArtifact("vmcore")
+        dest = self.getBuildArtifact(os.path.splitext(src_filename)[0])
         with bz2.open(src, "rb") as inf:
             with open(dest, "wb") as outf:
                 shutil.copyfileobj(inf, outf)
@@ -30,8 +31,10 @@ class FreeBSDKernelVMCoreTestCase(TestBase):
     def do_test(self, kernel_yaml, vmcore_bz2, numthread, threads={}, hz=100):
         target = self.make_target(kernel_yaml)
         vmcore_file = self.make_vmcore(vmcore_bz2)
-        process = target.LoadCore(vmcore_file)
+        error = lldb.SBError()
+        process = target.LoadCore(vmcore_file, error)
 
+        self.assertSuccess(error)
         self.assertTrue(process, PROCESS_IS_VALID)
         self.assertEqual(process.GetNumThreads(), numthread)
         self.assertEqual(process.GetProcessID(), 0)
@@ -44,11 +47,14 @@ class FreeBSDKernelVMCoreTestCase(TestBase):
         error = lldb.SBError()
         self.assertEqual(process.ReadMemory(hz_addr, 4, error), struct.pack("<I", hz))
 
-        for thread_index, thread_data in threads.items():
+        # The kernel process plugin may sort the process list. Identify the
+        # fixture's threads by name rather than their enumeration order.
+        threads_by_name = {thread.GetName(): thread for thread in process}
+        for thread_data in threads.values():
             bt_expected = thread_data["bt"]
             regs_expected = thread_data["regs"]
-            thread = process.GetThreadAtIndex(thread_index)
-            self.assertEqual(thread.GetName(), thread_data["name"])
+            self.assertIn(thread_data["name"], threads_by_name)
+            thread = threads_by_name[thread_data["name"]]
 
             # test backtrace
             self.assertEqual(
@@ -89,6 +95,8 @@ class FreeBSDKernelVMCoreTestCase(TestBase):
                         0xFFFFFFFF810620CE,
                     ],
                     "regs": {
+                        "cs": "0x0000000000000020",
+                        "ss": "0x0000000000000028",
                         "rbx": "0x0000000000000000",
                         "rbp": "0xfffffe0085cb2760",
                         "rsp": "0xfffffe0085cb2748",
@@ -117,6 +125,8 @@ class FreeBSDKernelVMCoreTestCase(TestBase):
                         0xFFFFFFFF80BC7C5E,
                     ],
                     "regs": {
+                        "cs": "0x0000000000000020",
+                        "ss": "0x0000000000000028",
                         "rbx": "0xffffffff81d43950",
                         "rbp": "0xffffffff81d43820",
                         "rsp": "0xffffffff81d43808",
@@ -136,6 +146,8 @@ class FreeBSDKernelVMCoreTestCase(TestBase):
                         0xFFFFFFFF80BC7C5E,
                     ],
                     "regs": {
+                        "cs": "0x0000000000000020",
+                        "ss": "0x0000000000000028",
                         "rbx": "0x000000007fff29f4",
                         "rbp": "0xfffffe00007a4ad0",
                         "rsp": "0xfffffe00007a4a08",
@@ -171,6 +183,8 @@ class FreeBSDKernelVMCoreTestCase(TestBase):
                         0xFFFFFFFF810620CE,
                     ],
                     "regs": {
+                        "cs": "0x0000000000000020",
+                        "ss": "0x0000000000000028",
                         "rbx": "0x0000000000000000",
                         "rbp": "0xfffffe00798c4760",
                         "rsp": "0xfffffe00798c4748",
@@ -197,6 +211,8 @@ class FreeBSDKernelVMCoreTestCase(TestBase):
                         0xFFFFFFFF80BC7C5E,
                     ],
                     "regs": {
+                        "cs": "0x0000000000000020",
+                        "ss": "0x0000000000000028",
                         "rbx": "0xfffffe00008e2f30",
                         "rbp": "0xfffffe00008e2e00",
                         "rsp": "0xfffffe00008e2de8",
@@ -217,6 +233,8 @@ class FreeBSDKernelVMCoreTestCase(TestBase):
                         0xFFFFFFFF80BC7C5E,
                     ],
                     "regs": {
+                        "cs": "0x0000000000000020",
+                        "ss": "0x0000000000000028",
                         "rbx": "0x000000007fff25f1",
                         "rbp": "0xfffffe00527dd890",
                         "rsp": "0xfffffe00527dd7c8",
