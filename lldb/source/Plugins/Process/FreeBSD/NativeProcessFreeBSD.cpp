@@ -22,6 +22,7 @@
 #include "lldb/Host/posix/ProcessLauncherPosixFork.h"
 #include "lldb/Target/Process.h"
 #include "lldb/Utility/State.h"
+#include "llvm/ADT/ScopeExit.h"
 #include "llvm/Support/Errno.h"
 
 using namespace lldb;
@@ -276,12 +277,14 @@ void NativeProcessFreeBSD::MonitorSIGTRAP(lldb::pid_t pid) {
 
   if (info.pl_flags & PL_FLAG_FORKED) {
     assert(thread);
+    SetCurrentThreadID(thread->GetID());
     MonitorClone(info.pl_child_pid, info.pl_flags & PL_FLAG_VFORKED, *thread);
     return;
   }
 
   if (info.pl_flags & PL_FLAG_VFORK_DONE) {
     assert(thread);
+    SetCurrentThreadID(thread->GetID());
     if ((m_enabled_extensions & Extension::vfork) == Extension::vfork) {
       thread->SetStoppedByVForkDone();
       SetState(StateType::eStateStopped, true);
@@ -299,45 +302,16 @@ void NativeProcessFreeBSD::MonitorSIGTRAP(lldb::pid_t pid) {
     LLDB_LOG(log, "SIGTRAP siginfo: si_code = {0}, pid = {1}",
              info.pl_siginfo.si_code, info.pl_siginfo.si_pid);
 
-    switch (info.pl_siginfo.si_code) {
-    case TRAP_BRKPT:
-      LLDB_LOG(log, "SIGTRAP/TRAP_BRKPT: si_addr: {0}",
-               info.pl_siginfo.si_addr);
-
-      if (thread) {
-        thread->SetStoppedByBreakpoint();
-        FixupBreakpointPCAsNeeded(*thread);
-        SetCurrentThreadID(thread->GetID());
+    if (thread && (info.pl_siginfo.si_code == TRAP_BRKPT ||
+                   info.pl_siginfo.si_code == TRAP_TRACE)) {
+      SetThreadStopInfoForSIGTRAP(*thread, info.pl_siginfo);
+      Status error = CollectPendingTrapStops(thread->GetID());
+      if (error.Fail()) {
+        LLDB_LOG(log, "failed to collect pending traps: {0}", error);
+        SetState(StateType::eStateInvalid);
+        return;
       }
-      SetState(StateType::eStateStopped, true);
-      return;
-    case TRAP_TRACE:
-      LLDB_LOG(log, "SIGTRAP/TRAP_TRACE: si_addr: {0}",
-               info.pl_siginfo.si_addr);
-
-      if (thread) {
-        auto &regctx = static_cast<NativeRegisterContextFreeBSD &>(
-            thread->GetRegisterContext());
-        uint32_t wp_index = LLDB_INVALID_INDEX32;
-        Status error = regctx.GetWatchpointHitIndex(
-            wp_index, reinterpret_cast<uintptr_t>(info.pl_siginfo.si_addr));
-        if (error.Fail())
-          LLDB_LOG(log,
-                   "received error while checking for watchpoint hits, pid = "
-                   "{0}, LWP = {1}, error = {2}",
-                   pid, info.pl_lwpid, error);
-        if (wp_index != LLDB_INVALID_INDEX32) {
-          regctx.ClearWatchpointHit(wp_index);
-          thread->SetStoppedByWatchpoint(wp_index);
-          SetCurrentThreadID(thread->GetID());
-          SetState(StateType::eStateStopped, true);
-          break;
-        }
-
-        thread->SetStoppedByTrace();
-        SetCurrentThreadID(thread->GetID());
-      }
-
+      SetCurrentThreadID(thread->GetID());
       SetState(StateType::eStateStopped, true);
       return;
     }
@@ -347,6 +321,117 @@ void NativeProcessFreeBSD::MonitorSIGTRAP(lldb::pid_t pid) {
   // otherwise leave the debugger hanging.
   LLDB_LOG(log, "unknown SIGTRAP, passing to generic handler");
   MonitorSignal(pid, SIGTRAP);
+}
+
+void NativeProcessFreeBSD::SetThreadStopInfoForSIGTRAP(
+    NativeThreadFreeBSD &thread, const siginfo_t &info) {
+  if (info.si_code == TRAP_BRKPT) {
+    thread.SetStoppedByBreakpoint();
+    FixupBreakpointPCAsNeeded(thread);
+    return;
+  }
+
+  auto &regctx = thread.GetRegisterContext();
+  uint32_t wp_index = LLDB_INVALID_INDEX32;
+  Status error = regctx.GetWatchpointHitIndex(
+      wp_index, reinterpret_cast<uintptr_t>(info.si_addr));
+  if (error.Fail())
+    LLDB_LOG(GetLog(POSIXLog::Process),
+             "error checking watchpoint hits for LWP {0}: {1}", thread.GetID(),
+             error);
+  if (wp_index != LLDB_INVALID_INDEX32) {
+    regctx.ClearWatchpointHit(wp_index);
+    thread.SetStoppedByWatchpoint(wp_index);
+  } else {
+    thread.SetStoppedByTrace();
+  }
+}
+
+Status NativeProcessFreeBSD::CollectPendingTrapStops(lldb::tid_t reporting_tid) {
+  std::vector<NativeThreadFreeBSD *> pending;
+  for (const auto &thread : m_threads) {
+    if (thread->GetID() == reporting_tid)
+      continue;
+    struct ptrace_lwpinfo info = {};
+    Status error =
+        PtraceWrapper(PT_LWPINFO, thread->GetID(), &info, sizeof(info));
+    if (error.Fail())
+      return error;
+    if ((info.pl_flags & PL_FLAG_SI) && info.pl_siginfo.si_signo == SIGTRAP &&
+        (info.pl_siginfo.si_code == TRAP_BRKPT ||
+         info.pl_siginfo.si_code == TRAP_TRACE))
+      pending.push_back(static_cast<NativeThreadFreeBSD *>(thread.get()));
+  }
+  if (pending.empty())
+    return Status();
+
+  // A newborn LWP can already be stopped in the kernel before its PL_FLAG_BORN
+  // event has been handled and AddThread() has run. Include those LWPs in the
+  // suspension set, or their birth events can interrupt the trap collection.
+  int num_lwps;
+  Status error = PtraceWrapper(PT_GETNUMLWPS, GetID(), nullptr, 0, &num_lwps);
+  if (error.Fail())
+    return error;
+  std::vector<lwpid_t> lwp_ids(num_lwps);
+  error = PtraceWrapper(PT_GETLWPLIST, GetID(), lwp_ids.data(), num_lwps,
+                        &num_lwps);
+  if (error.Fail())
+    return error;
+  lwp_ids.resize(num_lwps);
+
+  // PT_CONTINUE acknowledges only the reporting LWP's event. Other LWPs can
+  // already be in ptracestop(), waiting to report their own traps. Collect
+  // those events without executing any inferior instructions: suspend every
+  // LWP, then allow each pending LWP to report its existing event in turn.
+  // This also lets us fix every breakpoint PC before a breakpoint is removed
+  // or the process is detached. Undo the temporary suspensions on every exit
+  // path, rather than leaving their cleanup to a later Resume(). PT_RESUME
+  // changes the LWP's suspend flag without continuing the stopped process.
+  llvm::scope_exit resume_lwps([&] {
+    Log *log = GetLog(POSIXLog::Process);
+    for (lwpid_t tid : lwp_ids) {
+      Status error = PtraceWrapper(PT_RESUME, tid);
+      if (error.Fail())
+        LLDB_LOG(log, "Unable to restore LWP {0}: {1}", tid, error);
+    }
+  });
+  for (lwpid_t tid : lwp_ids) {
+    Status error = PtraceWrapper(PT_SUSPEND, tid);
+    if (error.Fail())
+      return error;
+  }
+  for (NativeThreadFreeBSD *thread : pending) {
+    Status error = PtraceWrapper(PT_RESUME, thread->GetID());
+    if (error.Fail())
+      return error;
+    error = PtraceWrapper(PT_CONTINUE, GetID(), reinterpret_cast<void *>(1), 0);
+    if (error.Fail())
+      return error;
+
+    int status;
+    ::pid_t waited =
+        llvm::sys::RetryAfterSignal(-1, ::waitpid, GetID(), &status, 0);
+    if (waited == -1)
+      return Status::FromErrno();
+    if (!WIFSTOPPED(status) || WSTOPSIG(status) != SIGTRAP)
+      return Status::FromErrorString("unexpected stop while collecting traps");
+
+    struct ptrace_lwpinfo info = {};
+    error = PtraceWrapper(PT_LWPINFO, GetID(), &info, sizeof(info));
+    if (error.Fail())
+      return error;
+    if (static_cast<lldb::tid_t>(info.pl_lwpid) != thread->GetID() ||
+        !(info.pl_flags & PL_FLAG_SI) || info.pl_siginfo.si_signo != SIGTRAP ||
+        (info.pl_siginfo.si_code != TRAP_BRKPT &&
+         info.pl_siginfo.si_code != TRAP_TRACE))
+      return Status::FromErrorString(
+          "unexpected LWP event while collecting traps");
+    SetThreadStopInfoForSIGTRAP(*thread, info.pl_siginfo);
+    error = PtraceWrapper(PT_SUSPEND, thread->GetID());
+    if (error.Fail())
+      return error;
+  }
+  return Status();
 }
 
 void NativeProcessFreeBSD::MonitorSignal(lldb::pid_t pid, int signal) {
@@ -1028,6 +1113,12 @@ void NativeProcessFreeBSD::MonitorClone(::pid_t child_pid, bool is_vfork,
       parent_thread.SetStoppedByVFork(child_pid, child_tid);
     else
       parent_thread.SetStoppedByFork(child_pid, child_tid);
+    Status error = CollectPendingTrapStops(parent_thread.GetID());
+    if (error.Fail()) {
+      LLDB_LOG(log, "failed to collect traps at fork: {0}", error);
+      SetState(StateType::eStateInvalid);
+      return;
+    }
     SetState(StateType::eStateStopped, true);
   } else {
     child_process->Detach();
