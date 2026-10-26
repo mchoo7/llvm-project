@@ -524,6 +524,14 @@ Status NativeProcessFreeBSD::Detach() {
   if (GetID() == LLDB_INVALID_PROCESS_ID)
     return error;
 
+  // PT_DETACH clears ptrace suspension, but it does not clear the per-LWP
+  // hardware single-step state installed by PT_SETSTEP.
+  for (const auto &thread : m_threads) {
+    error = PtraceWrapper(PT_CLEARSTEP, thread->GetID());
+    if (error.Fail() && error.GetError() != EINVAL)
+      return error;
+  }
+
   return PtraceWrapper(PT_DETACH, GetID());
 }
 
