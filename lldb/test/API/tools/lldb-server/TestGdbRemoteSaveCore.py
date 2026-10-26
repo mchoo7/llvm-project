@@ -5,6 +5,7 @@ from lldbsuite.test import lldbutil
 
 import binascii
 import os
+import uuid
 
 
 class TestGdbSaveCore(gdbremote_testcase.GdbRemoteTestCaseBase):
@@ -17,6 +18,23 @@ class TestGdbSaveCore(gdbremote_testcase.GdbRemoteTestCaseBase):
         if "qSaveCore+" not in ret["qSupported_response"]:
             self.skipTest("qSaveCore not supported by lldb-server")
         self.reset_test_sequence()
+
+        if self.getPlatform() == "freebsd":
+            # A transparent attach can leave every LWP stopped inside a
+            # syscall. PT_COREDUMP requires a thread stopped in ptracestop(),
+            # so first advance to a user-space single-step trap.
+            self.test_sequence.add_log_lines(
+                [
+                    "read packet: $s#00",
+                    {
+                        "direction": "send",
+                        "regex": r"^\$T05thread:[0-9a-fA-F]+;",
+                    },
+                ],
+                True,
+            )
+            self.expect_gdbremote_sequence()
+            self.reset_test_sequence()
 
         packet = "$qSaveCore"
         if core_path is not None:
@@ -47,7 +65,11 @@ class TestGdbSaveCore(gdbremote_testcase.GdbRemoteTestCaseBase):
 
     @skipUnlessPlatform(oslist=["freebsd", "netbsd"])
     def test_netbsd_path(self):
-        core = lldbutil.append_to_process_working_directory(self, "core")
+        # The server does not overwrite existing files. Use a fresh path even
+        # when an earlier test run left its core file in the build directory.
+        core = lldbutil.append_to_process_working_directory(
+            self, "core-" + uuid.uuid4().hex
+        )
         self.coredump_test(core, core)
 
     @skipUnlessPlatform(oslist=["freebsd", "netbsd"])
