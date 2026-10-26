@@ -1689,6 +1689,10 @@ bool Editline::GetLines(int first_line_number, StringList &lines,
   while (m_editor_status == EditorStatus::Editing) {
     int count;
     m_current_line_rows = -1;
+    // The macro below restores the destination line before libedit reads a
+    // character. Enter raw mode before it displays the prompt, so the terminal
+    // does not consume editing characters sent in response to that prompt.
+    el_set(m_editline, EL_PREP_TERM, 1);
     el_wpush(m_editline, EditLineConstString(
                              "\x1b[^")); // Revert to the existing line content
     el_wgets(m_editline, &count);

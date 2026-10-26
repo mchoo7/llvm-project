@@ -16,7 +16,6 @@ class TestCase(PExpectTest):
     # under ASAN on a loaded machine..
     @skipIfAsan
     @skipIfEditlineSupportMissing
-    @expectedFailureAll(oslist=["freebsd"], bugnumber="llvm.org/pr48316")
     @skipIf(oslist=["linux"], archs=["arm$", "aarch64"])  # Randomly fails on buildbot
     def test_nav_arrow_up(self):
         """Tests that we can navigate back to the previous line with the up arrow"""
@@ -31,15 +30,19 @@ class TestCase(PExpectTest):
         self.child.expect_exact("2: ")
         # Go back to the first line and change 123 to 124.
         # Then press enter twice to evaluate our expression.
-        self.child.send(self.arrow_up + "\b4\n\n")
+        self.child.send(self.arrow_up)
+        # Navigation ends the current libedit input call. Wait for the editor
+        # to enter the destination line before sending edits to that line.
+        self.child.expect_exact("1: ")
+        self.child.send("\b4\n")
+        self.child.expect_exact("2: ")
+        self.child.send("\n")
         # The result of our expression should be 124 (our edited expression)
         # and not 123 (the one we initially typed).
         self.child.expect_exact("(int) $0 = 124")
 
-
     @skipIfAsan
     @skipIfEditlineSupportMissing
-    @expectedFailureAll(oslist=["freebsd"], bugnumber="llvm.org/pr48316")
     @skipIf(oslist=["linux"], archs=["arm$", "aarch64"])  # Randomly fails on buildbot
     def test_nav_arrow_down(self):
         """Tests that we can navigate to the next line with the down arrow"""
@@ -54,19 +57,26 @@ class TestCase(PExpectTest):
         self.child.expect_exact("2: ")
         # Create another simple integer expression '222'.
         self.child.send("222")
+        self.child.expect_exact("222")
         # Go back to the first line and change '111' to '111+' to make
         # an addition operation that spans two lines. We need to go up to
         # test that we can go back down again.
-        self.child.send(self.arrow_up + "+")
+        self.child.send(self.arrow_up)
+        self.child.expect_exact("1: ")
+        self.child.send("+")
+        self.child.expect_exact("+")
         # Go back down to our second line and change '222' to '223'
         # so that the full expression is now '111+\n223'.
         # Then press enter twice to evaluate the expression.
-        self.child.send(self.arrow_down + "\b3\n\n")
+        self.child.send(self.arrow_down)
+        self.child.expect_exact("2: ")
+        self.child.send("\b3\n")
+        self.child.expect_exact("3: ")
+        self.child.send("\n")
         # The result of our expression '111 + 223' should be '334'.
         # If the expression is '333' then arrow down failed to get
         # us back to the second line.
         self.child.expect_exact("(int) $0 = 334")
-
 
     @skipIfAsan
     @skipIfEditlineSupportMissing
