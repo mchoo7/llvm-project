@@ -25,6 +25,7 @@
 #include <sys/user.h>
 // clang-format on
 
+#include <cerrno>
 #include <sstream>
 #include <vector>
 
@@ -184,21 +185,37 @@ std::string NativeThreadFreeBSD::GetName() {
   int mib[4] = {CTL_KERN, KERN_PROC, KERN_PROC_PID | KERN_PROC_INC_THREAD,
                 static_cast<int>(GetProcess().GetID())};
 
-  while (1) {
-    size_t len = kp.size() * sizeof(struct kinfo_proc);
-    void *ptr = len == 0 ? nullptr : kp.data();
-    int error = ::sysctl(mib, 4, ptr, &len, nullptr, 0);
-    if (ptr == nullptr || (error != 0 && errno == ENOMEM)) {
+  constexpr unsigned max_attempts = 10;
+  for (unsigned attempt = 1;; ++attempt) {
+    size_t len = 0;
+    if (::sysctl(mib, 4, nullptr, &len, nullptr, 0) != 0) {
+      LLDB_LOG(log, "tid = {0} failed to query thread list size: {1}", GetID(),
+               strerror(errno));
+      return "";
+    }
+    if (len == 0)
+      return "";
+
+    // On ENOMEM, len is the number of bytes copied, not the required size.
+    // Query the size again and add slack rather than retrying the same buffer.
+    kp.resize(len / sizeof(struct kinfo_proc) + attempt);
+    len = kp.size() * sizeof(struct kinfo_proc);
+    if (::sysctl(mib, 4, kp.data(), &len, nullptr, 0) == 0) {
       kp.resize(len / sizeof(struct kinfo_proc));
-      continue;
+      break;
     }
-    if (error != 0) {
-      len = 0;
-      LLDB_LOG(log, "tid = {0} in state {1} failed to get thread name: {2}",
-               GetID(), m_state, strerror(errno));
+
+    const int error = errno;
+    if (error != ENOMEM || attempt == max_attempts) {
+      LLDB_LOG(log,
+               "tid = {0} in state {1} failed to get thread name after "
+               "{2} attempts: {3}",
+               GetID(), m_state, attempt, strerror(error));
+      return "";
     }
-    kp.resize(len / sizeof(struct kinfo_proc));
-    break;
+    LLDB_LOG(log, "tid = {0} thread name query returned ENOMEM; refreshing "
+                  "the size after attempt {1}",
+             GetID(), attempt);
   }
 
   for (auto &procinfo : kp) {

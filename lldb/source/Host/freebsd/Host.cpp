@@ -14,6 +14,7 @@
 #include <sys/sysctl.h>
 #include <sys/user.h>
 
+#include <cerrno>
 #include <cstdio>
 #include <dlfcn.h>
 #include <execinfo.h>
@@ -24,6 +25,7 @@
 #include "lldb/Utility/DataBufferHeap.h"
 #include "lldb/Utility/DataExtractor.h"
 #include "lldb/Utility/Endian.h"
+#include "lldb/Utility/LLDBLog.h"
 #include "lldb/Utility/Log.h"
 #include "lldb/Utility/NameMatches.h"
 #include "lldb/Utility/ProcessInfo.h"
@@ -173,26 +175,43 @@ uint32_t Host::FindProcessesImpl(const ProcessInstanceInfoMatch &match_info,
 
   int mib[3] = {CTL_KERN, KERN_PROC, KERN_PROC_ALL};
 
-  size_t pid_data_size = 0;
-  if (::sysctl(mib, 3, NULL, &pid_data_size, NULL, 0) != 0)
-    return 0;
+  // The process list can grow between querying its size and fetching it.
+  // KERN_PROC_ALL includes threads, so concurrent thread creation can also
+  // exhaust the spare entries. Retry with a fresh size and increasing slack.
+  constexpr unsigned max_attempts = 10;
+  for (unsigned attempt = 1;; ++attempt) {
+    size_t pid_data_size = 0;
+    if (::sysctl(mib, 3, nullptr, &pid_data_size, nullptr, 0) != 0) {
+      LLDB_LOG(GetLog(LLDBLog::Host),
+               "Unable to query FreeBSD process list size: errno = {0}", errno);
+      return 0;
+    }
 
-  // Add a few extra in case a few more show up
-  const size_t estimated_pid_count =
-      (pid_data_size / sizeof(struct kinfo_proc)) + 10;
+    kinfos.resize(pid_data_size / sizeof(struct kinfo_proc) + 10 * attempt);
+    pid_data_size = kinfos.size() * sizeof(struct kinfo_proc);
+    if (::sysctl(mib, 3, kinfos.data(), &pid_data_size, nullptr, 0) == 0) {
+      kinfos.resize(pid_data_size / sizeof(struct kinfo_proc));
+      break;
+    }
 
-  kinfos.resize(estimated_pid_count);
-  pid_data_size = kinfos.size() * sizeof(struct kinfo_proc);
-
-  if (::sysctl(mib, 3, &kinfos[0], &pid_data_size, NULL, 0) != 0)
-    return 0;
-
-  const size_t actual_pid_count = (pid_data_size / sizeof(struct kinfo_proc));
+    const int error = errno;
+    if (error != ENOMEM || attempt == max_attempts) {
+      LLDB_LOG(GetLog(LLDBLog::Host),
+               "Unable to fetch FreeBSD process list after {0} attempts: "
+               "errno = {1}",
+               attempt, error);
+      return 0;
+    }
+    LLDB_LOG(GetLog(LLDBLog::Host),
+             "FreeBSD process list grew during enumeration; retrying after "
+             "attempt {0}",
+             attempt);
+  }
 
   ProcessInstanceInfoMatch match_info_noname{match_info};
   match_info_noname.SetNameMatchType(NameMatch::Ignore);
 
-  for (size_t i = 0; i < actual_pid_count; i++) {
+  for (size_t i = 0; i < kinfos.size(); i++) {
     const struct kinfo_proc &kinfo = kinfos[i];
 
     /* Make sure the user is acceptable */
