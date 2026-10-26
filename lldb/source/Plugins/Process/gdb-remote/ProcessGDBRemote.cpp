@@ -6632,15 +6632,20 @@ llvm::Expected<bool> ProcessGDBRemote::SaveCore(llvm::StringRef outfile) {
 
     // now transfer the core file
     FileSpec remote_core{llvm::StringRef(path)};
+    FileSpec local_core(outfile);
     Platform &platform = *GetTarget().GetPlatform();
-    Status error = platform.GetFile(remote_core, FileSpec(outfile));
+    Status error;
+    // A local server can write directly to the requested output file.
+    // Only copy when the core still needs to be transferred.
+    if (platform.IsRemote() || remote_core != local_core)
+      error = platform.GetFile(remote_core, local_core);
 
     if (platform.IsRemote()) {
       // NB: we unlink the file on error too
       platform.Unlink(remote_core);
-      if (error.Fail())
-        return error.ToError();
     }
+    if (error.Fail())
+      return error.ToError();
 
     return true;
   }
