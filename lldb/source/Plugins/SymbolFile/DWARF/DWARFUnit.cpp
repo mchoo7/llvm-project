@@ -1108,6 +1108,9 @@ DWARFUnit::GetStringOffsetSectionItem(uint32_t index) const {
 llvm::Expected<llvm::DWARFAddressRangesVector>
 DWARFUnit::FindRnglistFromOffset(dw_offset_t offset) {
   if (GetVersion() <= 4) {
+    // GNU split DWARF range offsets are relative to the skeleton CU's
+    // DW_AT_GNU_ranges_base in the executable's .debug_ranges section.
+    offset += m_ranges_base;
     llvm::DWARFDataExtractor data =
         m_dwarf.GetDWARFContext().getOrLoadRangesData().GetAsLLVMDWARF();
     data.setAddressSize(m_header.getAddressByteSize());
