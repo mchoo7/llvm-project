@@ -1249,6 +1249,17 @@ public:
     return classID == &ID || NativeFile::isA(classID);
   }
   static bool classof(const File *file) { return file->isA(&ID); }
+
+protected:
+  void OnStreamOpened() override {
+    NativeFile::OnStreamOpened();
+    // The descriptor is shared with the original Python file. Do not read
+    // ahead into a separate stdio buffer: a nested Python interpreter needs
+    // to resume reading at the next line, and fflush() does not discard a
+    // read-only stream's buffered input on FreeBSD.
+    if ((m_options & File::OpenOptionsModeMask) != File::eOpenOptionWriteOnly)
+      ::setvbuf(m_stream, nullptr, _IONBF, 0);
+  }
 };
 char SimplePythonFile::ID = 0;
 } // namespace
