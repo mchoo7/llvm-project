@@ -229,7 +229,7 @@ class ThreadStateTestCase(TestBase):
         self.runCmd("file " + exe, CURRENT_EXECUTABLE_SET)
 
         # This should create a breakpoint in the main thread.
-        lldbutil.run_break_set_by_file_and_line(
+        first_breakpoint = lldbutil.run_break_set_by_file_and_line(
             self, "main.cpp", self.break_1, num_expected_locations=1
         )
         lldbutil.run_break_set_by_file_and_line(
@@ -252,6 +252,11 @@ class ThreadStateTestCase(TestBase):
         self.assertFalse(
             thread.IsSuspended(), "Thread state is 'suspended' during breakpoint 1."
         )
+
+        # Avoid racing the interrupt below with the single-step needed to
+        # resume from this breakpoint. The running event can arrive before
+        # that step completes. The second breakpoint remains enabled.
+        self.assertTrue(target.BreakpointDelete(first_breakpoint))
 
         # Continue, the inferior will go into an infinite loop waiting for
         # 'g_test' to change.
