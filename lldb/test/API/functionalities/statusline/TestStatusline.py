@@ -368,6 +368,12 @@ class TestStatusline(PExpectTest):
         self.launch()
         self.resize()
         self.expect("settings set show-statusline true", ["no target"])
+        self.child.sendline(f"gdb-remote {connect_address}")
+        self.child.expect_exact(b"a.out \xe2\x94\x82 signal SIGSTOP")
+        # The asynchronous redraw can follow the command prompt. Waiting for
+        # another prompt after the redraw would then time out even if LLDB is
+        # responsive. Issue a command to check that the connection did not
+        # deadlock, regardless of the redraw/prompt ordering.
         self.expect(
-            f"gdb-remote {connect_address}", [b"a.out \xe2\x94\x82 signal SIGSTOP"]
+            "settings show show-statusline", ["show-statusline (boolean) = true"]
         )
