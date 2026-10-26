@@ -297,7 +297,7 @@ ifeq "$(MAKE_DWO)" "YES"
 endif
 
 ifeq "$(MAKE_DEBUG_NAMES)" "YES"
-	CFLAGS += -gpubnames
+	CFLAGS += -gdwarf-5 -gpubnames
 endif
 
 # Enable GNU POSIX extensions (e.g. kill(), usleep(), getpgid(), ...)
