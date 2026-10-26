@@ -88,7 +88,7 @@ private:
 
   bool m_printed_unread_message = false;
 
-  kvm_t *m_kvm;
+  kvm_t *m_kvm = nullptr;
 };
 
 #endif // LLDB_SOURCE_PLUGINS_PROCESS_FREEBSDKERNEL_PROCESSFREEBSDKERNELCORE_H

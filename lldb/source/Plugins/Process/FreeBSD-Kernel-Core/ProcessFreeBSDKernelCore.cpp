@@ -287,9 +287,10 @@ DynamicLoader *ProcessFreeBSDKernelCore::GetDynamicLoader() {
 
 Status ProcessFreeBSDKernelCore::DoDestroy() {
   if (!m_kvm)
-    return Status::FromErrorString("kvm file descriptor is not set.");
+    return Status();
 
   kvm_close(m_kvm);
+  m_kvm = nullptr;
   return Status();
 }
 
@@ -303,6 +304,10 @@ void ProcessFreeBSDKernelCore::RefreshStateAfterStop() {
 size_t ProcessFreeBSDKernelCore::DoWriteMemory(lldb::addr_t addr,
                                                const void *buf, size_t size,
                                                Status &error) {
+  if (!m_kvm) {
+    error = Status::FromErrorString("kvm file descriptor is not set.");
+    return 0;
+  }
   if (GetGlobalPluginProperties().GetReadOnly()) {
     error = Status::FromErrorString(
         "Memory writes are currently disabled. You can enable them with "
@@ -599,6 +604,10 @@ bool ProcessFreeBSDKernelCore::DoUpdateThreadList(ThreadList &old_thread_list,
 size_t
 ProcessFreeBSDKernelCore::DoReadMemory(const ProcessAddress &process_addr,
                                        void *buf, size_t size, Status &error) {
+  if (!m_kvm) {
+    error = Status::FromErrorString("kvm file descriptor is not set.");
+    return 0;
+  }
   lldb::addr_t addr = process_addr.GetValue();
   ssize_t rd = 0;
   rd = kvm_read2(m_kvm, addr, buf, size);
