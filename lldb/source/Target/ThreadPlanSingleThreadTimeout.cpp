@@ -28,9 +28,9 @@ ThreadPlanSingleThreadTimeout::ThreadPlanSingleThreadTimeout(
     Thread &thread, TimeoutInfoSP &info)
     : ThreadPlan(ThreadPlan::eKindSingleThreadTimeout, "Single thread timeout",
                  thread, eVoteNo, eVoteNoOpinion),
-      m_info(info), m_state(State::WaitTimeout) {
+      m_info(info), m_state(info->m_last_state),
+      m_timeout_start(std::chrono::steady_clock::now()) {
   m_info->m_isAlive = true;
-  m_state = m_info->m_last_state;
   // TODO: reuse m_timer_thread without recreation.
   m_timer_thread = std::thread(TimeoutThreadFunc, this);
 }
@@ -42,10 +42,10 @@ ThreadPlanSingleThreadTimeout::~ThreadPlanSingleThreadTimeout() {
 uint64_t ThreadPlanSingleThreadTimeout::GetRemainingTimeoutMilliSeconds() {
   uint64_t timeout_in_ms = GetThread().GetSingleThreadPlanTimeout();
   std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
-  std::chrono::milliseconds duration_ms =
-      std::chrono::duration_cast<std::chrono::milliseconds>(now -
-                                                            m_timeout_start);
-  return timeout_in_ms - duration_ms.count();
+  uint64_t elapsed_ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+                            now - m_timeout_start)
+                            .count();
+  return elapsed_ms >= timeout_in_ms ? 0 : timeout_in_ms - elapsed_ms;
 }
 
 void ThreadPlanSingleThreadTimeout::GetDescription(
@@ -163,22 +163,25 @@ void ThreadPlanSingleThreadTimeout::TimeoutThreadFunc(
   // The thread should wakeup either when timeout or
   // ThreadPlanSingleThreadTimeout has been popped (not alive).
   Log *log = GetLog(LLDBLog::Step);
-  self->m_timeout_start = std::chrono::steady_clock::now();
   LLDB_LOGF(
       log,
       "ThreadPlanSingleThreadTimeout::TimeoutThreadFunc(), wait for %" PRIu64
       " ms",
       timeout_in_ms);
-  self->m_wakeup_cv.wait_for(lock, std::chrono::milliseconds(timeout_in_ms),
+  do {
+    self->m_wakeup_cv.wait_for(lock, std::chrono::milliseconds(timeout_in_ms),
                              [self] { return !self->m_info->m_isAlive; });
-  LLDB_LOGF(log,
-            "ThreadPlanSingleThreadTimeout::TimeoutThreadFunc() wake up with "
-            "m_isAlive(%d).",
-            self->m_info->m_isAlive);
-  if (!self->m_info->m_isAlive)
-    return;
+    LLDB_LOGF(log,
+              "ThreadPlanSingleThreadTimeout::TimeoutThreadFunc() wake up with "
+              "m_isAlive(%d).",
+              self->m_info->m_isAlive);
+    if (!self->m_info->m_isAlive)
+      return;
 
-  self->HandleTimeout();
+    // The plan is queued before resuming. If the timeout expires while resume
+    // or internal stop processing is still in progress, keep the timer armed
+    // rather than leaving the subsequent single-thread run without a timeout.
+  } while (!self->HandleTimeout());
 }
 
 bool ThreadPlanSingleThreadTimeout::MischiefManaged() {
@@ -244,20 +247,23 @@ bool ThreadPlanSingleThreadTimeout::HandleEvent(Event *event_ptr) {
   return false;
 }
 
-void ThreadPlanSingleThreadTimeout::HandleTimeout() {
+bool ThreadPlanSingleThreadTimeout::HandleTimeout() {
   Log *log = GetLog(LLDBLog::Step);
-  // Private state thread will only send async interrupt
-  // in running state so no need to check state here.
+  // Do not queue an interrupt during stop processing: the timeout plan may
+  // already have been replaced when the private state thread handles it.
   if (m_process.GetPrivateState() == eStateRunning) {
     LLDB_LOGF(
         log,
         "ThreadPlanSingleThreadTimeout::HandleTimeout() send async interrupt.");
-      m_process.SendAsyncInterrupt(&GetThread());
-
+    // Publish the state before the private state thread can handle the event.
+    // Otherwise it can reject its own timeout interrupt, or change the plan to
+    // Done only for this thread to overwrite it with AsyncInterrupt afterward.
     m_state = State::AsyncInterrupt;
+    m_process.SendAsyncInterrupt(&GetThread());
+    return true;
   } else {
     LLDB_LOGF(log, "ThreadPlanSingleThreadTimeout::HandleTimeout() process "
                    "already stopped - didn't send interrupt");
   }
-
+  return false;
 }

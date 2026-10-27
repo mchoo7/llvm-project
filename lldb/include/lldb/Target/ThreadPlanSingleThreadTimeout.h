@@ -15,6 +15,7 @@
 #include "lldb/Utility/LLDBLog.h"
 #include "lldb/Utility/State.h"
 
+#include <atomic>
 #include <chrono>
 #include <thread>
 
@@ -85,7 +86,7 @@ private:
 
   bool IsTimeoutAsyncInterrupt(Event *event_ptr);
   bool HandleEvent(Event *event_ptr);
-  void HandleTimeout();
+  bool HandleTimeout();
   uint64_t GetRemainingTimeoutMilliSeconds();
 
   static std::string StateToString(State state);
@@ -95,14 +96,14 @@ private:
   operator=(const ThreadPlanSingleThreadTimeout &) = delete;
 
   TimeoutInfoSP m_info; // Reference to controlling ThreadPlan's TimeoutInfo.
-  State m_state;
+  std::atomic<State> m_state;
 
   // Lock for m_wakeup_cv and m_exit_flag between thread plan thread and timer
   // thread
   std::mutex m_mutex;
   std::condition_variable m_wakeup_cv;
   std::thread m_timer_thread;
-  std::chrono::steady_clock::time_point m_timeout_start;
+  const std::chrono::steady_clock::time_point m_timeout_start;
 };
 
 } // namespace lldb_private
