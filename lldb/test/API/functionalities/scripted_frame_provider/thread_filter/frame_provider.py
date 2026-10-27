@@ -63,7 +63,7 @@ class EvenThreadProvider(ScriptedFrameProvider):
     def get_frame_at_index(self, idx):
         if idx < len(self.input_frames):
             frame = self.input_frames[idx]
-            name = self.PREFIX + frame.GetFunctionName()
+            name = self.PREFIX + (frame.GetFunctionName() or "")
             return PrefixedFrame(self.thread, idx, name)
         return None
 
@@ -87,7 +87,7 @@ class OddThreadProvider(ScriptedFrameProvider):
     def get_frame_at_index(self, idx):
         if idx < len(self.input_frames):
             frame = self.input_frames[idx]
-            name = self.PREFIX + frame.GetFunctionName()
+            name = self.PREFIX + (frame.GetFunctionName() or "")
             return PrefixedFrame(self.thread, idx, name)
         return None
 
@@ -105,6 +105,6 @@ class UpperCaseProvider(ScriptedFrameProvider):
     def get_frame_at_index(self, idx):
         if idx < len(self.input_frames):
             frame = self.input_frames[idx]
-            name = frame.GetFunctionName().upper()
+            name = (frame.GetFunctionName() or "").upper()
             return PrefixedFrame(self.thread, idx, name)
         return None
