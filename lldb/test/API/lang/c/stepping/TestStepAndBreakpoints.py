@@ -15,7 +15,10 @@ class TestCStepping(TestBase):
         self.main_source = "main.c"
 
     @add_test_categories(["pyapi", "basic_process"])
-    @expectedFailureAll(oslist=["freebsd"], bugnumber="llvm.org/pr17932")
+    @expectedFailureAll(
+        oslist=["freebsd"], archs=no_match(["x86_64", "aarch64"]),
+        bugnumber="llvm.org/pr17932"
+    )
     @expectedFailureAll(oslist=["linux"], archs=no_match(["i386", "x86_64"]))
     @expectedFailureAll(oslist=["windows"], bugnumber="llvm.org/pr24777")
     @expectedFailureNetBSD

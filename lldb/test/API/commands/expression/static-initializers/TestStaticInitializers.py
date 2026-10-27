@@ -5,11 +5,6 @@ from lldbsuite.test import lldbutil
 
 
 class StaticInitializers(TestBase):
-    @expectedFailureAll(
-        archs="aarch64",
-        oslist=["freebsd"],
-        bugnumber="llvm.org/pr44053",
-    )
     def test(self):
         """Test a static initializer."""
         self.build()

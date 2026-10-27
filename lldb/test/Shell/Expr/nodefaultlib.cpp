@@ -4,7 +4,7 @@
 // REQUIRES: native
 // UNSUPPORTED: ld_preload-present
 // XFAIL: system-linux && !(target-x86 || target-x86_64)
-// XFAIL: system-netbsd || system-freebsd || system-darwin
+// XFAIL: system-netbsd || system-darwin || (system-freebsd && !(target-x86_64 || target-aarch64))
 
 // RUN: %build %s --nodefaultlib -o %t
 // RUN: %lldb %t -o "b main" -o run -o "expression call_me(5, 6)" -o exit \

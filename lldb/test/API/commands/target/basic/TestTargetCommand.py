@@ -562,7 +562,8 @@ class targetCommandTestCase(TestBase):
 
     @no_debug_info_test
     @expectedFailureAll(
-        oslist=["freebsd"], bugnumber="github.com/llvm/llvm-project/issues/56079"
+        oslist=["freebsd"], archs=no_match(["aarch64"]),
+        bugnumber="github.com/llvm/llvm-project/issues/56079"
     )
     @skipIfWasm  # a Wasm executable statically links the C library, so its debug info holds many ints
     def test_target_modules_type(self):
