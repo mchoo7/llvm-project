@@ -360,7 +360,9 @@ TEST(RegisterInfoFreeBSDTest, arm64) {
   EXPECT_GPR_ARM64(lr, lr);
   EXPECT_GPR_ARM64(sp, sp);
   EXPECT_GPR_ARM64(pc, elr);
-  EXPECT_GPR_ARM64(cpsr, spsr);
+  // SPSR is stored in a 64-bit kernel slot, but PSTATE is a 32-bit register.
+  EXPECT_THAT(GetRegParams(reg_ctx, gpr_cpsr_arm64),
+              ::testing::Pair(offsetof(reg, spsr), sizeof(uint32_t)));
 
   size_t base_offset = reg_ctx.GetRegisterInfo()[fpu_v0_arm64].byte_offset;
 
