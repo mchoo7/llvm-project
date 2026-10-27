@@ -13,6 +13,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import uuid
 from lldbsuite.test import configuration
 from lldbsuite.test.lldbtest import *
 from lldbsuite.test.decorators import requireSocketPermission, skipIfWasm
@@ -453,9 +454,15 @@ class GdbRemoteTestCaseBase(Base, metaclass=GdbRemoteTestCaseFactory):
 
         # This file will be created once the inferior has enabled attaching.
         sync_file_path = lldbutil.append_to_process_working_directory(
-            self, "process_ready"
+            self, "process_ready_" + uuid.uuid4().hex
         )
         args = [f"syncfile:{sync_file_path}"]
+        self._attach_release_file = None
+        if sleep_seconds and self._inferior_startup == self._STARTUP_ATTACH:
+            # Hold the process until the server has attached. A three-second
+            # sleep can expire while a parallel suite schedules the server.
+            self._attach_release_file = sync_file_path + "_attached"
+            args.append("waitfile:" + self._attach_release_file)
         if inferior_args:
             args.extend(inferior_args)
         if sleep_seconds:
@@ -539,6 +546,8 @@ class GdbRemoteTestCaseBase(Base, metaclass=GdbRemoteTestCaseFactory):
         # Launch the debug monitor stub, attaching to the inferior.
         server = self.connect_to_debug_monitor(attach_pid=attach_pid)
         self.assertIsNotNone(server)
+        if attach_pid and self._attach_release_file:
+            lldbutil.create_file_on_target(self, self._attach_release_file)
 
         self.do_handshake()
 
