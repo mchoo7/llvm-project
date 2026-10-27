@@ -50,6 +50,9 @@ public:
 
   void CalculateTrapHandlerSymbolNames() override;
 
+  llvm::Expected<lldb::addr_t>
+  ResolveIndirectFunction(Process &process, const Address &resolver) override;
+
   lldb::UnwindPlanSP
   GetTrapHandlerUnwindPlanForAddress(const ArchSpec &arch, Process &process,
                                     lldb::addr_t pc) override;

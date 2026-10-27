@@ -625,6 +625,11 @@ public:
       if (candidate_sc.symbol) {
         load_address = candidate_sc.symbol->ResolveCallableAddress(
             m_target, candidate_sc.module_sp);
+        // A failed resolver is not an ordinary callable function. Do not
+        // silently use the resolver's address as the resolved implementation.
+        if (load_address == LLDB_INVALID_ADDRESS &&
+            candidate_sc.symbol->IsIndirect())
+          continue;
         if (load_address == LLDB_INVALID_ADDRESS) {
           Address addr = candidate_sc.symbol->GetAddress();
           load_address = m_target.GetProcessSP()

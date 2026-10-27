@@ -852,6 +852,10 @@ public:
     return {};
   }
 
+  /// Invoke an indirect-function resolver according to the target ABI.
+  virtual llvm::Expected<lldb::addr_t>
+  ResolveIndirectFunction(Process &process, const Address &resolver);
+
   /// Recognize an unnamed signal trampoline, such as code mapped by the
   /// kernel without an object file, and provide its unwind plan.
   virtual lldb::UnwindPlanSP

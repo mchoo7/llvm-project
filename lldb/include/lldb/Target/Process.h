@@ -1974,6 +1974,14 @@ public:
   Status WriteMemoryTags(lldb::addr_t addr, size_t len,
                          const std::vector<lldb::addr_t> &tags);
 
+  /// Call a function with address-sized arguments and a pointer return value.
+  /// Used by platform plugins to invoke indirect-function resolvers according
+  /// to the target ABI.
+  bool CallFunctionReturnPointer(const Address *address,
+                                 llvm::ArrayRef<lldb::addr_t> arguments,
+                                 lldb::addr_t &returned_func,
+                                 bool trap_exceptions = false);
+
   /// Resolve dynamically loaded indirect functions.
   ///
   /// \param[in] address
@@ -3003,11 +3011,6 @@ protected:
   TraceGetBinaryData(const TraceGetBinaryDataRequest &request) {
     return llvm::make_error<UnimplementedError>();
   }
-
-  // This calls a function of the form "void * (*)(void)".
-  bool CallVoidArgVoidPtrReturn(const Address *address,
-                                lldb::addr_t &returned_func,
-                                bool trap_exceptions = false);
 
   /// Update the thread list following process plug-in's specific logic.
   ///

@@ -17,12 +17,14 @@
 #include "lldb/Breakpoint/BreakpointLocation.h"
 #include "lldb/Breakpoint/BreakpointSite.h"
 #include "lldb/Core/Debugger.h"
+#include "lldb/Core/Module.h"
 #include "lldb/Core/PluginManager.h"
 #include "lldb/Host/HostInfo.h"
 #include "lldb/Symbol/UnwindPlan.h"
 #include "Utility/ARM64_DWARF_Registers.h"
 #include "lldb/Target/Process.h"
 #include "lldb/Target/Target.h"
+#include "lldb/Utility/DataExtractor.h"
 #include "lldb/Utility/FileSpec.h"
 #include "lldb/Utility/LLDBLog.h"
 #include "lldb/Utility/Log.h"
@@ -30,6 +32,7 @@
 #include "lldb/Utility/Status.h"
 #include "lldb/Utility/StreamString.h"
 
+#include "llvm/ADT/ScopeExit.h"
 #include "llvm/Support/Endian.h"
 #include "llvm/TargetParser/Host.h"
 #include "llvm/TargetParser/Triple.h"
@@ -169,6 +172,82 @@ bool PlatformFreeBSD::CanDebugProcess() {
 
 void PlatformFreeBSD::CalculateTrapHandlerSymbolNames() {
   m_trap_handlers.push_back("_sigtramp");
+}
+
+llvm::Expected<addr_t>
+PlatformFreeBSD::ResolveIndirectFunction(Process &process,
+                                        const Address &resolver) {
+  if (process.GetTarget().GetArchitecture().GetMachine() != llvm::Triple::aarch64)
+    return Platform::ResolveIndirectFunction(process, resolver);
+
+  // This is a userland ABI. Prefer rtld's ELF ABI tag to the kernel version,
+  // since the inferior may use an older userland on a newer kernel.
+  llvm::VersionTuple version = GetOSVersion(&process);
+  for (ModuleSP module : process.GetTarget().GetImages().Modules()) {
+    if (module->GetFileSpec().GetFilename() == "ld-elf.so.1") {
+      auto userland_version = module->GetArchitecture().GetTriple().getOSVersion();
+      if (!userland_version.empty())
+        version = userland_version;
+      break;
+    }
+  }
+  // Before FreeBSD 15.1, all eight resolver arguments were reserved zeros.
+  if (version < llvm::VersionTuple(15, 1)) {
+    addr_t result = LLDB_INVALID_ADDRESS;
+    if (!process.CallFunctionReturnPointer(
+            &resolver, {0, 0, 0, 0, 0, 0, 0, 0}, result))
+      return llvm::createStringError("IFUNC resolver call failed");
+    return result;
+  }
+
+  // FreeBSD arm64 passes HWCAP, an __ifunc_arg_t pointer, and six reserved
+  // zero arguments. A no-argument call leaves stale registers that can make
+  // libc select an implementation using instructions unsupported by the CPU.
+  DataExtractor auxv = process.GetAuxvData();
+  if (!auxv.GetByteSize())
+    return llvm::createStringError("No auxiliary vector for IFUNC capabilities");
+  uint64_t capabilities[4] = {};
+  for (offset_t offset = 0; auxv.ValidOffsetForDataOfSize(offset, 16);) {
+    uint64_t type = auxv.GetU64(&offset);
+    uint64_t value = auxv.GetU64(&offset);
+    if (type == 0)
+      break;
+    switch (type) {
+    case 25: // AT_HWCAP
+      capabilities[0] = value;
+      break;
+    case 26: // AT_HWCAP2
+      capabilities[1] = value;
+      break;
+    case 38: // AT_HWCAP3
+      capabilities[2] = value;
+      break;
+    case 39: // AT_HWCAP4
+      capabilities[3] = value;
+      break;
+    }
+  }
+  capabilities[0] |= uint64_t(1) << 62; // _IFUNC_ARG_HWCAP
+
+  // Encode __ifunc_arg_t using the target layout, independent of host headers.
+  uint8_t data[40];
+  llvm::support::endian::write64le(data, sizeof(data));
+  for (unsigned i = 0; i != 4; ++i)
+    llvm::support::endian::write64le(data + 8 * (i + 1), capabilities[i]);
+
+  Status error;
+  addr_t args_addr = process.AllocateMemory(
+      sizeof(data), ePermissionsReadable | ePermissionsWritable, error);
+  if (args_addr == LLDB_INVALID_ADDRESS)
+    return error.ToError();
+  auto cleanup = llvm::scope_exit([&] { process.DeallocateMemory(args_addr); });
+  if (process.WriteMemory(args_addr, data, sizeof(data), error) != sizeof(data))
+    return llvm::createStringError("Unable to write IFUNC resolver arguments");
+  addr_t result = LLDB_INVALID_ADDRESS;
+  if (!process.CallFunctionReturnPointer(
+          &resolver, {capabilities[0], args_addr, 0, 0, 0, 0, 0, 0}, result))
+    return llvm::createStringError("IFUNC resolver call failed");
+  return result;
 }
 
 lldb::UnwindPlanSP PlatformFreeBSD::GetTrapHandlerUnwindPlanForAddress(

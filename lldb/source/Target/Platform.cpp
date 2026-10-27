@@ -2465,3 +2465,11 @@ bool PlatformList::LoadPlatformBinaryAndSetup(Process *process,
   }
   return false;
 }
+
+llvm::Expected<lldb::addr_t>
+Platform::ResolveIndirectFunction(Process &process, const Address &resolver) {
+  lldb::addr_t result = LLDB_INVALID_ADDRESS;
+  if (!process.CallFunctionReturnPointer(&resolver, {}, result))
+    return llvm::createStringError("resolver call failed");
+  return result;
+}

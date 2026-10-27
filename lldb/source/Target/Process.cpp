@@ -6423,13 +6423,21 @@ addr_t Process::ResolveIndirectFunction(const Address *address, Status &error) {
   if (iter != m_resolved_indirect_addresses.end()) {
     function_addr = (*iter).second;
   } else {
-    if (!CallVoidArgVoidPtrReturn(address, function_addr)) {
+    PlatformSP platform = GetTarget().GetPlatform();
+    auto resolved = platform
+                        ? platform->ResolveIndirectFunction(*this, *address)
+                        : llvm::Expected<addr_t>(llvm::createStringError(
+                              "No platform for indirect function resolution"));
+    if (!resolved) {
+      error = Status::FromError(resolved.takeError());
       const Symbol *symbol = address->CalculateSymbolContextSymbol();
       error = Status::FromErrorStringWithFormat(
-          "Unable to call resolver for indirect function %s",
-          symbol ? symbol->GetName().AsCString(nullptr) : "<UNKNOWN>");
+          "Unable to call resolver for indirect function %s: %s",
+          symbol ? symbol->GetName().AsCString(nullptr) : "<UNKNOWN>",
+          error.AsCString());
       function_addr = LLDB_INVALID_ADDRESS;
     } else {
+      function_addr = *resolved;
       if (ABISP abi_sp = GetABI())
         function_addr = abi_sp->FixCodeAddress(function_addr);
       m_resolved_indirect_addresses.insert(
@@ -6812,9 +6820,10 @@ llvm::Expected<TraceSupportedResponse> Process::TraceSupported() {
   return llvm::make_error<UnimplementedError>();
 }
 
-bool Process::CallVoidArgVoidPtrReturn(const Address *address,
-                                       addr_t &returned_func,
-                                       bool trap_exceptions) {
+bool Process::CallFunctionReturnPointer(const Address *address,
+                                        llvm::ArrayRef<addr_t> arguments,
+                                        addr_t &returned_func,
+                                        bool trap_exceptions) {
   Thread *thread = GetThreadList().GetExpressionExecutionThread().get();
   if (thread == nullptr || address == nullptr)
     return false;
@@ -6840,7 +6849,7 @@ bool Process::CallVoidArgVoidPtrReturn(const Address *address,
   CompilerType void_ptr_type =
       ts->GetBasicTypeFromAST(eBasicTypeVoid).GetPointerType();
   lldb::ThreadPlanSP call_plan_sp(new ThreadPlanCallFunction(
-      *thread, *address, void_ptr_type, llvm::ArrayRef<addr_t>(), options));
+      *thread, *address, void_ptr_type, arguments, options));
   if (call_plan_sp) {
     DiagnosticManager diagnostics;
 

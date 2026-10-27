@@ -74,3 +74,21 @@ class LibcCallsTestCase(TestBase):
             __builtin_memcmp(src, dst, len64)""",
             result_value="0",
         )
+
+    @skipIf(oslist=no_match(["freebsd"]))
+    @skipIf(archs=no_match(["aarch64"]))
+    @requireExpressionEvaluation
+    def test_freebsd_ifunc_arguments(self):
+        self.build()
+        target, _, _, _ = lldbutil.run_to_source_breakpoint(
+            self, "// break here", lldb.SBFileSpec("main.c")
+        )
+        available = target.FindFirstGlobalVariable("has_ifunc_arg_structure")
+        self.assertTrue(available.IsValid())
+        if not available.GetValueAsUnsigned():
+            self.skipTest("requires the FreeBSD 15.1 IFUNC argument structure")
+        # The resolver returns the successful implementation only when LLDB
+        # supplies the HWCAP structure and reserved arguments used by rtld.
+        options = lldb.SBExpressionOptions()
+        options.SetTimeoutInMicroSeconds(30_000_000)
+        self.expect_expr("(int)ifunc_answer()", result_value="42", options=options)
