@@ -3886,17 +3886,34 @@ Status Process::DestroyImpl(bool force_kill) {
     }
 
     if (GetPublicState() == eStateStopped) {
+      // A public stop can still be visible while the private state thread is
+      // completing a breakpoint step-over. Do not discard its plans between
+      // ShouldStop deciding to complete a plan and PopPlan removing it.
+      const bool pause_private_state_thread =
+          PrivateStateThreadIsRunning() &&
+          !m_current_private_state_thread_sp->IsOnThread(Host::GetCurrentThread());
+      if (pause_private_state_thread)
+        PausePrivateStateThread();
+      llvm::scope_exit resume_private_state_thread([&] {
+        if (pause_private_state_thread)
+          ResumePrivateStateThread();
+      });
+
       // Ditch all thread plans, and remove all our breakpoints: in case we
       // have to restart the target to kill it, we don't want it hitting a
       // breakpoint... Only do this if we've stopped, however, since if we
       // didn't manage to halt it above, then we're not going to have much luck
       // doing this now.
-      m_thread_list.DiscardThreadPlans();
-      DisableAllBreakpointSites();
-      if (auto error = FlushDelayedBreakpoints())
-        LLDB_LOG_ERROR(
-            GetLog(LLDBLog::Process), std::move(error),
-            "Failed to update some delayed breakpoints during destroy: {0}");
+      // The private state thread may have resumed the inferior before it
+      // acknowledged the pause. In that case we cannot remove breakpoints.
+      if (GetPrivateState() == eStateStopped) {
+        m_thread_list.DiscardThreadPlans();
+        DisableAllBreakpointSites();
+        if (auto error = FlushDelayedBreakpoints())
+          LLDB_LOG_ERROR(
+              GetLog(LLDBLog::Process), std::move(error),
+              "Failed to update some delayed breakpoints during destroy: {0}");
+      }
     }
 
     error = DoDestroy();
