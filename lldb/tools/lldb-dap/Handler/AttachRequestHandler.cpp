@@ -140,6 +140,11 @@ Error AttachRequestHandler::Run(const AttachRequestArguments &args) const {
       else if (!dap.configuration.program.empty())
         attach_info.SetExecutable(dap.configuration.program.data());
       attach_info.SetWaitForLaunch(args.waitFor, /*async=*/false);
+      // The process can launch after the DAP request starts but before the
+      // remote server begins polling. Include it if it is already present
+      // when the server handles the request, rather than excluding it forever.
+      if (args.waitFor)
+        attach_info.SetIgnoreExisting(false);
       auto process = dap.target.Attach(attach_info, error);
       // If we attached by name then we were using the 'Dummy' target, ensure
       // we update to the real target.

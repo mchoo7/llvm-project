@@ -91,8 +91,7 @@ class TestDAP_attach(DAPTestCaseBase):
         self.do_attach_waitFor(use_basename=True)
 
     def do_attach_waitFor(self, use_basename: bool):
-        """Kick off attach with waitFor=True; spawn the target once lldb-dap
-        signals it has entered the wait-for-process polling loop."""
+        """Spawn during a wait-for attach, including its connection setup."""
         session = self.create_session()
         program = self.build_for_attach()
         attach_name = Path(program).name if use_basename else program
@@ -100,8 +99,9 @@ class TestDAP_attach(DAPTestCaseBase):
         init_response = session.initialize_sequence(session.initialize_args)
         pending = session.send_request(AttachArgs(program=attach_name, waitFor=True))
 
-        # Wait until lldb-dap is actually polling for the process before we
-        # spawn it, so we don't race the poll setup.
+        # The progress event shows that attach has begun. The server may still
+        # be connecting, so the target must also be found if it launches before
+        # the first poll.
         session.wait_for_event(
             ProgressStartEvent,
             until=lambda e: "Waiting to attach" in e.body.title,
