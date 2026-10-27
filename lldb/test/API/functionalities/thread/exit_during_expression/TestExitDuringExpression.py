@@ -57,6 +57,12 @@ class TestExitDuringExpression(TestBase):
             self, "Break here and cause the thread to exit", self.main_source_file
         )
 
+        # Stop the surviving thread once join completes so it cannot reach the
+        # final breakpoint before expression evaluation notices the thread exit.
+        joined_bkpt = target.BreakpointCreateBySourceRegex(
+            "Stop after joining the expression thread", self.main_source_file
+        )
+        self.assertEqual(joined_bkpt.GetNumLocations(), 1)
         # We'll continue to this breakpoint after running our expression:
         return_bkpt = target.BreakpointCreateBySourceRegex(
             "Break here to make sure the thread exited", self.main_source_file
@@ -85,10 +91,25 @@ class TestExitDuringExpression(TestBase):
 
         options = lldb.SBExpressionOptions()
         options.SetUnwindOnError(unwind)
+        # This breakpoint supplies the stop where LLDB observes the thread
+        # exit. Ignoring it would let main run through the final breakpoint too.
+        options.SetIgnoreBreakpoints(False)
         options.SetOneThreadTimeoutInMicroSeconds(one_thread_timeout)
-        options.SetTimeoutInMicroSeconds(4 * timeout_value)
+        # Keep the single-thread transition tied to the inferior sleep, but
+        # allow scheduler and debugger overhead when waiting for thread exit.
+        options.SetTimeoutInMicroSeconds(max(4 * timeout_value, 30_000_000))
 
-        result = frame.EvaluateExpression("function_to_call()", options)
+        # The handoff is on the surviving thread, which has no expression call
+        # plan. Its breakpoints follow the process setting rather than options.
+        setting = "target.process.ignore-breakpoints-in-expressions"
+        saved_setting = self.dbg.GetInternalVariableValue(
+            setting, self.dbg.GetInstanceName()
+        ).GetStringAtIndex(0)
+        self.runCmd("settings set %s false" % setting)
+        try:
+            result = frame.EvaluateExpression("function_to_call()", options)
+        finally:
+            self.runCmd("settings set %s %s" % (setting, saved_setting))
 
         # Make sure the thread actually exited:
         thread = process.GetThreadByID(tid)
@@ -96,6 +117,14 @@ class TestExitDuringExpression(TestBase):
 
         # Make sure the expression failed:
         self.assertFalse(result.GetError().Success(), "Expression failed.")
+
+        self.assertState(process.GetState(), lldb.eStateStopped)
+        self.assertEqual(
+            len(lldbutil.get_threads_stopped_at_breakpoint(process, joined_bkpt)),
+            1,
+            "The surviving thread reached the join handoff",
+        )
+        self.assertTrue(target.BreakpointDelete(joined_bkpt.GetID()))
 
         # Make sure we can keep going:
         threads = lldbutil.continue_to_breakpoint(process, return_bkpt)

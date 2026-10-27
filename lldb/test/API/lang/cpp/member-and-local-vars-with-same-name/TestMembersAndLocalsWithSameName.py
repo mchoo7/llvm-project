@@ -5,6 +5,15 @@ import lldbsuite.test.lldbutil as lldbutil
 
 
 class TestMembersAndLocalsWithSameName(TestBase):
+    def evaluate_expression(self, frame, expression):
+        # The default half-second deadline also counts remote memory reads by
+        # the IR interpreter, which can be delayed by a parallel testsuite.
+        options = lldb.SBExpressionOptions()
+        options.SetTimeoutInMicroSeconds(30_000_000)
+        value = frame.EvaluateExpression(expression, options)
+        self.assertSuccess(value.GetError(), "Evaluating " + expression)
+        return value
+
     def test_when_stopped_in_method(self):
         self._load_exe()
 
@@ -35,15 +44,15 @@ class TestMembersAndLocalsWithSameName(TestBase):
         frame = thread.GetSelectedFrame()
         self.assertTrue(frame.IsValid())
 
-        val = frame.EvaluateExpression("a")
+        val = self.evaluate_expression(frame, "a")
         self.assertTrue(val.IsValid())
         self.assertEqual(val.GetValueAsUnsigned(), 12345)
 
-        val = frame.EvaluateExpression("b")
+        val = self.evaluate_expression(frame, "b")
         self.assertTrue(val.IsValid())
         self.assertEqual(val.GetValueAsUnsigned(), 54321)
 
-        val = frame.EvaluateExpression("c")
+        val = self.evaluate_expression(frame, "c")
         self.assertTrue(val.IsValid())
         self.assertEqual(val.GetValueAsUnsigned(), 34567)
 
@@ -54,15 +63,15 @@ class TestMembersAndLocalsWithSameName(TestBase):
         frame = thread.GetSelectedFrame()
         self.assertTrue(frame.IsValid())
 
-        val = frame.EvaluateExpression("a")
+        val = self.evaluate_expression(frame, "a")
         self.assertTrue(val.IsValid())
         self.assertEqual(val.GetValueAsUnsigned(), 10001)
 
-        val = frame.EvaluateExpression("b")
+        val = self.evaluate_expression(frame, "b")
         self.assertTrue(val.IsValid())
         self.assertEqual(val.GetValueAsUnsigned(), 10002)
 
-        val = frame.EvaluateExpression("c")
+        val = self.evaluate_expression(frame, "c")
         self.assertTrue(val.IsValid())
         self.assertEqual(val.GetValueAsUnsigned(), 10003)
 
@@ -73,15 +82,15 @@ class TestMembersAndLocalsWithSameName(TestBase):
         frame = thread.GetSelectedFrame()
         self.assertTrue(frame.IsValid())
 
-        val = frame.EvaluateExpression("a")
+        val = self.evaluate_expression(frame, "a")
         self.assertTrue(val.IsValid())
         self.assertEqual(val.GetValueAsUnsigned(), 1)
 
-        val = frame.EvaluateExpression("b")
+        val = self.evaluate_expression(frame, "b")
         self.assertTrue(val.IsValid())
         self.assertEqual(val.GetValueAsUnsigned(), 2)
 
-        val = frame.EvaluateExpression("c")
+        val = self.evaluate_expression(frame, "c")
         self.assertTrue(val.IsValid())
         self.assertEqual(val.GetValueAsUnsigned(), 778899)
 
@@ -116,16 +125,16 @@ class TestMembersAndLocalsWithSameName(TestBase):
         self.assertTrue(frame.IsValid())
 
         self.enable_expression_log()
-        val = frame.EvaluateExpression("a")
+        val = self.evaluate_expression(frame, "a")
         self.disable_expression_log_and_check_for_locals(["a"])
         self.assertTrue(val.IsValid())
         self.assertEqual(val.GetValueAsUnsigned(), 12345)
 
-        val = frame.EvaluateExpression("b")
+        val = self.evaluate_expression(frame, "b")
         self.assertTrue(val.IsValid())
         self.assertEqual(val.GetValueAsUnsigned(), 54321)
 
-        val = frame.EvaluateExpression("c")
+        val = self.evaluate_expression(frame, "c")
         self.assertTrue(val.IsValid())
         self.assertEqual(val.GetValueAsUnsigned(), 34567)
 
@@ -136,20 +145,20 @@ class TestMembersAndLocalsWithSameName(TestBase):
         frame = thread.GetSelectedFrame()
         self.assertTrue(frame.IsValid())
 
-        val = frame.EvaluateExpression("a")
+        val = self.evaluate_expression(frame, "a")
         self.assertTrue(val.IsValid())
         self.assertEqual(val.GetValueAsUnsigned(), 10001)
 
-        val = frame.EvaluateExpression("b")
+        val = self.evaluate_expression(frame, "b")
         self.assertTrue(val.IsValid())
         self.assertEqual(val.GetValueAsUnsigned(), 10002)
 
-        val = frame.EvaluateExpression("c")
+        val = self.evaluate_expression(frame, "c")
         self.assertTrue(val.IsValid())
         self.assertEqual(val.GetValueAsUnsigned(), 10003)
 
         self.enable_expression_log()
-        val = frame.EvaluateExpression("c-b")
+        val = self.evaluate_expression(frame, "c-b")
         self.disable_expression_log_and_check_for_locals(["c", "b"])
         self.assertTrue(val.IsValid())
         self.assertEqual(val.GetValueAsUnsigned(), 1)
@@ -161,20 +170,20 @@ class TestMembersAndLocalsWithSameName(TestBase):
         frame = thread.GetSelectedFrame()
         self.assertTrue(frame.IsValid())
 
-        val = frame.EvaluateExpression("a")
+        val = self.evaluate_expression(frame, "a")
         self.assertTrue(val.IsValid())
         self.assertEqual(val.GetValueAsUnsigned(), 1)
 
-        val = frame.EvaluateExpression("b")
+        val = self.evaluate_expression(frame, "b")
         self.assertTrue(val.IsValid())
         self.assertEqual(val.GetValueAsUnsigned(), 2)
 
-        val = frame.EvaluateExpression("c")
+        val = self.evaluate_expression(frame, "c")
         self.assertTrue(val.IsValid())
         self.assertEqual(val.GetValueAsUnsigned(), 778899)
 
         self.enable_expression_log()
-        val = frame.EvaluateExpression("a+b")
+        val = self.evaluate_expression(frame, "a+b")
         self.disable_expression_log_and_check_for_locals(["a", "b"])
         self.assertTrue(val.IsValid())
         self.assertEqual(val.GetValueAsUnsigned(), 3)
@@ -202,16 +211,16 @@ class TestMembersAndLocalsWithSameName(TestBase):
         self.assertTrue(frame.IsValid())
 
         self.enable_expression_log()
-        val = frame.EvaluateExpression("a")
+        val = self.evaluate_expression(frame, "a")
         self.disable_expression_log_and_check_for_locals([])
         self.assertTrue(val.IsValid())
         self.assertEqual(val.GetValueAsUnsigned(), 112233)
 
-        val = frame.EvaluateExpression("b")
+        val = self.evaluate_expression(frame, "b")
         self.assertTrue(val.IsValid())
         self.assertEqual(val.GetValueAsUnsigned(), 445566)
 
-        val = frame.EvaluateExpression("c")
+        val = self.evaluate_expression(frame, "c")
         self.assertTrue(val.IsValid())
         self.assertEqual(val.GetValueAsUnsigned(), 778899)
 

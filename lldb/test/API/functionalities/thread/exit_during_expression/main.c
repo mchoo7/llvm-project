@@ -33,8 +33,6 @@ int main() {
   pthread_create(&exiting_thread, NULL, exiting_thread_func, NULL);
 
   pthread_join(exiting_thread, &exit_ptr);
-  int ret_val = (int)exit_ptr;
-  usleep(g_timeout * 4); // Make sure in the "run all threads" case
-                         // that we don't run past our breakpoint.
+  int ret_val = (int)exit_ptr; // Stop after joining the expression thread
   return ret_val;        // Break here to make sure the thread exited.
 }
