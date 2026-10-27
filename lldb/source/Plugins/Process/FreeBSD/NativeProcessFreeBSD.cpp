@@ -10,7 +10,9 @@
 
 // clang-format off
 #include <sys/types.h>
+#include <sys/mman.h>
 #include <sys/ptrace.h>
+#include <sys/syscall.h>
 #include <sys/sysctl.h>
 #include <sys/user.h>
 #include <sys/wait.h>
@@ -23,7 +25,10 @@
 #include "lldb/Target/Process.h"
 #include "lldb/Utility/State.h"
 #include "llvm/ADT/ScopeExit.h"
+#include "llvm/ADT/SmallVector.h"
 #include "llvm/Support/Errno.h"
+
+#include <type_traits>
 
 using namespace lldb;
 using namespace lldb_private;
@@ -268,7 +273,10 @@ void NativeProcessFreeBSD::MonitorSIGTRAP(lldb::pid_t pid) {
     for (const auto &t : m_threads) {
       if (t->GetID() == static_cast<lldb::tid_t>(info.pl_lwpid))
         thread = static_cast<NativeThreadFreeBSD *>(t.get());
-      static_cast<NativeThreadFreeBSD *>(t.get())->SetStoppedWithNoReason();
+      // Threads left suspended did not execute and retain their stop reason.
+      // Resume and SingleStep mark the threads that actually ran accordingly.
+      if (t->GetState() != eStateStopped)
+        static_cast<NativeThreadFreeBSD *>(t.get())->SetStoppedWithNoReason();
     }
     if (!thread)
       LLDB_LOG(log, "thread not found in m_threads, pid = {0}, LWP = {1}", pid,
@@ -456,7 +464,7 @@ void NativeProcessFreeBSD::MonitorSignal(lldb::pid_t pid, int signal) {
         static_cast<lldb::tid_t>(info.pl_lwpid) == thread.GetID()) {
       thread.SetStoppedBySignal(info.pl_siginfo.si_signo, &info.pl_siginfo);
       SetCurrentThreadID(thread.GetID());
-    } else
+    } else if (thread.GetState() != eStateStopped)
       thread.SetStoppedWithNoReason();
   }
   SetState(StateType::eStateStopped, true);
@@ -586,6 +594,100 @@ Status NativeProcessFreeBSD::Halt() {
   if (kill(GetID(), SIGSTOP) != 0)
     error = Status::FromErrno();
   return error;
+}
+
+#if defined(PT_SC_REMOTE)
+llvm::Expected<addr_t>
+NativeProcessFreeBSD::RemoteSyscall(unsigned number,
+                                   llvm::ArrayRef<addr_t> arguments) {
+  // Compat and 32-bit mmap argument layouts need separate handling.
+  if (GetArchitecture().GetAddressByteSize() != 8 || sizeof(void *) != 8)
+    return llvm::make_error<UnimplementedError>();
+
+  NativeThreadProtocol *thread = GetCurrentThread();
+  if (!thread)
+    return llvm::createStringError("No thread available for remote syscall");
+
+  struct ptrace_sc_remote request = {};
+  // Older FreeBSD headers use u_long here; newer ones use syscallarg_t.
+  using Argument = std::remove_pointer_t<decltype(request.pscr_args)>;
+  llvm::SmallVector<Argument, 6> args;
+  for (addr_t arg : arguments)
+    args.push_back(static_cast<Argument>(arg));
+  request.pscr_syscall = number;
+  request.pscr_nargs = args.size();
+  request.pscr_args = args.data();
+  // A thread suspended in a blocking syscall cannot service PT_SC_REMOTE.
+  // mmap and munmap affect the whole address space, so another stopped LWP
+  // can perform them without executing any inferior user-space instructions.
+  llvm::SmallVector<lldb::tid_t> candidates{thread->GetID()};
+  for (const auto &candidate : m_threads)
+    if (candidate->GetID() != thread->GetID())
+      candidates.push_back(candidate->GetID());
+
+  Status error;
+  for (lldb::tid_t tid : candidates) {
+    error = PtraceWrapper(PT_SC_REMOTE, tid, &request, sizeof(request));
+    if (error.Success() || error.GetError() != EBUSY)
+      break;
+  }
+  Status wait_error = WaitForKernelStop();
+  if (error.Fail()) {
+    // Allow the client to retain its fallback when the running kernel is older
+    // than the headers used to build lldb-server.
+    if (error.GetError() == EINVAL || error.GetError() == ENOSYS)
+      return llvm::make_error<UnimplementedError>();
+    return error.ToError();
+  }
+  if (wait_error.Fail())
+    return wait_error.ToError();
+  if (request.pscr_ret.sr_error != 0)
+    return Status(request.pscr_ret.sr_error, eErrorTypePOSIX).ToError();
+  return static_cast<addr_t>(request.pscr_ret.sr_retval[0]);
+}
+#endif
+
+llvm::Expected<addr_t>
+NativeProcessFreeBSD::AllocateMemory(size_t size, uint32_t permissions) {
+#if defined(PT_SC_REMOTE)
+  unsigned prot = PROT_NONE;
+  if (permissions & ePermissionsReadable)
+    prot |= PROT_READ;
+  if (permissions & ePermissionsWritable)
+    prot |= PROT_WRITE;
+  if (permissions & ePermissionsExecutable)
+    prot |= PROT_EXEC;
+
+  // Execute mmap in the kernel without resuming any user-space instructions.
+  // Calling the inferior's mmap wrapper can take a libthr lock and cause the
+  // client's all-thread retry to resume threads that should remain stopped.
+  auto address =
+      RemoteSyscall(SYS_mmap, {0, size, prot, MAP_PRIVATE | MAP_ANON,
+                              static_cast<addr_t>(-1), 0});
+  if (address) {
+    m_allocated_memory.try_emplace(*address, size);
+    m_mem_region_cache.clear();
+  }
+  return address;
+#else
+  return llvm::make_error<UnimplementedError>();
+#endif
+}
+
+llvm::Error NativeProcessFreeBSD::DeallocateMemory(addr_t addr) {
+#if defined(PT_SC_REMOTE)
+  auto it = m_allocated_memory.find(addr);
+  if (it == m_allocated_memory.end())
+    return llvm::createStringError("Memory not allocated by the debugger");
+  auto result = RemoteSyscall(SYS_munmap, {addr, it->second});
+  if (!result)
+    return result.takeError();
+  m_allocated_memory.erase(it);
+  m_mem_region_cache.clear();
+  return llvm::Error::success();
+#else
+  return llvm::make_error<UnimplementedError>();
+#endif
 }
 
 Status NativeProcessFreeBSD::Detach() {
@@ -1042,6 +1144,7 @@ Status NativeProcessFreeBSD::SetupTrace() {
 Status NativeProcessFreeBSD::ReinitializeThreads() {
   // Clear old threads
   m_threads.clear();
+  m_allocated_memory.clear();
 
   int num_lwps;
   Status error = PtraceWrapper(PT_GETNUMLWPS, GetID(), nullptr, 0, &num_lwps);

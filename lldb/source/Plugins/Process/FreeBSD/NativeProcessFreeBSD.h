@@ -15,6 +15,7 @@
 #include "lldb/Target/MemoryRegionInfo.h"
 #include "lldb/Utility/ArchSpec.h"
 #include "lldb/Utility/FileSpec.h"
+#include "llvm/ADT/DenseMap.h"
 
 #include "NativeThreadFreeBSD.h"
 
@@ -55,6 +56,10 @@ public:
   Status Interrupt() override;
 
   Status Kill() override;
+
+  llvm::Expected<lldb::addr_t> AllocateMemory(size_t size,
+                                            uint32_t permissions) override;
+  llvm::Error DeallocateMemory(lldb::addr_t addr) override;
 
   Status GetMemoryRegionInfo(lldb::addr_t load_addr,
                              MemoryRegionInfo &range_info) override;
@@ -100,6 +105,7 @@ private:
   ArchSpec m_arch;
   MainLoop &m_main_loop;
   LazyBool m_supports_mem_region = eLazyBoolCalculate;
+  llvm::DenseMap<lldb::addr_t, size_t> m_allocated_memory;
 
   // Private Instance Methods
   NativeProcessFreeBSD(::pid_t pid, int terminal_fd, NativeDelegate &delegate,
@@ -123,6 +129,8 @@ private:
   Status PopulateMemoryRegionCache();
   void SigchldHandler();
   Status WaitForKernelStop();
+  llvm::Expected<lldb::addr_t>
+  RemoteSyscall(unsigned number, llvm::ArrayRef<lldb::addr_t> arguments);
 
   Status Attach();
   Status SetupTrace();

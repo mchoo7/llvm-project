@@ -3437,15 +3437,22 @@ lldb::addr_t ProcessGDBRemote::DoAllocateMemory(size_t size,
                                                 Status &error) {
   Log *log = GetLog(LLDBLog::Process | LLDBLog::Expressions);
   addr_t allocated_addr = LLDB_INVALID_ADDRESS;
+  // FreeBSD's PT_SC_REMOTE can reject a syscall when the selected thread is
+  // stopped inside a blocking syscall rather than at a user-space boundary.
+  // Preserve the inferior-call fallback for that stop without disabling native
+  // allocation at later stops, where no user-space execution is needed.
+  const bool freebsd_fallback =
+      GetTarget().GetArchitecture().GetTriple().isOSFreeBSD();
 
   if (m_gdb_comm.SupportsAllocDeallocMemory() != eLazyBoolNo) {
     allocated_addr = m_gdb_comm.AllocateMemory(size, permissions);
     if (allocated_addr != LLDB_INVALID_ADDRESS ||
-        m_gdb_comm.SupportsAllocDeallocMemory() == eLazyBoolYes)
+        (m_gdb_comm.SupportsAllocDeallocMemory() == eLazyBoolYes &&
+         !freebsd_fallback))
       return allocated_addr;
   }
 
-  if (m_gdb_comm.SupportsAllocDeallocMemory() == eLazyBoolNo) {
+  if (m_gdb_comm.SupportsAllocDeallocMemory() == eLazyBoolNo || freebsd_fallback) {
     // Call mmap() to create memory in the inferior..
     unsigned prot = 0;
     if (permissions & lldb::ePermissionsReadable)
@@ -3494,6 +3501,17 @@ std::optional<bool> ProcessGDBRemote::DoGetWatchpointReportedAfter() {
 
 Status ProcessGDBRemote::DoDeallocateMemory(lldb::addr_t addr) {
   Status error;
+  // Native and inferior-call allocations can coexist on FreeBSD. Match the
+  // deallocator to the way this address was allocated.
+  auto pos = m_addr_to_mmap_size.find(addr);
+  if (pos != m_addr_to_mmap_size.end()) {
+    if (InferiorCallMunmap(this, addr, pos->second))
+      m_addr_to_mmap_size.erase(pos);
+    else
+      error = Status::FromErrorStringWithFormat(
+          "unable to deallocate memory at 0x%" PRIx64, addr);
+    return error;
+  }
   LazyBool supported = m_gdb_comm.SupportsAllocDeallocMemory();
 
   switch (supported) {
@@ -3511,16 +3529,8 @@ Status ProcessGDBRemote::DoDeallocateMemory(lldb::addr_t addr) {
     break;
 
   case eLazyBoolNo:
-    // Call munmap() to deallocate memory in the inferior..
-    {
-      MMapMap::iterator pos = m_addr_to_mmap_size.find(addr);
-      if (pos != m_addr_to_mmap_size.end() &&
-          InferiorCallMunmap(this, addr, pos->second))
-        m_addr_to_mmap_size.erase(pos);
-      else
-        error = Status::FromErrorStringWithFormat(
-            "unable to deallocate memory at 0x%" PRIx64, addr);
-    }
+    error = Status::FromErrorStringWithFormat(
+        "unable to deallocate memory at 0x%" PRIx64, addr);
     break;
   }
 

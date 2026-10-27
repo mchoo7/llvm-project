@@ -8,6 +8,14 @@ supported_oses = ["linux", "windows"] + lldbplatformutil.getDarwinOSTriples()
 
 
 class TestGdbRemoteMemoryAllocation(gdbremote_testcase.GdbRemoteTestCaseBase):
+    def supports_freebsd_allocation(self):
+        platform = self.dbg.GetSelectedPlatform()
+        version = (platform.GetOSMajorVersion(), platform.GetOSMinorVersion())
+        return version >= (13, 2) and self.getArchitecture() in (
+            "x86_64", "aarch64", "arm64", "powerpc64", "powerpc64le",
+            "ppc64", "ppc64le", "riscv64"
+        )
+
     def allocate(self, size, permissions):
         self.test_sequence.add_log_lines(
             [
@@ -44,7 +52,7 @@ class TestGdbRemoteMemoryAllocation(gdbremote_testcase.GdbRemoteTestCaseBase):
         self.assertLessEqual(size, int(context.get("size"), 16))
         self.assertEqual(permissions, context.get("permissions"))
 
-    @skipIf(oslist=no_match(supported_oses))
+    @skipIf(oslist=no_match(supported_oses + ["freebsd"]))
     @skipIf(oslist=["linux"], archs=no_match(supported_linux_archs))
     @expectedFailureDarwin(
         archs=["arm64", "arm64e"]
@@ -55,6 +63,8 @@ class TestGdbRemoteMemoryAllocation(gdbremote_testcase.GdbRemoteTestCaseBase):
     def test_supported(self):
         """Make sure (de)allocation works on platforms where it's supposed to
         work"""
+        if self.getPlatform() == "freebsd" and not self.supports_freebsd_allocation():
+            self.skipTest("requires native 64-bit FreeBSD with PT_SC_REMOTE")
         self.build()
         self.set_inferior_startup_launch()
         procs = self.prep_debug_monitor_and_inferior()
@@ -69,6 +79,9 @@ class TestGdbRemoteMemoryAllocation(gdbremote_testcase.GdbRemoteTestCaseBase):
     def test_unsupported(self):
         """Make sure we get an "unsupported" error on platforms where the
         feature is not implemented."""
+
+        if self.getPlatform() == "freebsd" and self.supports_freebsd_allocation():
+            self.skipTest("native 64-bit FreeBSD supports allocation")
 
         self.build()
         self.set_inferior_startup_launch()

@@ -13,9 +13,18 @@ from lldbsuite.test.decorators import *
 @requireThreadSupport
 class TestStopReasonAfterExpression(TestBase):
     @skipIfWindows
-    @expectedFailureAll(oslist=["freebsd"], bugnumber="llvm.org/pr48415")
     @expectedFlakeyNetBSD
     def test_thread_state_after_expr(self):
+        if self.getPlatform() == "freebsd":
+            platform = self.dbg.GetSelectedPlatform()
+            version = (platform.GetOSMajorVersion(), platform.GetOSMinorVersion())
+            if version < (13, 2) or self.getArchitecture() not in (
+                "x86_64", "aarch64", "arm64", "powerpc64", "powerpc64le",
+                "ppc64", "ppc64le", "riscv64"
+            ):
+                self.skipTest(
+                    "requires native allocation without resuming other threads"
+                )
         self.build()
         self.main_source_file = lldb.SBFileSpec("main.cpp")
         self.do_test()
@@ -37,7 +46,7 @@ class TestStopReasonAfterExpression(TestBase):
         self.assertNotEqual(
             thread.GetThreadID(), other_thread.GetThreadID(), "A different thread"
         )
-        # Run an expression ONLY on other_thread.  Don't let thread run:
+        # Run an expression ONLY on thread. Don't let other_thread run:
         options = lldb.SBExpressionOptions()
         options.SetTryAllThreads(False)
         options.SetStopOthers(True)
