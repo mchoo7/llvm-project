@@ -122,6 +122,7 @@ private:
 
   Status PopulateMemoryRegionCache();
   void SigchldHandler();
+  Status WaitForKernelStop();
 
   Status Attach();
   Status SetupTrace();

@@ -1132,6 +1132,23 @@ void NativeProcessFreeBSD::MonitorClone(::pid_t child_pid, bool is_vfork,
   }
 }
 
+Status NativeProcessFreeBSD::WaitForKernelStop() {
+  // PT_COREDUMP and PT_SC_REMOTE temporarily run a thread in the kernel and
+  // stop it again before returning. Consume that internal wait status before
+  // another ptrace request, without reporting a new debugger stop or fixing
+  // the breakpoint PC again. A request that failed early may have no event.
+  int status;
+  ::pid_t pid = llvm::sys::RetryAfterSignal(-1, ::waitpid, GetID(), &status,
+                                            WNOHANG);
+  if (pid == -1)
+    return Status::FromErrno();
+  if (pid == 0 || WIFSTOPPED(status))
+    return Status();
+  if (WIFEXITED(status) || WIFSIGNALED(status))
+    MonitorExited(pid, WaitStatus::Decode(status));
+  return Status::FromErrorString("Process exited during a kernel ptrace request");
+}
+
 llvm::Expected<std::string>
 NativeProcessFreeBSD::SaveCore(llvm::StringRef path_hint) {
 #if defined(PT_COREDUMP)
@@ -1150,11 +1167,14 @@ NativeProcessFreeBSD::SaveCore(llvm::StringRef path_hint) {
       return llvm::createStringError(errc, "unable to create a temporary file");
   }
   error = PtraceWrapper(PT_COREDUMP, GetID(), &pc, sizeof(pc));
+  Status wait_error = WaitForKernelStop();
 
   llvm::sys::fs::file_t fd = pc.pc_fd;
   std::error_code close_err = closeFile(fd);
   if (error.Fail())
     return error.ToError();
+  if (wait_error.Fail())
+    return wait_error.ToError();
   if (close_err)
     return llvm::createStringError(
         close_err, "Unable to close the core dump after writing");
