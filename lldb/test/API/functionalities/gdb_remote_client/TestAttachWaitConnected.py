@@ -1,4 +1,3 @@
-import socket
 import threading
 import time
 
@@ -63,26 +62,23 @@ class TestAttachWaitConnected(GDBRemoteTestBase):
 
         attach_info = lldb.SBAttachInfo()
         attach_info.SetExecutable("no-such-process")
-        attach_info.SetWaitForLaunch(True, False)
+        attach_info.SetWaitForLaunch(True, True)
 
         attach_error = lldb.SBError()
-
-        def attach():
-            target.Attach(attach_info, attach_error)
-
-        attach_thread = threading.Thread(target=attach, daemon=True)
-        attach_thread.start()
+        target.Attach(attach_info, attach_error)
+        self.assertSuccess(attach_error)
 
         self.assertTrue(
             waiting.wait(self.TIMEOUT),
             "server never received the wait-for attach: %s" % attach_error.GetCString(),
         )
+        # Returning from the asynchronous Attach guarantees that its state is
+        # published. Receiving the packet alone does not provide that guarantee.
+        self.assertState(process.GetState(), lldb.eStateAttaching)
         process.SendAsyncInterrupt()
-        attach_thread.join(self.TIMEOUT)
-        if attach_thread.is_alive():
-            # Teardown needs the target the attach is holding, so drop the
-            # connection to let it finish before failing.
-            self.server._socket._connection.shutdown(socket.SHUT_RDWR)
-            attach_thread.join(self.TIMEOUT)
-            self.fail("interrupt did not end the attach")
-        self.assertTrue(attach_error.Fail())
+        deadline = time.monotonic() + self.TIMEOUT
+        while process.GetState() != lldb.eStateExited:
+            self.assertLess(
+                time.monotonic(), deadline, "interrupt did not end the attach"
+            )
+            listener.WaitForEvent(1, event)
