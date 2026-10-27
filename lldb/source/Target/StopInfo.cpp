@@ -216,6 +216,9 @@ public:
 
           m_should_stop = true;
         }
+        // Logging can ask for a description before the synchronous callbacks
+        // have populated m_async_stopped_locs. Rebuild it from the final list.
+        m_description.clear();
         m_should_stop_is_valid = true;
       }
       return m_should_stop;

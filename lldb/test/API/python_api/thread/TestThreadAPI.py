@@ -20,6 +20,12 @@ class ThreadAPITestCase(TestBase):
     def test_get_stop_description(self):
         """Test Python SBThread.GetStopDescription() API."""
         self.build()
+        # Thread::SetStopInfo logs the description before synchronous
+        # breakpoint callbacks have selected the locations to report.
+        self.runCmd(
+            "log enable -f '%s' lldb thread" % self.getBuildArtifact("thread.log")
+        )
+        self.addTearDownHook(lambda: self.runCmd("log disable lldb thread"))
         self.get_stop_description()
 
     def test_run_to_address(self):
