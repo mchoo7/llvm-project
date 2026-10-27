@@ -228,7 +228,10 @@ ArchSpec MinidumpParser::GetArchitecture() {
     triple.setEnvironment(llvm::Triple::EnvironmentType::Android);
     break;
   default: {
-    triple.setOS(llvm::Triple::OSType::UnknownOS);
+    // The dump does not identify the OS. Leave it unspecified so ArchSpec can
+    // match and merge the executable's OS. The literal name "unknown" counts
+    // as a specified OS and is incompatible with e.g. a FreeBSD executable.
+    triple.setOSName("");
     auto ExpectedCSD = m_file->getString(system_info->CSDVersionRVA);
     if (!ExpectedCSD) {
       LLDB_LOG_ERROR(GetLog(LLDBLog::Process), ExpectedCSD.takeError(),

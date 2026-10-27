@@ -165,6 +165,40 @@ Streams:
             parser->GetArchitecture().GetTriple().getOS());
 }
 
+TEST_F(MinidumpParserTest, GenericUnixArchitectureMatchesExecutableOS) {
+  ASSERT_THAT_ERROR(SetUpFromYaml(R"(
+--- !minidump
+Streams:
+  - Type:            SystemInfo
+    Processor Arch:  AMD64
+    Processor Level: 6
+    Processor Revision: 16130
+    Number of Processors: 1
+    Platform ID:     Unix
+    CPU:
+      Vendor ID:       GenuineIntel
+      Version Info:    0x00000000
+      Feature Info:    0x00000000
+...
+)"),
+                    llvm::Succeeded());
+
+  const ArchSpec arch = parser->GetArchitecture();
+  EXPECT_EQ(llvm::Triple::UnknownOS, arch.GetTriple().getOS());
+  for (const char *triple : {"x86_64-unknown-freebsd", "x86_64-unknown-netbsd",
+                           "x86_64-unknown-openbsd", "x86_64-unknown-linux"}) {
+    ArchSpec executable_arch(triple);
+    EXPECT_TRUE(arch.IsCompatibleMatch(executable_arch)) << triple;
+    EXPECT_TRUE(executable_arch.IsCompatibleMatch(arch)) << triple;
+
+    ArchSpec merged_arch(arch);
+    merged_arch.MergeFrom(executable_arch);
+    EXPECT_EQ(executable_arch.GetTriple().getOS(),
+              merged_arch.GetTriple().getOS())
+        << triple;
+  }
+}
+
 TEST_F(MinidumpParserTest, GetMiscInfo_no_stream) {
   // Test that GetMiscInfo returns nullptr when the minidump does not contain
   // this stream.
