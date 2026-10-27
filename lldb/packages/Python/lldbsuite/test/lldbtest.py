@@ -781,15 +781,24 @@ class Base(unittest.TestCase):
         self.addTearDownHook(self.disableLogChannelsForCurrentTest)
 
     def disableLogChannelsForCurrentTest(self):
+        # A test may destroy its debugger, leaving self.ci with a pointer to
+        # the deleted interpreter. Logging is global, so use a live debugger
+        # to disable the channels even in that case.
+        debugger = self.dbg if self.dbg else lldb.SBDebugger.Create()
+        interpreter = debugger.GetCommandInterpreter()
         # close all log files that we opened
-        for channel_and_categories in lldbtest_config.channels:
-            # channel format - <channel-name> [<category0> [<category1> ...]]
-            channel = channel_and_categories.split(" ", 1)[0]
-            self.ci.HandleCommand("log disable " + channel, self.res)
-            if not self.res.Succeeded():
-                raise Exception(
-                    "log disable failed (check LLDB_LOG_OPTION env variable)"
-                )
+        try:
+            for channel_and_categories in lldbtest_config.channels:
+                # channel format - <channel-name> [<category0> [<category1> ...]]
+                channel = channel_and_categories.split(" ", 1)[0]
+                interpreter.HandleCommand("log disable " + channel, self.res)
+                if not self.res.Succeeded():
+                    raise Exception(
+                        "log disable failed (check LLDB_LOG_OPTION env variable)"
+                    )
+        finally:
+            if not self.dbg:
+                lldb.SBDebugger.Destroy(debugger)
 
         # Retrieve the server log (if any) from the remote system. It is assumed the server log
         # is writing to the "server.log" file in the current test directory. This can be

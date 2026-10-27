@@ -217,6 +217,9 @@ class TestMembersAndLocalsWithSameName(TestBase):
 
     def enable_expression_log(self):
         log_file = self.getBuildArtifact("expr.log")
+        # The harness may have enabled other categories on the same channel.
+        # Leave no live handler retaining expr.log from an earlier expression.
+        self.runCmd("log disable lldb")
         self.runCmd("log enable  -f '%s' lldb expr" % (log_file))
 
     def disable_expression_log_and_check_for_locals(self, variables):
