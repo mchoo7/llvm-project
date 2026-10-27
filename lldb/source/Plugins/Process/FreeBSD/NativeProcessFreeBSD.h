@@ -106,6 +106,8 @@ private:
   MainLoop &m_main_loop;
   LazyBool m_supports_mem_region = eLazyBoolCalculate;
   llvm::DenseMap<lldb::addr_t, size_t> m_allocated_memory;
+  bool m_sigstop_requested = false;
+  bool m_sigstop_pending = false;
 
   // Private Instance Methods
   NativeProcessFreeBSD(::pid_t pid, int terminal_fd, NativeDelegate &delegate,

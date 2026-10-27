@@ -456,6 +456,20 @@ void NativeProcessFreeBSD::MonitorSignal(lldb::pid_t pid, int signal) {
   assert(info.pl_flags & PL_FLAG_SI);
   assert(info.pl_siginfo.si_signo == signal);
 
+  if (signal == SIGSTOP && m_sigstop_pending) {
+    m_sigstop_pending = false;
+    if (!m_sigstop_requested && info.pl_siginfo.si_pid == getpid()) {
+      // Another event satisfied the stop request before our SIGSTOP was
+      // delivered. Suppress it when it arrives on the subsequent resume.
+      LLDB_LOG(log, "ignoring delayed debugger SIGSTOP for process {0}", pid);
+      Status error =
+          PtraceWrapper(PT_CONTINUE, pid, reinterpret_cast<void *>(1), 0);
+      if (error.Fail())
+        SetState(eStateInvalid);
+      return;
+    }
+  }
+
   for (const auto &abs_thread : m_threads) {
     NativeThreadFreeBSD &thread =
         static_cast<NativeThreadFreeBSD &>(*abs_thread);
@@ -591,8 +605,17 @@ Status NativeProcessFreeBSD::Halt() {
   // the SIGSTOP to get queued and stop the process again once resumed.
   if (StateIsStoppedState(m_state, false))
     return error;
-  if (kill(GetID(), SIGSTOP) != 0)
+  m_sigstop_requested = true;
+  // Reuse a pending SIGSTOP if a new interrupt is requested before a delayed
+  // one has been consumed, rather than queueing a second signal.
+  if (m_sigstop_pending)
+    return error;
+  if (kill(GetID(), SIGSTOP) != 0) {
     error = Status::FromErrno();
+    m_sigstop_requested = false;
+  } else {
+    m_sigstop_pending = true;
+  }
   return error;
 }
 
@@ -716,6 +739,12 @@ Status NativeProcessFreeBSD::Signal(int signo) {
 
   if (kill(GetID(), signo))
     error = Status::FromErrno();
+  else if (signo == SIGSTOP) {
+    // An explicit signal request must still stop even if it coalesces with
+    // the SIGSTOP left over from an earlier interrupt.
+    m_sigstop_requested = true;
+    m_sigstop_pending = true;
+  }
 
   return error;
 }
@@ -975,6 +1004,8 @@ void NativeProcessFreeBSD::SigchldHandler() {
   else {
     assert(wait_status.type == WaitStatus::Stop);
     MonitorCallback(wait_pid, wait_status.status);
+    if (StateIsStoppedState(m_state, false))
+      m_sigstop_requested = false;
   }
 }
 
