@@ -19,6 +19,8 @@
 #include "lldb/Core/Debugger.h"
 #include "lldb/Core/PluginManager.h"
 #include "lldb/Host/HostInfo.h"
+#include "lldb/Symbol/UnwindPlan.h"
+#include "Utility/ARM64_DWARF_Registers.h"
 #include "lldb/Target/Process.h"
 #include "lldb/Target/Target.h"
 #include "lldb/Utility/FileSpec.h"
@@ -28,6 +30,7 @@
 #include "lldb/Utility/Status.h"
 #include "lldb/Utility/StreamString.h"
 
+#include "llvm/Support/Endian.h"
 #include "llvm/TargetParser/Host.h"
 #include "llvm/TargetParser/Triple.h"
 
@@ -166,6 +169,50 @@ bool PlatformFreeBSD::CanDebugProcess() {
 
 void PlatformFreeBSD::CalculateTrapHandlerSymbolNames() {
   m_trap_handlers.push_back("_sigtramp");
+}
+
+lldb::UnwindPlanSP PlatformFreeBSD::GetTrapHandlerUnwindPlanForAddress(
+    const ArchSpec &arch, Process &process, addr_t pc) {
+  if (arch.GetMachine() != llvm::Triple::aarch64 || pc < 4 || (pc & 3))
+    return {};
+
+  // FreeBSD maps sigcode in a shared page without an ELF object or symbols.
+  // Recognize the return address from its call to the user signal handler:
+  //   blr x8
+  //   mov x0, sp           <- pc while the handler is on the stack
+  //   add x0, x0, #SF_UC
+  //   mov x8, #SYS_sigreturn
+  //   svc #0
+  uint8_t code[20];
+  Status error;
+  if (process.ReadMemory(pc - 4, code, sizeof(code), error) != sizeof(code))
+    return {};
+  auto instruction = [&](unsigned index) {
+    return llvm::support::endian::read32le(code + 4 * index);
+  };
+  if (instruction(0) != 0xd63f0100 || instruction(1) != 0x910003e0 ||
+      (instruction(2) & ~0x003ffc00U) != 0x91000000 ||
+      instruction(3) != (0xd2800008U | (417U << 5)) ||
+      instruction(4) != 0xd4000001)
+    return {};
+
+  // SF_UC is encoded in the add instruction. The ucontext begins with the
+  // 16-byte signal mask, followed by mcontext's gpregs: x0-x29, lr, sp, elr,
+  // spsr. Use target ABI offsets rather than host FreeBSD headers.
+  const uint32_t gp_offset = ((instruction(2) >> 10) & 0xfff) + 16;
+  UnwindPlan::Row row;
+  row.GetCFAValue().SetIsRegisterPlusOffset(arm64_dwarf::sp, gp_offset);
+  row.SetUnspecifiedRegistersAreUndefined(true);
+  for (unsigned reg = arm64_dwarf::x0; reg <= arm64_dwarf::pc; ++reg)
+    row.SetRegisterLocationToAtCFAPlusOffset(reg, reg * 8, false);
+
+  auto plan = std::make_shared<UnwindPlan>(eRegisterKindDWARF);
+  plan->AppendRow(std::move(row));
+  plan->SetSourceName("FreeBSD arm64 signal context");
+  plan->SetSourcedFromCompiler(eLazyBoolYes);
+  plan->SetUnwindPlanValidAtAllInstructions(eLazyBoolYes);
+  plan->SetUnwindPlanForSignalTrap(eLazyBoolYes);
+  return plan;
 }
 
 MmapArgList PlatformFreeBSD::GetMmapArgumentList(const ArchSpec &arch,

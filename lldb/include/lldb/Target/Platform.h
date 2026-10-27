@@ -852,6 +852,14 @@ public:
     return {};
   }
 
+  /// Recognize an unnamed signal trampoline, such as code mapped by the
+  /// kernel without an object file, and provide its unwind plan.
+  virtual lldb::UnwindPlanSP
+  GetTrapHandlerUnwindPlanForAddress(const ArchSpec &arch, Process &process,
+                                    lldb::addr_t pc) {
+    return {};
+  }
+
   /// Find a support executable that may not live within in the standard
   /// locations related to LLDB.
   ///

@@ -50,6 +50,10 @@ public:
 
   void CalculateTrapHandlerSymbolNames() override;
 
+  lldb::UnwindPlanSP
+  GetTrapHandlerUnwindPlanForAddress(const ArchSpec &arch, Process &process,
+                                    lldb::addr_t pc) override;
+
   MmapArgList GetMmapArgumentList(const ArchSpec &arch, lldb::addr_t addr,
                                   lldb::addr_t length, unsigned prot,
                                   unsigned flags, lldb::addr_t fd,

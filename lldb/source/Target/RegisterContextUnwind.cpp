@@ -466,8 +466,13 @@ void RegisterContextUnwind::InitializeNonZerothFrame() {
 
     if (abi_sp) {
       m_fast_unwind_plan_sp.reset();
-      m_full_unwind_plan_sp = abi_sp->CreateDefaultUnwindPlan();
-      assert(((!m_full_unwind_plan_sp ||
+      if (PlatformSP platform = process->GetTarget().GetPlatform())
+        m_full_unwind_plan_sp = platform->GetTrapHandlerUnwindPlanForAddress(
+            process->GetTarget().GetArchitecture(), *process, pc);
+      const bool platform_trap_plan = bool(m_full_unwind_plan_sp);
+      if (!platform_trap_plan)
+        m_full_unwind_plan_sp = abi_sp->CreateDefaultUnwindPlan();
+      assert(((platform_trap_plan || !m_full_unwind_plan_sp ||
                m_full_unwind_plan_sp->GetRowCount() == 0 ||
                m_full_unwind_plan_sp->GetRowAtIndex(0)
                    ->GetUnspecifiedRegistersAreUndefined())) &&
@@ -475,7 +480,7 @@ void RegisterContextUnwind::InitializeNonZerothFrame() {
              "UnspecifiedRegistersAreUndefined to true");
       if (m_frame_type != eSkipFrame) // don't override eSkipFrame
       {
-        m_frame_type = eNormalFrame;
+        m_frame_type = platform_trap_plan ? eTrapHandlerFrame : eNormalFrame;
       }
       m_all_registers_available = false;
       m_current_offset = std::nullopt;
@@ -889,6 +894,16 @@ RegisterContextUnwind::GetFullUnwindPlanForFrame() {
   ModuleSP pc_module_sp(m_current_pc.GetModule());
   if (!m_current_pc.IsValid() || !pc_module_sp ||
       pc_module_sp->GetObjectFile() == nullptr) {
+    if (process && m_current_pc.IsValid()) {
+      if (PlatformSP platform = process->GetTarget().GetPlatform()) {
+        if (auto plan = platform->GetTrapHandlerUnwindPlanForAddress(
+                process->GetTarget().GetArchitecture(), *process,
+                m_current_pc.GetLoadAddress(exe_ctx.GetTargetPtr()))) {
+          m_frame_type = eTrapHandlerFrame;
+          return plan;
+        }
+      }
+    }
     m_frame_type = eNormalFrame;
     return arch_default_unwind_plan_sp;
   }
