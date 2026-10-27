@@ -21,6 +21,12 @@ using namespace lldb_private;
 #ifndef __APPLE__
 TEST(Support, getProcFile_Pid) {
   auto BufferOrError = getProcFile(getpid(), "status");
+#ifdef __FreeBSD__
+  // procfs is optional on FreeBSD; native process discovery uses sysctl.
+  if (!BufferOrError &&
+      BufferOrError.getError() == std::errc::no_such_file_or_directory)
+    GTEST_SKIP() << "requires a mounted procfs";
+#endif
   ASSERT_TRUE(BufferOrError);
   ASSERT_TRUE(*BufferOrError);
 }
