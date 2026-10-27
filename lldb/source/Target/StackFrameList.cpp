@@ -1066,4 +1066,7 @@ size_t StackFrameList::GetStatus(Stream &strm, uint32_t first_frame,
   return num_frames_displayed;
 }
 
-void StackFrameList::ClearSelectedFrameIndex() { m_selected_frame_idx.reset(); }
+void StackFrameList::ClearSelectedFrameIndex() {
+  std::lock_guard<std::recursive_mutex> guard(m_selected_frame_mutex);
+  m_selected_frame_idx.reset();
+}
