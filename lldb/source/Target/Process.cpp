@@ -5482,6 +5482,12 @@ Process::RunThreadPlan(ExecutionContext &exe_ctx,
       Listener::MakeListener("lldb.process.listener.run-thread-plan"));
 
   lldb::EventSP event_to_broadcast_sp;
+  llvm::scope_exit rebroadcast_event([&] {
+    if (event_to_broadcast_sp) {
+      LLDB_LOGF(log, "Process::RunThreadPlan(): rebroadcasting event.");
+      BroadcastEvent(event_to_broadcast_sp);
+    }
+  });
 
   {
     // This process event hijacker Hijacks the Public events and its destructor
@@ -5967,6 +5973,17 @@ Process::RunThreadPlan(ExecutionContext &exe_ctx,
 
     policy_guard.reset();
 
+    // An exit event can remove the expression thread without passing through
+    // HandleStoppedEvent. Refresh it before restoring checkpoints or plans;
+    // ThreadPlan::GetThread() can no longer find a thread that has exited.
+    ThreadSP expression_thread_sp =
+        GetThreadList().FindThreadByIndexID(thread_idx_id, true);
+    if (stop_state == eStateExited || !expression_thread_sp ||
+        !expression_thread_sp->IsValid())
+      return_value = eExpressionThreadVanished;
+    else
+      thread = expression_thread_sp.get();
+
     // If we had to start up a temporary private state thread to run this
     // thread plan, shut it down now.
     if (backup_private_state_thread &&
@@ -5974,10 +5991,10 @@ Process::RunThreadPlan(ExecutionContext &exe_ctx,
       StopPrivateStateThread();
       Status error;
       m_current_private_state_thread_sp = backup_private_state_thread;
-      if (stopper_base_plan_sp) {
+      if (stopper_base_plan_sp && return_value != eExpressionThreadVanished) {
         thread->DiscardThreadPlansUpToPlan(stopper_base_plan_sp);
       }
-      if (old_state != eStateInvalid)
+      if (old_state != eStateInvalid && stop_state != eStateExited)
         m_current_private_state_thread_sp->SetPublicStateNoLock(old_state);
     }
 
@@ -6163,14 +6180,6 @@ Process::RunThreadPlan(ExecutionContext &exe_ctx,
               old_frame_sp.get());
       }
     }
-  }
-
-  // If the process exited during the run of the thread plan, notify everyone.
-
-  if (event_to_broadcast_sp) {
-    if (log)
-      log->PutCString("Process::RunThreadPlan(): rebroadcasting event.");
-    BroadcastEvent(event_to_broadcast_sp);
   }
 
   return return_value;

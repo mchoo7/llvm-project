@@ -40,6 +40,25 @@ class TestExitDuringExpression(TestBase):
         """Test the case where we exit within the one thread timeout"""
         self.exiting_expression_test(False, False)
 
+    @skipIfWindows
+    def test_process_exit_unwind(self):
+        self.process_exit_test(True)
+
+    @skipIfWindows
+    def test_process_exit_no_unwind(self):
+        self.process_exit_test(False)
+
+    def process_exit_test(self, unwind):
+        _, process, thread, _ = lldbutil.run_to_source_breakpoint(
+            self, "Break here and cause the thread to exit", self.main_source_file
+        )
+        options = lldb.SBExpressionOptions()
+        options.SetUnwindOnError(unwind)
+        options.SetTimeoutInMicroSeconds(30_000_000)
+        result = thread.frames[0].EvaluateExpression("exit_process()", options)
+        self.assertTrue(result.GetError().Fail(), "The expression cannot return")
+        self.assertState(process.GetState(), lldb.eStateExited)
+
     def setUp(self):
         TestBase.setUp(self)
         self.main_source_file = lldb.SBFileSpec("main.c")

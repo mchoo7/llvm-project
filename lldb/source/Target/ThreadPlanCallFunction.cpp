@@ -179,6 +179,13 @@ void ThreadPlanCallFunction::ReportRegisterState(const char *message) {
 
 void ThreadPlanCallFunction::DoTakedown(bool success) {
   Log *log = GetLog(LLDBLog::Step);
+  if (m_takedown_done) {
+    LLDB_LOGF(log,
+              "ThreadPlanCallFunction(%p): DoTakedown called as no-op for "
+              "thread 0x%4.4" PRIx64 ", m_valid: %d complete: %d.\n",
+              static_cast<void *>(this), m_tid, m_valid, IsPlanComplete());
+    return;
+  }
   Thread &thread = GetThread();
 
   if (!m_valid) {
@@ -201,35 +208,27 @@ void ThreadPlanCallFunction::DoTakedown(bool success) {
     return;
   }
 
-  if (!m_takedown_done) {
-    if (success) {
-      SetReturnValue();
-    }
+  if (success)
+    SetReturnValue();
+  LLDB_LOGF(log,
+            "ThreadPlanCallFunction(%p): DoTakedown called for thread "
+            "0x%4.4" PRIx64 ", m_valid: %d complete: %d.\n",
+            static_cast<void *>(this), m_tid, m_valid, IsPlanComplete());
+  m_takedown_done = true;
+  m_stop_address =
+      thread.GetStackFrameAtIndex(0)->GetRegisterContext()->GetPC();
+  m_real_stop_info_sp = GetPrivateStopInfo();
+  if (!thread.RestoreRegisterStateFromCheckpoint(m_stored_thread_state)) {
     LLDB_LOGF(log,
-              "ThreadPlanCallFunction(%p): DoTakedown called for thread "
-              "0x%4.4" PRIx64 ", m_valid: %d complete: %d.\n",
-              static_cast<void *>(this), m_tid, m_valid, IsPlanComplete());
-    m_takedown_done = true;
-    m_stop_address =
-        thread.GetStackFrameAtIndex(0)->GetRegisterContext()->GetPC();
-    m_real_stop_info_sp = GetPrivateStopInfo();
-    if (!thread.RestoreRegisterStateFromCheckpoint(m_stored_thread_state)) {
-      LLDB_LOGF(log,
-                "ThreadPlanCallFunction(%p): DoTakedown failed to restore "
-                "register state",
-                static_cast<void *>(this));
-    }
-    SetPlanComplete(success);
-    ClearBreakpoints();
-    if (log && log->GetVerbose())
-      ReportRegisterState("Restoring thread state after function call.  "
-                          "Restored register state:");
-  } else {
-    LLDB_LOGF(log,
-              "ThreadPlanCallFunction(%p): DoTakedown called as no-op for "
-              "thread 0x%4.4" PRIx64 ", m_valid: %d complete: %d.\n",
-              static_cast<void *>(this), m_tid, m_valid, IsPlanComplete());
+              "ThreadPlanCallFunction(%p): DoTakedown failed to restore "
+              "register state",
+              static_cast<void *>(this));
   }
+  SetPlanComplete(success);
+  ClearBreakpoints();
+  if (log && log->GetVerbose())
+    ReportRegisterState("Restoring thread state after function call.  "
+                        "Restored register state:");
 }
 
 void ThreadPlanCallFunction::DidPop() { DoTakedown(PlanSucceeded()); }

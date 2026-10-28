@@ -21,6 +21,8 @@ int function_to_call() {
   return 20; // Prevent warning
 }
 
+int exit_process() { _exit(0); }
+
 void *exiting_thread_func(void *unused) {
   function_to_call(); // Break here and cause the thread to exit
   return NULL;
