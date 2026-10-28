@@ -354,6 +354,8 @@ class ExprWithForkTestCase(TestBase):
 
         options = lldb.SBExpressionOptions()
         options.SetStopOthers(False)
+        # Allow fork handling and the helper's join to finish under load.
+        options.SetTimeoutInMicroSeconds(5_000_000)
 
         value = thread.GetSelectedFrame().EvaluateExpression(
             "expr_with_concurrent_fork()", options
@@ -393,6 +395,8 @@ class ExprWithForkTestCase(TestBase):
 
         options = lldb.SBExpressionOptions()
         options.SetStopOthers(False)
+        # Allow fork handling and the helper's join to finish under load.
+        options.SetTimeoutInMicroSeconds(5_000_000)
 
         # Redirect debugger output to capture the async warning message
         # that DidFork emits when overriding follow-fork-mode.
