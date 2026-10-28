@@ -9,10 +9,10 @@ extern int usleep(unsigned int);
 
 int function_to_call() {
 
-  errno = 0;
   while (1) {
     int result = usleep(g_timeout);
-    if (errno != EINTR)
+    // A successful retry need not clear errno from an interrupted sleep.
+    if (result != -1 || errno != EINTR)
       break;
   }
 
