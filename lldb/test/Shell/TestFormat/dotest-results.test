@@ -1,0 +1,60 @@
+# RUN: %python %s
+
+from pathlib import Path
+import sys
+from types import SimpleNamespace
+import unittest
+from unittest.mock import patch
+
+test_root = Path(__file__).resolve().parents[2]
+sys.path[:0] = [
+    str(test_root),
+    str(test_root / "API"),
+    str(test_root.parents[1] / "llvm" / "utils" / "lit"),
+]
+
+import lit.Test
+from lldbtest import LLDBTest
+
+
+class DotestResultTest(unittest.TestCase):
+    def classify(self, summary, exit_code):
+        config = SimpleNamespace(
+            lldb_enable_python=True,
+            unsupported=False,
+            python_executable=sys.executable,
+            lua_test_entry="TestLua.py",
+            maxIndividualTestTime=600,
+            environment={},
+        )
+        test = SimpleNamespace(
+            config=config, getSourcePath=lambda: str(test_root / "TestFake.py")
+        )
+        stderr = "Ran 1 test in 0.001s\n%s\n" % summary
+        with patch("lit.util.executeCommand", return_value=("", stderr, exit_code)):
+            result, _ = LLDBTest(["dotest.py"])._execute_once(
+                test, SimpleNamespace(noExecute=False)
+            )
+        return result
+
+    def test_signal_after_summary(self):
+        for summary in ("OK", "FAILED (failures=1)"):
+            with self.subTest(summary=summary):
+                self.assertEqual(self.classify(summary, -6), lit.Test.UNRESOLVED)
+
+    def test_unexplained_nonzero_exit(self):
+        self.assertEqual(self.classify("OK", 1), lit.Test.UNRESOLVED)
+
+    def test_reported_results(self):
+        for summary, exit_code, expected in (
+            ("OK", 0, lit.Test.PASS),
+            ("FAILED (errors=1)", 1, lit.Test.UNRESOLVED),
+            ("FAILED (failures=1)", 1, lit.Test.FAIL),
+            ("FAILED (unexpected successes=1)", 1, lit.Test.XPASS),
+        ):
+            with self.subTest(summary=summary):
+                self.assertEqual(self.classify(summary, exit_code), expected)
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -101,6 +101,11 @@ class LLDBTest(TestFormat):
         if timeoutInfo:
             return lit.Test.TIMEOUT, output
 
+        # A runner can crash during teardown after printing a passing summary.
+        # Its signal termination must take precedence over that summary.
+        if exitCode < 0:
+            return lit.Test.UNRESOLVED, output
+
         # Parse the dotest output from stderr. First get the # of total tests, in order to infer the # of passes.
         # Example: "Ran 5 tests in 0.042s"
         num_ran_regex = r"^Ran (\d+) tests? in "
@@ -158,7 +163,9 @@ class LLDBTest(TestFormat):
                 return lit.Test.UNRESOLVED, output
             if failures > 0:
                 return lit.Test.FAIL, output
-            return lit.Test.XPASS, output
+            if unexpected_successes > 0:
+                return lit.Test.XPASS, output
+            return lit.Test.UNRESOLVED, output
         else:
             # Aggregate the tests results with the following precedence:
             # PASS > XFAIL > SKIPPED > UNSUPPORTED
