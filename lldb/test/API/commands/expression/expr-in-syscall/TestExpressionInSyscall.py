@@ -13,6 +13,10 @@ class ExprSyscallTestCase(TestBase):
 
         # Create a target by the debugger.
         target = self.createTestTarget()
+        ready_breakpoint = target.BreakpointCreateBySourceRegex(
+            "Wait for debugger to attach", lldb.SBFileSpec("main.cpp")
+        )
+        self.assertEqual(ready_breakpoint.GetNumLocations(), 1)
 
         listener = lldb.SBListener("my listener")
 
@@ -35,6 +39,17 @@ class ExprSyscallTestCase(TestBase):
 
         self.assertTrue(process and process.IsValid(), PROCESS_IS_VALID)
 
+        # Finish loader startup before trying to interrupt the sleeping inferior.
+        lldbutil.expect_state_changes(
+            self, listener, process, [lldb.eStateRunning, lldb.eStateStopped]
+        )
+        self.assertIsNotNone(
+            lldbutil.get_one_thread_stopped_at_breakpoint(process, ready_breakpoint)
+        )
+        self.assertTrue(target.BreakpointDelete(ready_breakpoint.GetID()))
+        self.assertSuccess(process.Continue())
+        lldbutil.expect_state_changes(self, listener, process, [lldb.eStateRunning])
+
         event = lldb.SBEvent()
 
         # Give the child enough time to reach the syscall,
@@ -48,8 +63,7 @@ class ExprSyscallTestCase(TestBase):
 
         # send the process a signal
         process.SendAsyncInterrupt()
-        while listener.WaitForEvent(2, event):
-            pass
+        lldbutil.expect_state_changes(self, listener, process, [lldb.eStateStopped])
 
         # as a result the process should stop
         # in all likelihood we have stopped in the middle of the sleep()
@@ -67,13 +81,10 @@ class ExprSyscallTestCase(TestBase):
         self.expect_expr(f"(int){func}()", result_value=str(process.GetProcessID()))
 
         # and run the process to completion
-        process.Continue()
-
-        # process all events
-        while listener.WaitForEvent(10, event):
-            new_state = lldb.SBProcess.GetStateFromEvent(event)
-            if new_state == lldb.eStateExited:
-                break
+        self.assertSuccess(process.Continue())
+        lldbutil.expect_state_changes(
+            self, listener, process, [lldb.eStateRunning, lldb.eStateExited]
+        )
 
         self.assertState(process.GetState(), lldb.eStateExited)
         self.assertEqual(process.GetExitStatus(), 0)
