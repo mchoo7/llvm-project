@@ -59,7 +59,7 @@ void Log::ForEachCategory(
     llvm::function_ref<void(llvm::StringRef, llvm::StringRef)> lambda) {
   lambda("all", "all available logging categories");
   lambda("default", "default set of logging categories");
-  for (const auto &category : entry.second.m_channel.categories)
+  for (const auto &category : entry.second->m_channel.categories)
     lambda(category.name, category.description);
 }
 
@@ -83,14 +83,14 @@ Log::GetFlags(const ChannelMap::value_type &entry,
       continue;
     }
     if (llvm::StringRef("default").equals_insensitive(category)) {
-      flags |= entry.second.m_channel.default_flags;
+      flags |= entry.second->m_channel.default_flags;
       continue;
     }
-    auto cat = llvm::find_if(entry.second.m_channel.categories,
+    auto cat = llvm::find_if(entry.second->m_channel.categories,
                              [&](const Log::Category &c) {
                                return c.name.equals_insensitive(category);
                              });
-    if (cat != entry.second.m_channel.categories.end()) {
+    if (cat != entry.second->m_channel.categories.end()) {
       flags |= cat->flag;
       continue;
     }
@@ -214,7 +214,12 @@ void Log::Verbose(const char *format, ...) {
 }
 
 void Log::Register(llvm::StringRef name, Channel &channel) {
-  auto iter = g_channel_map->try_emplace(name, channel);
+  // A monitor may cache this pointer across waitpid and log after unregister
+  // or during static destruction. Keep one allocation per channel for the
+  // lifetime of the process; disabling the log still releases its handler.
+  if (!channel.m_log)
+    channel.m_log = new Log(channel);
+  auto iter = g_channel_map->try_emplace(name, channel.m_log);
   assert(iter.second == true);
   UNUSED_IF_ASSERT_DISABLED(iter);
 }
@@ -222,7 +227,7 @@ void Log::Register(llvm::StringRef name, Channel &channel) {
 void Log::Unregister(llvm::StringRef name) {
   auto iter = g_channel_map->find(name);
   assert(iter != g_channel_map->end());
-  iter->second.Disable(std::numeric_limits<MaskType>::max());
+  iter->second->Disable(std::numeric_limits<MaskType>::max());
   g_channel_map->erase(iter);
 }
 
@@ -235,7 +240,7 @@ Log::EnableLogChannel(const std::shared_ptr<LogHandler> &log_handler_sp,
     return llvm::createStringErrorV("Invalid log channel '{0}'.\n", channel);
 
   if (categories.empty()) {
-    iter->second.Enable(log_handler_sp, std::nullopt, log_options);
+    iter->second->Enable(log_handler_sp, std::nullopt, log_options);
     return llvm::Error::success();
   }
 
@@ -243,7 +248,7 @@ Log::EnableLogChannel(const std::shared_ptr<LogHandler> &log_handler_sp,
   if (!flags)
     return flags.takeError();
 
-  iter->second.Enable(log_handler_sp, *flags, log_options);
+  iter->second->Enable(log_handler_sp, *flags, log_options);
   return llvm::Error::success();
 }
 
@@ -254,7 +259,7 @@ llvm::Error Log::DisableLogChannel(llvm::StringRef channel,
     return llvm::createStringErrorV("Invalid log channel '{0}'.\n", channel);
 
   if (categories.empty()) {
-    iter->second.Disable(std::nullopt);
+    iter->second->Disable(std::nullopt);
     return llvm::Error::success();
   }
 
@@ -262,7 +267,7 @@ llvm::Error Log::DisableLogChannel(llvm::StringRef channel,
   if (!flags)
     return flags.takeError();
 
-  iter->second.Disable(*flags);
+  iter->second->Disable(*flags);
   return llvm::Error::success();
 }
 
@@ -274,7 +279,7 @@ bool Log::DumpLogChannel(llvm::StringRef channel,
     error_stream << llvm::formatv("Invalid log channel '{0}'.\n", channel);
     return false;
   }
-  if (!iter->second.Dump(output_stream)) {
+  if (!iter->second->Dump(output_stream)) {
     error_stream << llvm::formatv(
         "log channel '{0}' does not support dumping.\n", channel);
     return false;
@@ -296,7 +301,7 @@ Log::ListChannelCategories(llvm::StringRef channel) {
 
 void Log::DisableAllLogChannels() {
   for (auto &entry : *g_channel_map)
-    entry.second.Disable(std::numeric_limits<MaskType>::max());
+    entry.second->Disable(std::numeric_limits<MaskType>::max());
 }
 
 void Log::ForEachChannelCategory(

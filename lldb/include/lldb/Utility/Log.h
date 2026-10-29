@@ -162,10 +162,11 @@ public:
     }
   };
 
-  // This class describes a log channel. It also encapsulates the behavior
-  // necessary to enable a log channel in an atomic manner.
+  // Registered logs have process lifetime: child-monitor threads can finish
+  // after both debugger termination and static destruction have started.
   class Channel {
-    std::atomic<Log *> log_ptr;
+    std::atomic<Log *> log_ptr{nullptr};
+    Log *m_log = nullptr;
     friend class Log;
 
   public:
@@ -173,18 +174,15 @@ public:
     const MaskType default_flags;
 
     template <typename Cat>
-    constexpr Channel(llvm::ArrayRef<Log::Category> categories,
-                      Cat default_flags)
-        : log_ptr(nullptr), categories(categories),
-          default_flags(MaskType(default_flags)) {
+    constexpr Channel(llvm::ArrayRef<Log::Category> categories, Cat default_flags)
+        : categories(categories), default_flags(MaskType(default_flags)) {
       static_assert(
           std::is_same<Log::MaskType, std::underlying_type_t<Cat>>::value);
     }
 
-    // This function is safe to call at any time. If the channel is disabled
-    // after (or concurrently with) this function returning a non-null Log
-    // pointer, it is still safe to attempt to write to the Log object -- the
-    // output will be discarded.
+    // If the channel is disabled or unregistered after this returns a non-null
+    // pointer, writes through that pointer are safely discarded. Registered
+    // logs survive their channel descriptors, which must outlive registration.
     Log *GetLog(MaskType mask) {
       Log *log = log_ptr.load(std::memory_order_relaxed);
       if (log && ((log->GetMask() & mask) != 0))
@@ -306,7 +304,7 @@ private:
 
   bool Dump(llvm::raw_ostream &stream);
 
-  typedef llvm::StringMap<Log> ChannelMap;
+  typedef llvm::StringMap<Log *> ChannelMap;
   static llvm::ManagedStatic<ChannelMap> g_channel_map;
 
   static void ForEachCategory(

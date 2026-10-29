@@ -140,9 +140,33 @@ TEST(LogTest, Unregister) {
   auto log_handler_sp = std::make_shared<TestLogHandler>();
   EXPECT_THAT_ERROR(Log::EnableLogChannel(log_handler_sp, 0, "chan", {"foo"}),
                     llvm::Succeeded());
-  EXPECT_NE(nullptr, GetLog(TestChannel::FOO));
+  Log *log = GetLog(TestChannel::FOO);
+  ASSERT_NE(nullptr, log);
   Log::Unregister("chan");
   EXPECT_EQ(nullptr, GetLog(TestChannel::FOO));
+  // A monitor thread may have obtained this pointer before unregistering the
+  // channel, then returned from waitpid after debugger termination.
+  LLDB_LOG(log, "discarded after unregister");
+  EXPECT_TRUE(log_handler_sp->m_messages.empty());
+}
+
+TEST(LogTest, CachedLogOutlivesUnregisteredChannel) {
+  llvm::llvm_shutdown_obj obj;
+  auto handler = std::make_shared<TestLogHandler>();
+  // Keep the process-lifetime log reachable, just as a late monitor thread does.
+  static Log *cached_log;
+  {
+    Log::Channel channel(test_categories, TestChannel::FOO);
+    Log::Register("temporary", channel);
+    ASSERT_THAT_ERROR(Log::EnableLogChannel(handler, 0, "temporary", {}),
+                      llvm::Succeeded());
+    cached_log = channel.GetLog(Log::MaskType(TestChannel::FOO));
+    ASSERT_NE(nullptr, cached_log);
+    Log::Unregister("temporary");
+  }
+  // Model a monitor returning from waitpid after static channel destruction.
+  LLDB_LOG(cached_log, "discarded after channel destruction");
+  EXPECT_TRUE(handler->m_messages.empty());
 }
 
 namespace {
