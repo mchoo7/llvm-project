@@ -7,7 +7,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "RegisterInfoLinux_s390x.h"
-#include "Register/Arch/RegisterContext_s390x.h"
+#include "Register/Arch/lldb-s390x-register-defs.h"
 #include "Register/Arch/lldb-s390x-register-enums.h"
 #include "lldb/lldb-defines.h"
 

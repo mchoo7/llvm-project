@@ -10,7 +10,7 @@
 #define LLDB_SOURCE_PLUGINS_REGISTER_CORE_REGISTERCONTEXTCORE_POWERPC_H
 
 #include "Register/RegisterInfoInterface.h"
-#include "Register/Arch/RegisterContext_powerpc.h"
+#include "Register/Arch/lldb-powerpc-register-defs.h"
 #include "lldb/Target/RegisterContext.h"
 #include "lldb/Utility/Log.h"
 

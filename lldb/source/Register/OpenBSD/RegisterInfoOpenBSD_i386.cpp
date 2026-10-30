@@ -7,7 +7,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "RegisterInfoOpenBSD_i386.h"
-#include "Register/Arch/RegisterContext_x86.h"
+#include "Register/Arch/lldb-x86-register-defs.h"
 #include "Register/Arch/lldb-x86-register-enums.h"
 #include "lldb/lldb-defines.h"
 

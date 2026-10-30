@@ -1,4 +1,4 @@
-//===-- RegisterContext_x86.cpp ---------------------------------*- C++ -*-===//
+//===----------------------------------------------------------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -6,7 +6,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "RegisterContext_x86.h"
+#include "lldb-x86-register-defs.h"
 #include "lldb-x86-register-enums.h"
 #include "lldb/lldb-defines.h"
 

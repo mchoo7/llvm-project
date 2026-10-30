@@ -1,5 +1,5 @@
 add_lldb_library(lldbRegister NO_PLUGIN_DEPENDENCIES
-  Arch/RegisterContext_x86.cpp
+  Arch/lldb-x86-register-defs.cpp
   Arch/RegisterInfos_x86_64_with_base_shared.cpp
   Common/RegisterInfoDynamic_riscv32.cpp
   Common/RegisterInfo_arm.cpp

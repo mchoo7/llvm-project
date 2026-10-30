@@ -8,7 +8,7 @@
 
 #include "gtest/gtest.h"
 
-#include "Register/Arch/RegisterContext_x86.h"
+#include "Register/Arch/lldb-x86-register-defs.h"
 
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/Support/FormatVariadic.h"

@@ -7,7 +7,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "RegisterInfoFreeBSD_powerpc.h"
-#include "Register/Arch/RegisterContext_powerpc.h"
+#include "Register/Arch/lldb-powerpc-register-defs.h"
 #include "lldb/lldb-defines.h"
 #include <vector>
 

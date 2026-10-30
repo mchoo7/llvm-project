@@ -1,5 +1,4 @@
-//===-- RegisterContext_powerpc.h --------------------------------*- C++
-//-*-===//
+//===----------------------------------------------------------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -7,8 +6,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLDB_SOURCE_REGISTER_ARCH_REGISTERCONTEXT_POWERPC_H
-#define LLDB_SOURCE_REGISTER_ARCH_REGISTERCONTEXT_POWERPC_H
+#ifndef LLDB_SOURCE_REGISTER_ARCH_LLDB_POWERPC_REGISTER_DEFS_H
+#define LLDB_SOURCE_REGISTER_ARCH_LLDB_POWERPC_REGISTER_DEFS_H
 
 // eh_frame and DWARF Register numbers (eRegisterKindEHFrame &
 // eRegisterKindDWARF)
@@ -241,4 +240,4 @@ enum {
   k_num_vmx_registers_powerpc = k_last_vmx - k_first_vmx + 1,
 };
 
-#endif // LLDB_SOURCE_REGISTER_ARCH_REGISTERCONTEXT_POWERPC_H
+#endif // LLDB_SOURCE_REGISTER_ARCH_LLDB_POWERPC_REGISTER_DEFS_H

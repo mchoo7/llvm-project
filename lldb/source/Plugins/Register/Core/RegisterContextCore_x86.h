@@ -9,7 +9,7 @@
 #ifndef LLDB_SOURCE_PLUGINS_REGISTER_CORE_REGISTERCONTEXTCORE_X86_H
 #define LLDB_SOURCE_PLUGINS_REGISTER_CORE_REGISTERCONTEXTCORE_X86_H
 
-#include "Register/Arch/RegisterContext_x86.h"
+#include "Register/Arch/lldb-x86-register-defs.h"
 #include "Register/RegisterInfoInterface.h"
 #include "Register/Arch/RegisterInfos_x86_64_with_base_shared.h"
 #include "Register/Arch/lldb-x86-register-enums.h"

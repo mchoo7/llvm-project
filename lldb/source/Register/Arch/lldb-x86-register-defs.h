@@ -1,4 +1,4 @@
-//===-- RegisterContext_x86.h -----------------------------------*- C++ -*-===//
+//===----------------------------------------------------------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -6,8 +6,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLDB_SOURCE_REGISTER_ARCH_REGISTERCONTEXT_X86_H
-#define LLDB_SOURCE_REGISTER_ARCH_REGISTERCONTEXT_X86_H
+#ifndef LLDB_SOURCE_REGISTER_ARCH_LLDB_X86_REGISTER_DEFS_H
+#define LLDB_SOURCE_REGISTER_ARCH_LLDB_X86_REGISTER_DEFS_H
 
 #include <cstddef>
 #include <cstdint>

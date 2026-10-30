@@ -1,4 +1,4 @@
-//===-- RegisterContext_mips.h --------------------------------*- C++ -*-===//
+//===----------------------------------------------------------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -6,8 +6,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLDB_SOURCE_REGISTER_ARCH_REGISTERCONTEXT_MIPS_H
-#define LLDB_SOURCE_REGISTER_ARCH_REGISTERCONTEXT_MIPS_H
+#ifndef LLDB_SOURCE_REGISTER_ARCH_LLDB_MIPS_REGISTER_DEFS_H
+#define LLDB_SOURCE_REGISTER_ARCH_LLDB_MIPS_REGISTER_DEFS_H
 
 #include <cstddef>
 #include <cstdint>
@@ -371,4 +371,4 @@ struct UserArea {
   MSA_linux_mips msa; // MSA registers.
 };
 
-#endif // LLDB_SOURCE_REGISTER_ARCH_REGISTERCONTEXT_MIPS_H
+#endif // LLDB_SOURCE_REGISTER_ARCH_LLDB_MIPS_REGISTER_DEFS_H
