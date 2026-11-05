@@ -1,4 +1,4 @@
-//===-- PPC64LE_DWARF_Registers.h -------------------------------*- C++ -*-===//
+//===----------------------------------------------------------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -6,10 +6,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLDB_SOURCE_UTILITY_PPC64LE_DWARF_REGISTERS_H
-#define LLDB_SOURCE_UTILITY_PPC64LE_DWARF_REGISTERS_H
+#ifndef LLDB_REGISTER_ARCH_LLDB_PPC64LE_DWARF_EFRAME_REGISTER_ENUMS_H
+#define LLDB_REGISTER_ARCH_LLDB_PPC64LE_DWARF_EFRAME_REGISTER_ENUMS_H
 
-#include "lldb/lldb-private.h"
 
 namespace ppc64le_dwarf {
 
@@ -190,4 +189,4 @@ enum {
 
 } // namespace ppc64le_dwarf
 
-#endif // LLDB_SOURCE_UTILITY_PPC64LE_DWARF_REGISTERS_H
+#endif // LLDB_REGISTER_ARCH_LLDB_PPC64LE_DWARF_EFRAME_REGISTER_ENUMS_H

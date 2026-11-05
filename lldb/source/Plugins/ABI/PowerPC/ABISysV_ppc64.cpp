@@ -8,12 +8,21 @@
 
 #include "ABISysV_ppc64.h"
 
+#include "lldb/Register/Arch/lldb-ppc64-register-enums.h"
+#include "lldb/Register/Arch/lldb-ppc64le-register-enums.h"
+#include "lldb/lldb-defines.h"
+#include "lldb/lldb-enumerations.h"
+#include "lldb/lldb-private-types.h"
+#include "llvm/Support/Compiler.h"
+#include <cstddef>
+#include <cstdint>
+
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/TargetParser/Triple.h"
 
 #include "Plugins/TypeSystem/Clang/TypeSystemClang.h"
-#include "Utility/PPC64LE_DWARF_Registers.h"
-#include "Utility/PPC64_DWARF_Registers.h"
+#include "lldb/Register/Arch/lldb-ppc64le-dwarf-eframe-register-enums.h"
+#include "lldb/Register/Arch/lldb-ppc64-dwarf-eframe-register-enums.h"
 #include "lldb/Core/Module.h"
 #include "lldb/Core/PluginManager.h"
 #include "lldb/Core/Value.h"
@@ -37,6 +46,8 @@
 #include "clang/AST/Attr.h"
 #include "clang/AST/Decl.h"
 
+using namespace lldb_private;
+
 #define DECLARE_REGISTER_INFOS_PPC64_STRUCT
 #include "Register/Arch/RegisterInfos_ppc64.h"
 #undef DECLARE_REGISTER_INFOS_PPC64_STRUCT
@@ -47,7 +58,6 @@
 #include <optional>
 
 using namespace lldb;
-using namespace lldb_private;
 
 LLDB_PLUGIN_DEFINE(ABISysV_ppc64)
 

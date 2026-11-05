@@ -7,8 +7,15 @@
 //===----------------------------------------------------------------------===//
 
 #include "RegisterInfoLinux_s390x.h"
-#include "Register/Arch/RegisterContext_s390x.h"
-#include "Register/Arch/lldb-s390x-register-enums.h"
+
+#include "lldb/Register/Arch/lldb-s390x-dwarf-eframe-register-enums.h"
+#include "lldb/lldb-enumerations.h"
+#include "lldb/lldb-private-types.h"
+#include "llvm/Support/Compiler.h"
+#include <cstddef>
+#include <cstdint>
+
+#include "lldb/Register/Arch/lldb-s390x-register-enums.h"
 #include "lldb/lldb-defines.h"
 
 using namespace lldb_private;

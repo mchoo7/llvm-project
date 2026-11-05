@@ -8,7 +8,7 @@
 
 #include <vector>
 
-#include "Utility/ARM_DWARF_Registers.h"
+#include "lldb/Register/Arch/lldb-arm-dwarf-eframe-register-enums.h"
 #include "lldb/Core/Module.h"
 #include "lldb/Core/Section.h"
 #include "lldb/Symbol/ArmUnwindInfo.h"

@@ -15,7 +15,7 @@
 #include "lldb/Utility/RegisterValue.h"
 #include "lldb/Utility/Scalar.h"
 
-#include "Utility/ARM_DWARF_Registers.h"
+#include "lldb/Register/Arch/lldb-arm-dwarf-eframe-register-enums.h"
 
 using namespace lldb;
 using namespace lldb_private;

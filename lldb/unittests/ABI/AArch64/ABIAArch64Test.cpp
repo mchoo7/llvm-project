@@ -9,8 +9,7 @@
 
 #include "Plugins/ABI/AArch64/ABIMacOSX_arm64.h"
 #include "Plugins/ABI/AArch64/ABISysV_arm64.h"
-#include "Utility/ARM64_DWARF_Registers.h"
-#include "Utility/ARM64_ehframe_Registers.h"
+#include "lldb/Register/Arch/lldb-arm64-dwarf-eframe-register-enums.h"
 #include "lldb/Target/DynamicRegisterInfo.h"
 #include "lldb/Utility/ArchSpec.h"
 #include "llvm/Support/ManagedStatic.h"
@@ -62,7 +61,7 @@ TEST_P(ABIAArch64TestFixture, AugmentRegisterInfo) {
   Register new_pc = regs[0];
   EXPECT_EQ(new_pc.name, pc.name);
   EXPECT_EQ(new_pc.set_name, pc.set_name);
-  EXPECT_EQ(new_pc.regnum_ehframe, arm64_ehframe::pc);
+  EXPECT_EQ(new_pc.regnum_ehframe, arm64_dwarf::pc);
   EXPECT_EQ(new_pc.regnum_dwarf, arm64_dwarf::pc);
 }
 

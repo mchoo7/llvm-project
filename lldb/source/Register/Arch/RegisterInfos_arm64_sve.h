@@ -6,295 +6,256 @@
 //
 //===----------------------------------------------------------------------===//
 
+// Textual register-table fragment; intentionally has no include guard.
+// Include its ordinary dependencies at file scope before defining layout macros.
+// See README.md for the inclusion contract.
+
+#if !defined(DECLARE_REGISTER_INFOS_ARM64_STRUCT)
+#error Select a register-table generation mode before including this fragment
+#endif
+
 #ifdef DECLARE_REGISTER_INFOS_ARM64_STRUCT
 
-enum {
-  sve_vg = exc_far,
 
-  sve_z0,
-  sve_z1,
-  sve_z2,
-  sve_z3,
-  sve_z4,
-  sve_z5,
-  sve_z6,
-  sve_z7,
-  sve_z8,
-  sve_z9,
-  sve_z10,
-  sve_z11,
-  sve_z12,
-  sve_z13,
-  sve_z14,
-  sve_z15,
-  sve_z16,
-  sve_z17,
-  sve_z18,
-  sve_z19,
-  sve_z20,
-  sve_z21,
-  sve_z22,
-  sve_z23,
-  sve_z24,
-  sve_z25,
-  sve_z26,
-  sve_z27,
-  sve_z28,
-  sve_z29,
-  sve_z30,
-  sve_z31,
-
-  sve_p0,
-  sve_p1,
-  sve_p2,
-  sve_p3,
-  sve_p4,
-  sve_p5,
-  sve_p6,
-  sve_p7,
-  sve_p8,
-  sve_p9,
-  sve_p10,
-  sve_p11,
-  sve_p12,
-  sve_p13,
-  sve_p14,
-  sve_p15,
-
-  sve_ffr,
-};
+// Reuse helpers explicitly exported by the base ARM64 fragment.
+#ifndef LLDB_REGISTER_INFOS_ARM64_KEEP_MACROS
+#error Define LLDB_REGISTER_INFOS_ARM64_KEEP_MACROS before the base ARM64 fragment
+#endif
+#ifndef DEFINE_GPR64
+#error Include RegisterInfos_arm64.h before this fragment
+#endif
 
 #ifndef SVE_OFFSET_VG
 #error SVE_OFFSET_VG must be defined before including this header file
 #endif
 
-static uint32_t g_sve_s0_invalidates[] = {sve_z0, fpu_v0, fpu_d0,
+static uint32_t g_sve_s0_invalidates[] = {sve_z0_arm64, fpu_v0_arm64, fpu_d0_arm64,
                                           LLDB_INVALID_REGNUM};
-static uint32_t g_sve_s1_invalidates[] = {sve_z1, fpu_v1, fpu_d1,
+static uint32_t g_sve_s1_invalidates[] = {sve_z1_arm64, fpu_v1_arm64, fpu_d1_arm64,
                                           LLDB_INVALID_REGNUM};
-static uint32_t g_sve_s2_invalidates[] = {sve_z2, fpu_v2, fpu_d2,
+static uint32_t g_sve_s2_invalidates[] = {sve_z2_arm64, fpu_v2_arm64, fpu_d2_arm64,
                                           LLDB_INVALID_REGNUM};
-static uint32_t g_sve_s3_invalidates[] = {sve_z3, fpu_v3, fpu_d3,
+static uint32_t g_sve_s3_invalidates[] = {sve_z3_arm64, fpu_v3_arm64, fpu_d3_arm64,
                                           LLDB_INVALID_REGNUM};
-static uint32_t g_sve_s4_invalidates[] = {sve_z4, fpu_v4, fpu_d4,
+static uint32_t g_sve_s4_invalidates[] = {sve_z4_arm64, fpu_v4_arm64, fpu_d4_arm64,
                                           LLDB_INVALID_REGNUM};
-static uint32_t g_sve_s5_invalidates[] = {sve_z5, fpu_v5, fpu_d5,
+static uint32_t g_sve_s5_invalidates[] = {sve_z5_arm64, fpu_v5_arm64, fpu_d5_arm64,
                                           LLDB_INVALID_REGNUM};
-static uint32_t g_sve_s6_invalidates[] = {sve_z6, fpu_v6, fpu_d6,
+static uint32_t g_sve_s6_invalidates[] = {sve_z6_arm64, fpu_v6_arm64, fpu_d6_arm64,
                                           LLDB_INVALID_REGNUM};
-static uint32_t g_sve_s7_invalidates[] = {sve_z7, fpu_v7, fpu_d7,
+static uint32_t g_sve_s7_invalidates[] = {sve_z7_arm64, fpu_v7_arm64, fpu_d7_arm64,
                                           LLDB_INVALID_REGNUM};
-static uint32_t g_sve_s8_invalidates[] = {sve_z8, fpu_v8, fpu_d8,
+static uint32_t g_sve_s8_invalidates[] = {sve_z8_arm64, fpu_v8_arm64, fpu_d8_arm64,
                                           LLDB_INVALID_REGNUM};
-static uint32_t g_sve_s9_invalidates[] = {sve_z9, fpu_v9, fpu_d9,
+static uint32_t g_sve_s9_invalidates[] = {sve_z9_arm64, fpu_v9_arm64, fpu_d9_arm64,
                                           LLDB_INVALID_REGNUM};
-static uint32_t g_sve_s10_invalidates[] = {sve_z10, fpu_v10, fpu_d10,
+static uint32_t g_sve_s10_invalidates[] = {sve_z10_arm64, fpu_v10_arm64, fpu_d10_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_s11_invalidates[] = {sve_z11, fpu_v11, fpu_d11,
+static uint32_t g_sve_s11_invalidates[] = {sve_z11_arm64, fpu_v11_arm64, fpu_d11_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_s12_invalidates[] = {sve_z12, fpu_v12, fpu_d12,
+static uint32_t g_sve_s12_invalidates[] = {sve_z12_arm64, fpu_v12_arm64, fpu_d12_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_s13_invalidates[] = {sve_z13, fpu_v13, fpu_d13,
+static uint32_t g_sve_s13_invalidates[] = {sve_z13_arm64, fpu_v13_arm64, fpu_d13_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_s14_invalidates[] = {sve_z14, fpu_v14, fpu_d14,
+static uint32_t g_sve_s14_invalidates[] = {sve_z14_arm64, fpu_v14_arm64, fpu_d14_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_s15_invalidates[] = {sve_z15, fpu_v15, fpu_d15,
+static uint32_t g_sve_s15_invalidates[] = {sve_z15_arm64, fpu_v15_arm64, fpu_d15_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_s16_invalidates[] = {sve_z16, fpu_v16, fpu_d16,
+static uint32_t g_sve_s16_invalidates[] = {sve_z16_arm64, fpu_v16_arm64, fpu_d16_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_s17_invalidates[] = {sve_z17, fpu_v17, fpu_d17,
+static uint32_t g_sve_s17_invalidates[] = {sve_z17_arm64, fpu_v17_arm64, fpu_d17_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_s18_invalidates[] = {sve_z18, fpu_v18, fpu_d18,
+static uint32_t g_sve_s18_invalidates[] = {sve_z18_arm64, fpu_v18_arm64, fpu_d18_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_s19_invalidates[] = {sve_z19, fpu_v19, fpu_d19,
+static uint32_t g_sve_s19_invalidates[] = {sve_z19_arm64, fpu_v19_arm64, fpu_d19_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_s20_invalidates[] = {sve_z20, fpu_v20, fpu_d20,
+static uint32_t g_sve_s20_invalidates[] = {sve_z20_arm64, fpu_v20_arm64, fpu_d20_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_s21_invalidates[] = {sve_z21, fpu_v21, fpu_d21,
+static uint32_t g_sve_s21_invalidates[] = {sve_z21_arm64, fpu_v21_arm64, fpu_d21_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_s22_invalidates[] = {sve_z22, fpu_v22, fpu_d22,
+static uint32_t g_sve_s22_invalidates[] = {sve_z22_arm64, fpu_v22_arm64, fpu_d22_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_s23_invalidates[] = {sve_z23, fpu_v23, fpu_d23,
+static uint32_t g_sve_s23_invalidates[] = {sve_z23_arm64, fpu_v23_arm64, fpu_d23_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_s24_invalidates[] = {sve_z24, fpu_v24, fpu_d24,
+static uint32_t g_sve_s24_invalidates[] = {sve_z24_arm64, fpu_v24_arm64, fpu_d24_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_s25_invalidates[] = {sve_z25, fpu_v25, fpu_d25,
+static uint32_t g_sve_s25_invalidates[] = {sve_z25_arm64, fpu_v25_arm64, fpu_d25_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_s26_invalidates[] = {sve_z26, fpu_v26, fpu_d26,
+static uint32_t g_sve_s26_invalidates[] = {sve_z26_arm64, fpu_v26_arm64, fpu_d26_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_s27_invalidates[] = {sve_z27, fpu_v27, fpu_d27,
+static uint32_t g_sve_s27_invalidates[] = {sve_z27_arm64, fpu_v27_arm64, fpu_d27_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_s28_invalidates[] = {sve_z28, fpu_v28, fpu_d28,
+static uint32_t g_sve_s28_invalidates[] = {sve_z28_arm64, fpu_v28_arm64, fpu_d28_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_s29_invalidates[] = {sve_z29, fpu_v29, fpu_d29,
+static uint32_t g_sve_s29_invalidates[] = {sve_z29_arm64, fpu_v29_arm64, fpu_d29_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_s30_invalidates[] = {sve_z30, fpu_v30, fpu_d30,
+static uint32_t g_sve_s30_invalidates[] = {sve_z30_arm64, fpu_v30_arm64, fpu_d30_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_s31_invalidates[] = {sve_z31, fpu_v31, fpu_d31,
+static uint32_t g_sve_s31_invalidates[] = {sve_z31_arm64, fpu_v31_arm64, fpu_d31_arm64,
                                            LLDB_INVALID_REGNUM};
 
-static uint32_t g_sve_d0_invalidates[] = {sve_z0, fpu_v0, fpu_s0,
+static uint32_t g_sve_d0_invalidates[] = {sve_z0_arm64, fpu_v0_arm64, fpu_s0_arm64,
                                           LLDB_INVALID_REGNUM};
-static uint32_t g_sve_d1_invalidates[] = {sve_z1, fpu_v1, fpu_s1,
+static uint32_t g_sve_d1_invalidates[] = {sve_z1_arm64, fpu_v1_arm64, fpu_s1_arm64,
                                           LLDB_INVALID_REGNUM};
-static uint32_t g_sve_d2_invalidates[] = {sve_z2, fpu_v2, fpu_s2,
+static uint32_t g_sve_d2_invalidates[] = {sve_z2_arm64, fpu_v2_arm64, fpu_s2_arm64,
                                           LLDB_INVALID_REGNUM};
-static uint32_t g_sve_d3_invalidates[] = {sve_z3, fpu_v3, fpu_s3,
+static uint32_t g_sve_d3_invalidates[] = {sve_z3_arm64, fpu_v3_arm64, fpu_s3_arm64,
                                           LLDB_INVALID_REGNUM};
-static uint32_t g_sve_d4_invalidates[] = {sve_z4, fpu_v4, fpu_s4,
+static uint32_t g_sve_d4_invalidates[] = {sve_z4_arm64, fpu_v4_arm64, fpu_s4_arm64,
                                           LLDB_INVALID_REGNUM};
-static uint32_t g_sve_d5_invalidates[] = {sve_z5, fpu_v5, fpu_s5,
+static uint32_t g_sve_d5_invalidates[] = {sve_z5_arm64, fpu_v5_arm64, fpu_s5_arm64,
                                           LLDB_INVALID_REGNUM};
-static uint32_t g_sve_d6_invalidates[] = {sve_z6, fpu_v6, fpu_s6,
+static uint32_t g_sve_d6_invalidates[] = {sve_z6_arm64, fpu_v6_arm64, fpu_s6_arm64,
                                           LLDB_INVALID_REGNUM};
-static uint32_t g_sve_d7_invalidates[] = {sve_z7, fpu_v7, fpu_s7,
+static uint32_t g_sve_d7_invalidates[] = {sve_z7_arm64, fpu_v7_arm64, fpu_s7_arm64,
                                           LLDB_INVALID_REGNUM};
-static uint32_t g_sve_d8_invalidates[] = {sve_z8, fpu_v8, fpu_s8,
+static uint32_t g_sve_d8_invalidates[] = {sve_z8_arm64, fpu_v8_arm64, fpu_s8_arm64,
                                           LLDB_INVALID_REGNUM};
-static uint32_t g_sve_d9_invalidates[] = {sve_z9, fpu_v9, fpu_s9,
+static uint32_t g_sve_d9_invalidates[] = {sve_z9_arm64, fpu_v9_arm64, fpu_s9_arm64,
                                           LLDB_INVALID_REGNUM};
-static uint32_t g_sve_d10_invalidates[] = {sve_z10, fpu_v10, fpu_s10,
+static uint32_t g_sve_d10_invalidates[] = {sve_z10_arm64, fpu_v10_arm64, fpu_s10_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_d11_invalidates[] = {sve_z11, fpu_v11, fpu_s11,
+static uint32_t g_sve_d11_invalidates[] = {sve_z11_arm64, fpu_v11_arm64, fpu_s11_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_d12_invalidates[] = {sve_z12, fpu_v12, fpu_s12,
+static uint32_t g_sve_d12_invalidates[] = {sve_z12_arm64, fpu_v12_arm64, fpu_s12_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_d13_invalidates[] = {sve_z13, fpu_v13, fpu_s13,
+static uint32_t g_sve_d13_invalidates[] = {sve_z13_arm64, fpu_v13_arm64, fpu_s13_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_d14_invalidates[] = {sve_z14, fpu_v14, fpu_s14,
+static uint32_t g_sve_d14_invalidates[] = {sve_z14_arm64, fpu_v14_arm64, fpu_s14_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_d15_invalidates[] = {sve_z15, fpu_v15, fpu_s15,
+static uint32_t g_sve_d15_invalidates[] = {sve_z15_arm64, fpu_v15_arm64, fpu_s15_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_d16_invalidates[] = {sve_z16, fpu_v16, fpu_s16,
+static uint32_t g_sve_d16_invalidates[] = {sve_z16_arm64, fpu_v16_arm64, fpu_s16_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_d17_invalidates[] = {sve_z17, fpu_v17, fpu_s17,
+static uint32_t g_sve_d17_invalidates[] = {sve_z17_arm64, fpu_v17_arm64, fpu_s17_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_d18_invalidates[] = {sve_z18, fpu_v18, fpu_s18,
+static uint32_t g_sve_d18_invalidates[] = {sve_z18_arm64, fpu_v18_arm64, fpu_s18_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_d19_invalidates[] = {sve_z19, fpu_v19, fpu_s19,
+static uint32_t g_sve_d19_invalidates[] = {sve_z19_arm64, fpu_v19_arm64, fpu_s19_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_d20_invalidates[] = {sve_z20, fpu_v20, fpu_s20,
+static uint32_t g_sve_d20_invalidates[] = {sve_z20_arm64, fpu_v20_arm64, fpu_s20_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_d21_invalidates[] = {sve_z21, fpu_v21, fpu_s21,
+static uint32_t g_sve_d21_invalidates[] = {sve_z21_arm64, fpu_v21_arm64, fpu_s21_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_d22_invalidates[] = {sve_z22, fpu_v22, fpu_s22,
+static uint32_t g_sve_d22_invalidates[] = {sve_z22_arm64, fpu_v22_arm64, fpu_s22_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_d23_invalidates[] = {sve_z23, fpu_v23, fpu_s23,
+static uint32_t g_sve_d23_invalidates[] = {sve_z23_arm64, fpu_v23_arm64, fpu_s23_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_d24_invalidates[] = {sve_z24, fpu_v24, fpu_s24,
+static uint32_t g_sve_d24_invalidates[] = {sve_z24_arm64, fpu_v24_arm64, fpu_s24_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_d25_invalidates[] = {sve_z25, fpu_v25, fpu_s25,
+static uint32_t g_sve_d25_invalidates[] = {sve_z25_arm64, fpu_v25_arm64, fpu_s25_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_d26_invalidates[] = {sve_z26, fpu_v26, fpu_s26,
+static uint32_t g_sve_d26_invalidates[] = {sve_z26_arm64, fpu_v26_arm64, fpu_s26_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_d27_invalidates[] = {sve_z27, fpu_v27, fpu_s27,
+static uint32_t g_sve_d27_invalidates[] = {sve_z27_arm64, fpu_v27_arm64, fpu_s27_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_d28_invalidates[] = {sve_z28, fpu_v28, fpu_s28,
+static uint32_t g_sve_d28_invalidates[] = {sve_z28_arm64, fpu_v28_arm64, fpu_s28_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_d29_invalidates[] = {sve_z29, fpu_v29, fpu_s29,
+static uint32_t g_sve_d29_invalidates[] = {sve_z29_arm64, fpu_v29_arm64, fpu_s29_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_d30_invalidates[] = {sve_z30, fpu_v30, fpu_s30,
+static uint32_t g_sve_d30_invalidates[] = {sve_z30_arm64, fpu_v30_arm64, fpu_s30_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_d31_invalidates[] = {sve_z31, fpu_v31, fpu_s31,
+static uint32_t g_sve_d31_invalidates[] = {sve_z31_arm64, fpu_v31_arm64, fpu_s31_arm64,
                                            LLDB_INVALID_REGNUM};
 
-static uint32_t g_sve_v0_invalidates[] = {sve_z0, fpu_d0, fpu_s0,
+static uint32_t g_sve_v0_invalidates[] = {sve_z0_arm64, fpu_d0_arm64, fpu_s0_arm64,
                                           LLDB_INVALID_REGNUM};
-static uint32_t g_sve_v1_invalidates[] = {sve_z1, fpu_d1, fpu_s1,
+static uint32_t g_sve_v1_invalidates[] = {sve_z1_arm64, fpu_d1_arm64, fpu_s1_arm64,
                                           LLDB_INVALID_REGNUM};
-static uint32_t g_sve_v2_invalidates[] = {sve_z2, fpu_d2, fpu_s2,
+static uint32_t g_sve_v2_invalidates[] = {sve_z2_arm64, fpu_d2_arm64, fpu_s2_arm64,
                                           LLDB_INVALID_REGNUM};
-static uint32_t g_sve_v3_invalidates[] = {sve_z3, fpu_d3, fpu_s3,
+static uint32_t g_sve_v3_invalidates[] = {sve_z3_arm64, fpu_d3_arm64, fpu_s3_arm64,
                                           LLDB_INVALID_REGNUM};
-static uint32_t g_sve_v4_invalidates[] = {sve_z4, fpu_d4, fpu_s4,
+static uint32_t g_sve_v4_invalidates[] = {sve_z4_arm64, fpu_d4_arm64, fpu_s4_arm64,
                                           LLDB_INVALID_REGNUM};
-static uint32_t g_sve_v5_invalidates[] = {sve_z5, fpu_d5, fpu_s5,
+static uint32_t g_sve_v5_invalidates[] = {sve_z5_arm64, fpu_d5_arm64, fpu_s5_arm64,
                                           LLDB_INVALID_REGNUM};
-static uint32_t g_sve_v6_invalidates[] = {sve_z6, fpu_d6, fpu_s6,
+static uint32_t g_sve_v6_invalidates[] = {sve_z6_arm64, fpu_d6_arm64, fpu_s6_arm64,
                                           LLDB_INVALID_REGNUM};
-static uint32_t g_sve_v7_invalidates[] = {sve_z7, fpu_d7, fpu_s7,
+static uint32_t g_sve_v7_invalidates[] = {sve_z7_arm64, fpu_d7_arm64, fpu_s7_arm64,
                                           LLDB_INVALID_REGNUM};
-static uint32_t g_sve_v8_invalidates[] = {sve_z8, fpu_d8, fpu_s8,
+static uint32_t g_sve_v8_invalidates[] = {sve_z8_arm64, fpu_d8_arm64, fpu_s8_arm64,
                                           LLDB_INVALID_REGNUM};
-static uint32_t g_sve_v9_invalidates[] = {sve_z9, fpu_d9, fpu_s9,
+static uint32_t g_sve_v9_invalidates[] = {sve_z9_arm64, fpu_d9_arm64, fpu_s9_arm64,
                                           LLDB_INVALID_REGNUM};
-static uint32_t g_sve_v10_invalidates[] = {sve_z10, fpu_d10, fpu_s10,
+static uint32_t g_sve_v10_invalidates[] = {sve_z10_arm64, fpu_d10_arm64, fpu_s10_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_v11_invalidates[] = {sve_z11, fpu_d11, fpu_s11,
+static uint32_t g_sve_v11_invalidates[] = {sve_z11_arm64, fpu_d11_arm64, fpu_s11_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_v12_invalidates[] = {sve_z12, fpu_d12, fpu_s12,
+static uint32_t g_sve_v12_invalidates[] = {sve_z12_arm64, fpu_d12_arm64, fpu_s12_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_v13_invalidates[] = {sve_z13, fpu_d13, fpu_s13,
+static uint32_t g_sve_v13_invalidates[] = {sve_z13_arm64, fpu_d13_arm64, fpu_s13_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_v14_invalidates[] = {sve_z14, fpu_d14, fpu_s14,
+static uint32_t g_sve_v14_invalidates[] = {sve_z14_arm64, fpu_d14_arm64, fpu_s14_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_v15_invalidates[] = {sve_z15, fpu_d15, fpu_s15,
+static uint32_t g_sve_v15_invalidates[] = {sve_z15_arm64, fpu_d15_arm64, fpu_s15_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_v16_invalidates[] = {sve_z16, fpu_d16, fpu_s16,
+static uint32_t g_sve_v16_invalidates[] = {sve_z16_arm64, fpu_d16_arm64, fpu_s16_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_v17_invalidates[] = {sve_z17, fpu_d17, fpu_s17,
+static uint32_t g_sve_v17_invalidates[] = {sve_z17_arm64, fpu_d17_arm64, fpu_s17_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_v18_invalidates[] = {sve_z18, fpu_d18, fpu_s18,
+static uint32_t g_sve_v18_invalidates[] = {sve_z18_arm64, fpu_d18_arm64, fpu_s18_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_v19_invalidates[] = {sve_z19, fpu_d19, fpu_s19,
+static uint32_t g_sve_v19_invalidates[] = {sve_z19_arm64, fpu_d19_arm64, fpu_s19_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_v20_invalidates[] = {sve_z20, fpu_d20, fpu_s20,
+static uint32_t g_sve_v20_invalidates[] = {sve_z20_arm64, fpu_d20_arm64, fpu_s20_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_v21_invalidates[] = {sve_z21, fpu_d21, fpu_s21,
+static uint32_t g_sve_v21_invalidates[] = {sve_z21_arm64, fpu_d21_arm64, fpu_s21_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_v22_invalidates[] = {sve_z22, fpu_d22, fpu_s22,
+static uint32_t g_sve_v22_invalidates[] = {sve_z22_arm64, fpu_d22_arm64, fpu_s22_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_v23_invalidates[] = {sve_z23, fpu_d23, fpu_s23,
+static uint32_t g_sve_v23_invalidates[] = {sve_z23_arm64, fpu_d23_arm64, fpu_s23_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_v24_invalidates[] = {sve_z24, fpu_d24, fpu_s24,
+static uint32_t g_sve_v24_invalidates[] = {sve_z24_arm64, fpu_d24_arm64, fpu_s24_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_v25_invalidates[] = {sve_z25, fpu_d25, fpu_s25,
+static uint32_t g_sve_v25_invalidates[] = {sve_z25_arm64, fpu_d25_arm64, fpu_s25_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_v26_invalidates[] = {sve_z26, fpu_d26, fpu_s26,
+static uint32_t g_sve_v26_invalidates[] = {sve_z26_arm64, fpu_d26_arm64, fpu_s26_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_v27_invalidates[] = {sve_z27, fpu_d27, fpu_s27,
+static uint32_t g_sve_v27_invalidates[] = {sve_z27_arm64, fpu_d27_arm64, fpu_s27_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_v28_invalidates[] = {sve_z28, fpu_d28, fpu_s28,
+static uint32_t g_sve_v28_invalidates[] = {sve_z28_arm64, fpu_d28_arm64, fpu_s28_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_v29_invalidates[] = {sve_z29, fpu_d29, fpu_s29,
+static uint32_t g_sve_v29_invalidates[] = {sve_z29_arm64, fpu_d29_arm64, fpu_s29_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_v30_invalidates[] = {sve_z30, fpu_d30, fpu_s30,
+static uint32_t g_sve_v30_invalidates[] = {sve_z30_arm64, fpu_d30_arm64, fpu_s30_arm64,
                                            LLDB_INVALID_REGNUM};
-static uint32_t g_sve_v31_invalidates[] = {sve_z31, fpu_d31, fpu_s31,
+static uint32_t g_sve_v31_invalidates[] = {sve_z31_arm64, fpu_d31_arm64, fpu_s31_arm64,
                                            LLDB_INVALID_REGNUM};
 
-static uint32_t g_contained_z0[] = {sve_z0, LLDB_INVALID_REGNUM};
-static uint32_t g_contained_z1[] = {sve_z1, LLDB_INVALID_REGNUM};
-static uint32_t g_contained_z2[] = {sve_z2, LLDB_INVALID_REGNUM};
-static uint32_t g_contained_z3[] = {sve_z3, LLDB_INVALID_REGNUM};
-static uint32_t g_contained_z4[] = {sve_z4, LLDB_INVALID_REGNUM};
-static uint32_t g_contained_z5[] = {sve_z5, LLDB_INVALID_REGNUM};
-static uint32_t g_contained_z6[] = {sve_z6, LLDB_INVALID_REGNUM};
-static uint32_t g_contained_z7[] = {sve_z7, LLDB_INVALID_REGNUM};
-static uint32_t g_contained_z8[] = {sve_z8, LLDB_INVALID_REGNUM};
-static uint32_t g_contained_z9[] = {sve_z9, LLDB_INVALID_REGNUM};
-static uint32_t g_contained_z10[] = {sve_z10, LLDB_INVALID_REGNUM};
-static uint32_t g_contained_z11[] = {sve_z11, LLDB_INVALID_REGNUM};
-static uint32_t g_contained_z12[] = {sve_z12, LLDB_INVALID_REGNUM};
-static uint32_t g_contained_z13[] = {sve_z13, LLDB_INVALID_REGNUM};
-static uint32_t g_contained_z14[] = {sve_z14, LLDB_INVALID_REGNUM};
-static uint32_t g_contained_z15[] = {sve_z15, LLDB_INVALID_REGNUM};
-static uint32_t g_contained_z16[] = {sve_z16, LLDB_INVALID_REGNUM};
-static uint32_t g_contained_z17[] = {sve_z17, LLDB_INVALID_REGNUM};
-static uint32_t g_contained_z18[] = {sve_z18, LLDB_INVALID_REGNUM};
-static uint32_t g_contained_z19[] = {sve_z19, LLDB_INVALID_REGNUM};
-static uint32_t g_contained_z20[] = {sve_z20, LLDB_INVALID_REGNUM};
-static uint32_t g_contained_z21[] = {sve_z21, LLDB_INVALID_REGNUM};
-static uint32_t g_contained_z22[] = {sve_z22, LLDB_INVALID_REGNUM};
-static uint32_t g_contained_z23[] = {sve_z23, LLDB_INVALID_REGNUM};
-static uint32_t g_contained_z24[] = {sve_z24, LLDB_INVALID_REGNUM};
-static uint32_t g_contained_z25[] = {sve_z25, LLDB_INVALID_REGNUM};
-static uint32_t g_contained_z26[] = {sve_z26, LLDB_INVALID_REGNUM};
-static uint32_t g_contained_z27[] = {sve_z27, LLDB_INVALID_REGNUM};
-static uint32_t g_contained_z28[] = {sve_z28, LLDB_INVALID_REGNUM};
-static uint32_t g_contained_z29[] = {sve_z29, LLDB_INVALID_REGNUM};
-static uint32_t g_contained_z30[] = {sve_z30, LLDB_INVALID_REGNUM};
-static uint32_t g_contained_z31[] = {sve_z31, LLDB_INVALID_REGNUM};
+static uint32_t g_contained_z0[] = {sve_z0_arm64, LLDB_INVALID_REGNUM};
+static uint32_t g_contained_z1[] = {sve_z1_arm64, LLDB_INVALID_REGNUM};
+static uint32_t g_contained_z2[] = {sve_z2_arm64, LLDB_INVALID_REGNUM};
+static uint32_t g_contained_z3[] = {sve_z3_arm64, LLDB_INVALID_REGNUM};
+static uint32_t g_contained_z4[] = {sve_z4_arm64, LLDB_INVALID_REGNUM};
+static uint32_t g_contained_z5[] = {sve_z5_arm64, LLDB_INVALID_REGNUM};
+static uint32_t g_contained_z6[] = {sve_z6_arm64, LLDB_INVALID_REGNUM};
+static uint32_t g_contained_z7[] = {sve_z7_arm64, LLDB_INVALID_REGNUM};
+static uint32_t g_contained_z8[] = {sve_z8_arm64, LLDB_INVALID_REGNUM};
+static uint32_t g_contained_z9[] = {sve_z9_arm64, LLDB_INVALID_REGNUM};
+static uint32_t g_contained_z10[] = {sve_z10_arm64, LLDB_INVALID_REGNUM};
+static uint32_t g_contained_z11[] = {sve_z11_arm64, LLDB_INVALID_REGNUM};
+static uint32_t g_contained_z12[] = {sve_z12_arm64, LLDB_INVALID_REGNUM};
+static uint32_t g_contained_z13[] = {sve_z13_arm64, LLDB_INVALID_REGNUM};
+static uint32_t g_contained_z14[] = {sve_z14_arm64, LLDB_INVALID_REGNUM};
+static uint32_t g_contained_z15[] = {sve_z15_arm64, LLDB_INVALID_REGNUM};
+static uint32_t g_contained_z16[] = {sve_z16_arm64, LLDB_INVALID_REGNUM};
+static uint32_t g_contained_z17[] = {sve_z17_arm64, LLDB_INVALID_REGNUM};
+static uint32_t g_contained_z18[] = {sve_z18_arm64, LLDB_INVALID_REGNUM};
+static uint32_t g_contained_z19[] = {sve_z19_arm64, LLDB_INVALID_REGNUM};
+static uint32_t g_contained_z20[] = {sve_z20_arm64, LLDB_INVALID_REGNUM};
+static uint32_t g_contained_z21[] = {sve_z21_arm64, LLDB_INVALID_REGNUM};
+static uint32_t g_contained_z22[] = {sve_z22_arm64, LLDB_INVALID_REGNUM};
+static uint32_t g_contained_z23[] = {sve_z23_arm64, LLDB_INVALID_REGNUM};
+static uint32_t g_contained_z24[] = {sve_z24_arm64, LLDB_INVALID_REGNUM};
+static uint32_t g_contained_z25[] = {sve_z25_arm64, LLDB_INVALID_REGNUM};
+static uint32_t g_contained_z26[] = {sve_z26_arm64, LLDB_INVALID_REGNUM};
+static uint32_t g_contained_z27[] = {sve_z27_arm64, LLDB_INVALID_REGNUM};
+static uint32_t g_contained_z28[] = {sve_z28_arm64, LLDB_INVALID_REGNUM};
+static uint32_t g_contained_z29[] = {sve_z29_arm64, LLDB_INVALID_REGNUM};
+static uint32_t g_contained_z30[] = {sve_z30_arm64, LLDB_INVALID_REGNUM};
+static uint32_t g_contained_z31[] = {sve_z31_arm64, LLDB_INVALID_REGNUM};
 
 #define VG_OFFSET_NAME(reg) SVE_OFFSET_VG
 
@@ -318,7 +279,7 @@ static uint32_t g_contained_z31[] = {sve_z31, LLDB_INVALID_REGNUM};
 #define DEFINE_FPU_PSEUDO_SVE(reg, size, zreg)                                 \
   {                                                                            \
     #reg, nullptr, size, 0, lldb::eEncodingIEEE754, lldb::eFormatFloat,        \
-        LLDB_KIND(fpu_##reg), g_contained_##zreg, g_sve_##reg##_invalidates,   \
+        LLDB_KIND(fpu_##reg##_arm64), g_contained_##zreg, g_sve_##reg##_invalidates,   \
         nullptr,                                                               \
   }
 
@@ -336,7 +297,7 @@ static uint32_t g_contained_z31[] = {sve_z31, LLDB_INVALID_REGNUM};
         SVE_REG_KIND(reg), nullptr, nullptr, nullptr,                          \
   }
 
-static lldb_private::RegisterInfo g_register_infos_arm64_sve_le[] = {
+static RegisterInfo g_register_infos_arm64_sve_le[] = {
     // DEFINE_GPR64(name, GENERIC KIND)
     DEFINE_GPR64(x0, LLDB_REGNUM_GENERIC_ARG1),
     DEFINE_GPR64(x1, LLDB_REGNUM_GENERIC_ARG2),
@@ -508,10 +469,10 @@ static lldb_private::RegisterInfo g_register_infos_arm64_sve_le[] = {
     DEFINE_FPU_PSEUDO_SVE(d31, 8, z31),
 
     // DEFINE_MISC_LLDB_REGS(name, size, TYPE, lldb kind)
-    DEFINE_MISC_LLDB_REGS(fpsr, 4, FPU, fpu_fpsr),
-    DEFINE_MISC_LLDB_REGS(fpcr, 4, FPU, fpu_fpcr),
+    DEFINE_MISC_LLDB_REGS(fpsr, 4, FPU, fpu_fpsr_arm64),
+    DEFINE_MISC_LLDB_REGS(fpcr, 4, FPU, fpu_fpcr_arm64),
 
-    DEFINE_MISC_REGS(vg, 8, VG, sve_vg),
+    DEFINE_MISC_REGS(vg, 8, VG, sve_vg_arm64),
     // DEFINE_ZREG(name)
     DEFINE_ZREG(z0),
     DEFINE_ZREG(z1),
@@ -569,4 +530,13 @@ static lldb_private::RegisterInfo g_register_infos_arm64_sve_le[] = {
     // clang-format on
 };
 
-#endif // DECLARE_REGISTER_INFOS_ARM64_SVE_STRUCT
+
+#endif // DECLARE_REGISTER_INFOS_ARM64_STRUCT
+
+#undef VG_OFFSET_NAME
+#undef SVE_REG_KIND
+#undef MISC_VG_KIND
+#undef DEFINE_VREG_SVE
+#undef DEFINE_FPU_PSEUDO_SVE
+#undef DEFINE_ZREG
+#undef DEFINE_PREG

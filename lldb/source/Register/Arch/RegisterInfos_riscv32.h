@@ -6,15 +6,15 @@
 //
 //===----------------------------------------------------------------------===//
 
+// Textual register-table fragment; intentionally has no include guard.
+// Include its ordinary dependencies at file scope before defining layout macros.
+// See README.md for the inclusion contract.
+
+#if !defined(DECLARE_REGISTER_INFOS_RISCV32_STRUCT)
+#error Select a register-table generation mode before including this fragment
+#endif
+
 #ifdef DECLARE_REGISTER_INFOS_RISCV32_STRUCT
-
-#include "Utility/RISCV_DWARF_Registers.h"
-#include "lldb-riscv-register-enums.h"
-#include "lldb/lldb-defines.h"
-#include "lldb/lldb-enumerations.h"
-#include "lldb/lldb-private.h"
-
-#include <stddef.h>
 
 #ifndef GPR_OFFSET
 #error GPR_OFFSET must be defined before including this header file
@@ -23,8 +23,6 @@
 #ifndef FPR_OFFSET
 #error FPR_OFFSET must be defined before including this header file
 #endif
-
-using namespace riscv_dwarf;
 
 // Assuming register numbers seen in eh_frame and DWARF to be the same.
 #define KIND_HELPER(reg, generic_kind)                                         \
@@ -119,7 +117,7 @@ using namespace riscv_dwarf;
    nullptr,                                                                    \
    nullptr}
 
-static lldb_private::RegisterInfo g_register_infos_riscv32_le[] = {
+static RegisterInfo g_register_infos_riscv32_le[] = {
     // DEFINE_GPR32(name, GENERIC KIND)
     DEFINE_GPR32(pc, LLDB_REGNUM_GENERIC_PC),
     DEFINE_GPR32_ALT(ra, x1, LLDB_REGNUM_GENERIC_RA),
@@ -223,7 +221,7 @@ static lldb_private::RegisterInfo g_register_infos_riscv32_le[] = {
     DEFINE_VPR(v31, LLDB_INVALID_REGNUM),
 };
 
-static lldb_private::RegisterInfo g_register_infos_riscv32_gpr[] = {
+static RegisterInfo g_register_infos_riscv32_gpr[] = {
     DEFINE_GPR32(pc, LLDB_REGNUM_GENERIC_PC),
     DEFINE_GPR32_ALT(ra, x1, LLDB_REGNUM_GENERIC_RA),
     DEFINE_GPR32_ALT(sp, x2, LLDB_REGNUM_GENERIC_SP),
@@ -259,7 +257,7 @@ static lldb_private::RegisterInfo g_register_infos_riscv32_gpr[] = {
     DEFINE_GPR32_ALT(zero, x0, LLDB_INVALID_REGNUM),
 };
 
-static lldb_private::RegisterInfo g_register_infos_riscv32_fpr[] = {
+static RegisterInfo g_register_infos_riscv32_fpr[] = {
     DEFINE_FPR32_ALT(ft0, f0, LLDB_INVALID_REGNUM),
     DEFINE_FPR32_ALT(ft1, f1, LLDB_INVALID_REGNUM),
     DEFINE_FPR32_ALT(ft2, f2, LLDB_INVALID_REGNUM),
@@ -294,7 +292,7 @@ static lldb_private::RegisterInfo g_register_infos_riscv32_fpr[] = {
     DEFINE_FPR32_ALT(ft11, f31, LLDB_INVALID_REGNUM),
 };
 
-static lldb_private::RegisterInfo g_register_infos_riscv32_vpr[] = {
+static RegisterInfo g_register_infos_riscv32_vpr[] = {
     DEFINE_VPR(v0, LLDB_INVALID_REGNUM),  DEFINE_VPR(v1, LLDB_INVALID_REGNUM),
     DEFINE_VPR(v2, LLDB_INVALID_REGNUM),  DEFINE_VPR(v3, LLDB_INVALID_REGNUM),
     DEFINE_VPR(v4, LLDB_INVALID_REGNUM),  DEFINE_VPR(v5, LLDB_INVALID_REGNUM),
@@ -313,7 +311,7 @@ static lldb_private::RegisterInfo g_register_infos_riscv32_vpr[] = {
     DEFINE_VPR(v30, LLDB_INVALID_REGNUM), DEFINE_VPR(v31, LLDB_INVALID_REGNUM),
 };
 
-static lldb_private::RegisterInfo g_register_infos_riscv32_csr_patch[] = {
+static RegisterInfo g_register_infos_riscv32_csr_patch[] = {
     DEFINE_CSR32_ALT(fflags, csr_0x001, LLDB_INVALID_REGNUM),
     DEFINE_CSR32_ALT(frm, csr_0x002, LLDB_INVALID_REGNUM),
     DEFINE_CSR32_ALT(fcsr, csr_0x003, LLDB_INVALID_REGNUM),
@@ -689,7 +687,7 @@ static lldb_private::RegisterInfo g_register_infos_riscv32_csr_patch[] = {
     DEFINE_CSR32_ALT(mconfigptr, csr_0xf15, LLDB_INVALID_REGNUM),
 };
 
-static lldb_private::RegisterInfo g_register_infos_riscv32_csr_xqciint_patch[] =
+static RegisterInfo g_register_infos_riscv32_csr_xqciint_patch[] =
     {
         DEFINE_QC_CSR32_ALT(mmcr, csr_0x7c0, LLDB_INVALID_REGNUM),
         DEFINE_QC_CSR32_ALT(mntvec, csr_0x7c3, LLDB_INVALID_REGNUM),
@@ -756,3 +754,19 @@ static lldb_private::RegisterInfo g_register_infos_riscv32_csr_xqciint_patch[] =
 };
 
 #endif // DECLARE_REGISTER_INFOS_RISCV32_STRUCT
+
+#undef KIND_HELPER
+#undef GPR32_KIND
+#undef FPR32_KIND
+#undef VPR_KIND
+#undef CSR_KIND
+#undef DEFINE_GPR32
+#undef DEFINE_GPR32_ALT
+#undef DEFINE_FPR32_ALT
+#undef DEFINE_FPR_ALT
+#undef DEFINE_VPR
+#undef DEFINE_VPR_ALT
+#undef DEFINE_CSR32
+#undef DEFINE_CSR32_ALT
+#undef DEFINE_QC_CSR32_ALT
+#undef DEFINE_CSR32_ALT_REGID

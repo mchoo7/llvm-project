@@ -15,7 +15,7 @@
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/IR/DerivedTypes.h"
 
-#include "Utility/RISCV_DWARF_Registers.h"
+#include "lldb/Register/Arch/lldb-riscv-dwarf-eframe-register-enums.h"
 #include "lldb/Core/PluginManager.h"
 #include "lldb/Core/Value.h"
 #include "lldb/Target/RegisterContext.h"

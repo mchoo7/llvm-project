@@ -16,7 +16,7 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
-#include "Register/Arch/lldb-x86-register-enums.h"
+#include "lldb/Register/Arch/lldb-x86-register-enums.h"
 #include "Register/NetBSD/RegisterInfoNetBSD_i386.h"
 
 using namespace lldb;

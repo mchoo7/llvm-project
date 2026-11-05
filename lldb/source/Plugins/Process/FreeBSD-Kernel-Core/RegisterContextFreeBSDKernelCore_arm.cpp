@@ -7,7 +7,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "RegisterContextFreeBSDKernelCore_arm.h"
-#include "Register/Arch/lldb-arm-register-enums.h"
+#include "lldb/Register/Arch/lldb-arm-register-enums.h"
 
 #include "lldb/Target/Process.h"
 #include "lldb/Target/Thread.h"

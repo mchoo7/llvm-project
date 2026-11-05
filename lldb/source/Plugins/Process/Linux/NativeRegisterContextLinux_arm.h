@@ -14,7 +14,7 @@
 #include "Plugins/Process/Linux/NativeRegisterContextLinux.h"
 #include "Plugins/Register/Native/NativeRegisterContextDBReg_arm.h"
 #include "Register/Common/RegisterInfo_arm.h"
-#include "Register/Arch/lldb-arm-register-enums.h"
+#include "lldb/Register/Arch/lldb-arm-register-enums.h"
 
 namespace lldb_private {
 namespace process_linux {

@@ -10,10 +10,18 @@
 #include <cstddef>
 #include <vector>
 
+#include "lldb/Register/Arch/lldb-arm64-register-enums.h"
+#include "lldb/Register/Arch/lldb-arm64-dwarf-eframe-register-enums.h"
 #include "lldb/lldb-defines.h"
+#include "lldb/lldb-enumerations.h"
+#include "lldb/lldb-private-types.h"
+#include "lldb/lldb-private.h"
 #include "llvm/Support/Compiler.h"
+#include <cstdint>
 
 #include "RegisterInfo_arm64.h"
+
+using namespace lldb_private;
 
 // Based on RegisterContextDarwin_arm64.cpp
 #define GPR_OFFSET(idx) ((idx)*8)
@@ -59,7 +67,7 @@
               DBG_OFFSET_NAME(reg[i]), lldb::eEncodingUint, lldb::eFormatHex,  \
                               {LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM,       \
                                LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM,       \
-                               dbg_##reg##i },                                 \
+                               dbg_##reg##i##_arm64 },                                 \
                                NULL, NULL, NULL,
 #define REG_CONTEXT_SIZE                                                       \
   (sizeof(RegisterInfo_arm64::GPR) +                                      \
@@ -67,6 +75,7 @@
    sizeof(RegisterInfo_arm64::EXC))
 
 // Include RegisterInfos_arm64 to declare our g_register_infos_arm64 structure.
+#define LLDB_REGISTER_INFOS_ARM64_KEEP_MACROS
 #define DECLARE_REGISTER_INFOS_ARM64_STRUCT
 #include "Register/Arch/RegisterInfos_arm64.h"
 #include "Register/Arch/RegisterInfos_arm64_sve.h"
@@ -104,11 +113,32 @@ static lldb_private::RegisterInfo g_register_infos_gcs[] = {
 static lldb_private::RegisterInfo g_register_infos_poe[] = {
     DEFINE_EXTENSION_REG(por_el0)};
 
+#undef GPR_W_PSEUDO_REG_ENDIAN_OFFSET
+#undef FPU_S_PSEUDO_REG_ENDIAN_OFFSET
+#undef FPU_D_PSEUDO_REG_ENDIAN_OFFSET
+#undef MISC_KIND
+#undef LLDB_KIND
+#undef GENERIC_KIND
+#undef KIND_ALL_INVALID
+#undef GPR64_KIND
+#undef VREG_KIND
+#undef DEFINE_GPR64
+#undef DEFINE_GPR64_ALT
+#undef DEFINE_GPR32
+#undef DEFINE_VREG
+#undef DEFINE_FPU_PSEUDO
+#undef DEFINE_GPR_CPSR
+#undef DEFINE_MISC_REGS
+#undef DEFINE_MISC_LLDB_REGS
+#undef DEFINE_EXTENSION_REG
+#undef DEFINE_EXTENSION_REG_GENERIC
+#undef LLDB_REGISTER_INFOS_ARM64_KEEP_MACROS
+
 // Number of register sets provided by this context.
 enum {
-  k_num_gpr_registers = gpr_w28 - gpr_x0 + 1,
-  k_num_fpr_registers = fpu_fpcr - fpu_v0 + 1,
-  k_num_sve_registers = sve_ffr - sve_vg + 1,
+  k_num_gpr_registers = gpr_w28_arm64 - gpr_x0_arm64 + 1,
+  k_num_fpr_registers = fpu_fpcr_arm64 - fpu_v0_arm64 + 1,
+  k_num_sve_registers = sve_ffr_arm64 - sve_vg_arm64 + 1,
   k_num_mte_register = 1,
   // Number of TLS registers is dynamic so it is not listed here.
   k_num_pauth_register = 2,
@@ -124,22 +154,22 @@ enum {
 
 // ARM64 general purpose registers.
 static const uint32_t g_gpr_regnums_arm64[] = {
-    gpr_x0,  gpr_x1,   gpr_x2,  gpr_x3,
-    gpr_x4,  gpr_x5,   gpr_x6,  gpr_x7,
-    gpr_x8,  gpr_x9,   gpr_x10, gpr_x11,
-    gpr_x12, gpr_x13,  gpr_x14, gpr_x15,
-    gpr_x16, gpr_x17,  gpr_x18, gpr_x19,
-    gpr_x20, gpr_x21,  gpr_x22, gpr_x23,
-    gpr_x24, gpr_x25,  gpr_x26, gpr_x27,
-    gpr_x28, gpr_fp,   gpr_lr,  gpr_sp,
-    gpr_pc,  gpr_cpsr, gpr_w0,  gpr_w1,
-    gpr_w2,  gpr_w3,   gpr_w4,  gpr_w5,
-    gpr_w6,  gpr_w7,   gpr_w8,  gpr_w9,
-    gpr_w10, gpr_w11,  gpr_w12, gpr_w13,
-    gpr_w14, gpr_w15,  gpr_w16, gpr_w17,
-    gpr_w18, gpr_w19,  gpr_w20, gpr_w21,
-    gpr_w22, gpr_w23,  gpr_w24, gpr_w25,
-    gpr_w26, gpr_w27,  gpr_w28, LLDB_INVALID_REGNUM};
+    gpr_x0_arm64,  gpr_x1_arm64,   gpr_x2_arm64,  gpr_x3_arm64,
+    gpr_x4_arm64,  gpr_x5_arm64,   gpr_x6_arm64,  gpr_x7_arm64,
+    gpr_x8_arm64,  gpr_x9_arm64,   gpr_x10_arm64, gpr_x11_arm64,
+    gpr_x12_arm64, gpr_x13_arm64,  gpr_x14_arm64, gpr_x15_arm64,
+    gpr_x16_arm64, gpr_x17_arm64,  gpr_x18_arm64, gpr_x19_arm64,
+    gpr_x20_arm64, gpr_x21_arm64,  gpr_x22_arm64, gpr_x23_arm64,
+    gpr_x24_arm64, gpr_x25_arm64,  gpr_x26_arm64, gpr_x27_arm64,
+    gpr_x28_arm64, gpr_fp_arm64,   gpr_lr_arm64,  gpr_sp_arm64,
+    gpr_pc_arm64,  gpr_cpsr_arm64, gpr_w0_arm64,  gpr_w1_arm64,
+    gpr_w2_arm64,  gpr_w3_arm64,   gpr_w4_arm64,  gpr_w5_arm64,
+    gpr_w6_arm64,  gpr_w7_arm64,   gpr_w8_arm64,  gpr_w9_arm64,
+    gpr_w10_arm64, gpr_w11_arm64,  gpr_w12_arm64, gpr_w13_arm64,
+    gpr_w14_arm64, gpr_w15_arm64,  gpr_w16_arm64, gpr_w17_arm64,
+    gpr_w18_arm64, gpr_w19_arm64,  gpr_w20_arm64, gpr_w21_arm64,
+    gpr_w22_arm64, gpr_w23_arm64,  gpr_w24_arm64, gpr_w25_arm64,
+    gpr_w26_arm64, gpr_w27_arm64,  gpr_w28_arm64, LLDB_INVALID_REGNUM};
 
 static_assert(((sizeof g_gpr_regnums_arm64 / sizeof g_gpr_regnums_arm64[0]) -
                1) == k_num_gpr_registers,
@@ -147,62 +177,62 @@ static_assert(((sizeof g_gpr_regnums_arm64 / sizeof g_gpr_regnums_arm64[0]) -
 
 // ARM64 floating point registers.
 static const uint32_t g_fpu_regnums_arm64[] = {
-    fpu_v0,   fpu_v1,   fpu_v2,
-    fpu_v3,   fpu_v4,   fpu_v5,
-    fpu_v6,   fpu_v7,   fpu_v8,
-    fpu_v9,   fpu_v10,  fpu_v11,
-    fpu_v12,  fpu_v13,  fpu_v14,
-    fpu_v15,  fpu_v16,  fpu_v17,
-    fpu_v18,  fpu_v19,  fpu_v20,
-    fpu_v21,  fpu_v22,  fpu_v23,
-    fpu_v24,  fpu_v25,  fpu_v26,
-    fpu_v27,  fpu_v28,  fpu_v29,
-    fpu_v30,  fpu_v31,  fpu_s0,
-    fpu_s1,   fpu_s2,   fpu_s3,
-    fpu_s4,   fpu_s5,   fpu_s6,
-    fpu_s7,   fpu_s8,   fpu_s9,
-    fpu_s10,  fpu_s11,  fpu_s12,
-    fpu_s13,  fpu_s14,  fpu_s15,
-    fpu_s16,  fpu_s17,  fpu_s18,
-    fpu_s19,  fpu_s20,  fpu_s21,
-    fpu_s22,  fpu_s23,  fpu_s24,
-    fpu_s25,  fpu_s26,  fpu_s27,
-    fpu_s28,  fpu_s29,  fpu_s30,
-    fpu_s31,  fpu_d0,   fpu_d1,
-    fpu_d2,   fpu_d3,   fpu_d4,
-    fpu_d5,   fpu_d6,   fpu_d7,
-    fpu_d8,   fpu_d9,   fpu_d10,
-    fpu_d11,  fpu_d12,  fpu_d13,
-    fpu_d14,  fpu_d15,  fpu_d16,
-    fpu_d17,  fpu_d18,  fpu_d19,
-    fpu_d20,  fpu_d21,  fpu_d22,
-    fpu_d23,  fpu_d24,  fpu_d25,
-    fpu_d26,  fpu_d27,  fpu_d28,
-    fpu_d29,  fpu_d30,  fpu_d31,
-    fpu_fpsr, fpu_fpcr, LLDB_INVALID_REGNUM};
+    fpu_v0_arm64,   fpu_v1_arm64,   fpu_v2_arm64,
+    fpu_v3_arm64,   fpu_v4_arm64,   fpu_v5_arm64,
+    fpu_v6_arm64,   fpu_v7_arm64,   fpu_v8_arm64,
+    fpu_v9_arm64,   fpu_v10_arm64,  fpu_v11_arm64,
+    fpu_v12_arm64,  fpu_v13_arm64,  fpu_v14_arm64,
+    fpu_v15_arm64,  fpu_v16_arm64,  fpu_v17_arm64,
+    fpu_v18_arm64,  fpu_v19_arm64,  fpu_v20_arm64,
+    fpu_v21_arm64,  fpu_v22_arm64,  fpu_v23_arm64,
+    fpu_v24_arm64,  fpu_v25_arm64,  fpu_v26_arm64,
+    fpu_v27_arm64,  fpu_v28_arm64,  fpu_v29_arm64,
+    fpu_v30_arm64,  fpu_v31_arm64,  fpu_s0_arm64,
+    fpu_s1_arm64,   fpu_s2_arm64,   fpu_s3_arm64,
+    fpu_s4_arm64,   fpu_s5_arm64,   fpu_s6_arm64,
+    fpu_s7_arm64,   fpu_s8_arm64,   fpu_s9_arm64,
+    fpu_s10_arm64,  fpu_s11_arm64,  fpu_s12_arm64,
+    fpu_s13_arm64,  fpu_s14_arm64,  fpu_s15_arm64,
+    fpu_s16_arm64,  fpu_s17_arm64,  fpu_s18_arm64,
+    fpu_s19_arm64,  fpu_s20_arm64,  fpu_s21_arm64,
+    fpu_s22_arm64,  fpu_s23_arm64,  fpu_s24_arm64,
+    fpu_s25_arm64,  fpu_s26_arm64,  fpu_s27_arm64,
+    fpu_s28_arm64,  fpu_s29_arm64,  fpu_s30_arm64,
+    fpu_s31_arm64,  fpu_d0_arm64,   fpu_d1_arm64,
+    fpu_d2_arm64,   fpu_d3_arm64,   fpu_d4_arm64,
+    fpu_d5_arm64,   fpu_d6_arm64,   fpu_d7_arm64,
+    fpu_d8_arm64,   fpu_d9_arm64,   fpu_d10_arm64,
+    fpu_d11_arm64,  fpu_d12_arm64,  fpu_d13_arm64,
+    fpu_d14_arm64,  fpu_d15_arm64,  fpu_d16_arm64,
+    fpu_d17_arm64,  fpu_d18_arm64,  fpu_d19_arm64,
+    fpu_d20_arm64,  fpu_d21_arm64,  fpu_d22_arm64,
+    fpu_d23_arm64,  fpu_d24_arm64,  fpu_d25_arm64,
+    fpu_d26_arm64,  fpu_d27_arm64,  fpu_d28_arm64,
+    fpu_d29_arm64,  fpu_d30_arm64,  fpu_d31_arm64,
+    fpu_fpsr_arm64, fpu_fpcr_arm64, LLDB_INVALID_REGNUM};
 static_assert(((sizeof g_fpu_regnums_arm64 / sizeof g_fpu_regnums_arm64[0]) -
                1) == k_num_fpr_registers,
               "g_fpu_regnums_arm64 has wrong number of register infos");
 
 // ARM64 SVE registers.
 static const uint32_t g_sve_regnums_arm64[] = {
-    sve_vg,  sve_z0,  sve_z1,
-    sve_z2,  sve_z3,  sve_z4,
-    sve_z5,  sve_z6,  sve_z7,
-    sve_z8,  sve_z9,  sve_z10,
-    sve_z11, sve_z12, sve_z13,
-    sve_z14, sve_z15, sve_z16,
-    sve_z17, sve_z18, sve_z19,
-    sve_z20, sve_z21, sve_z22,
-    sve_z23, sve_z24, sve_z25,
-    sve_z26, sve_z27, sve_z28,
-    sve_z29, sve_z30, sve_z31,
-    sve_p0,  sve_p1,  sve_p2,
-    sve_p3,  sve_p4,  sve_p5,
-    sve_p6,  sve_p7,  sve_p8,
-    sve_p9,  sve_p10, sve_p11,
-    sve_p12, sve_p13, sve_p14,
-    sve_p15, sve_ffr, LLDB_INVALID_REGNUM};
+    sve_vg_arm64,  sve_z0_arm64,  sve_z1_arm64,
+    sve_z2_arm64,  sve_z3_arm64,  sve_z4_arm64,
+    sve_z5_arm64,  sve_z6_arm64,  sve_z7_arm64,
+    sve_z8_arm64,  sve_z9_arm64,  sve_z10_arm64,
+    sve_z11_arm64, sve_z12_arm64, sve_z13_arm64,
+    sve_z14_arm64, sve_z15_arm64, sve_z16_arm64,
+    sve_z17_arm64, sve_z18_arm64, sve_z19_arm64,
+    sve_z20_arm64, sve_z21_arm64, sve_z22_arm64,
+    sve_z23_arm64, sve_z24_arm64, sve_z25_arm64,
+    sve_z26_arm64, sve_z27_arm64, sve_z28_arm64,
+    sve_z29_arm64, sve_z30_arm64, sve_z31_arm64,
+    sve_p0_arm64,  sve_p1_arm64,  sve_p2_arm64,
+    sve_p3_arm64,  sve_p4_arm64,  sve_p5_arm64,
+    sve_p6_arm64,  sve_p7_arm64,  sve_p8_arm64,
+    sve_p9_arm64,  sve_p10_arm64, sve_p11_arm64,
+    sve_p12_arm64, sve_p13_arm64, sve_p14_arm64,
+    sve_p15_arm64, sve_ffr_arm64, LLDB_INVALID_REGNUM};
 static_assert(((sizeof g_sve_regnums_arm64 / sizeof g_sve_regnums_arm64[0]) -
                1) == k_num_sve_registers,
               "g_sve_regnums_arm64 has wrong number of register infos");
@@ -245,8 +275,8 @@ RegisterInfo_arm64::RegisterInfo_arm64(
   case llvm::Triple::aarch64_32: {
     m_register_set_p = g_reg_sets_arm64;
     m_register_set_count = k_num_register_sets_default;
-    m_per_regset_regnum_range[GPRegSet] = std::make_pair(gpr_x0, gpr_w28 + 1);
-    m_per_regset_regnum_range[FPRegSet] = std::make_pair(fpu_v0, fpu_fpcr + 1);
+    m_per_regset_regnum_range[GPRegSet] = std::make_pair(gpr_x0_arm64, gpr_w28_arm64 + 1);
+    m_per_regset_regnum_range[FPRegSet] = std::make_pair(fpu_v0_arm64, fpu_fpcr_arm64 + 1);
 
     // Now configure register sets supported by current target. If we have a
     // dynamic register set like MTE, Pointer Authentication regset then we need
@@ -254,12 +284,12 @@ RegisterInfo_arm64::RegisterInfo_arm64(
     // register infos and regset and calculate register offsets accordingly.
     if (m_opt_regsets.AnySet(eRegsetMaskSVE | eRegsetMaskSSVE)) {
       m_register_info_p = g_register_infos_arm64_sve_le;
-      m_register_info_count = sve_ffr + 1;
+      m_register_info_count = sve_ffr_arm64 + 1;
       m_per_regset_regnum_range[m_register_set_count++] =
-          std::make_pair(sve_vg, sve_ffr + 1);
+          std::make_pair(sve_vg_arm64, sve_ffr_arm64 + 1);
     } else {
       m_register_info_p = g_register_infos_arm64_le;
-      m_register_info_count = fpu_fpcr + 1;
+      m_register_info_count = fpu_fpcr_arm64 + 1;
     }
 
     if (m_opt_regsets.AnySet(eRegsetMaskDynamic)) {
@@ -511,16 +541,16 @@ uint32_t RegisterInfo_arm64::ConfigureVectorLengthSVE(uint32_t sve_vq) {
     reg_info_ref = llvm::ArrayRef(m_register_info_p, m_register_info_count);
 
     uint32_t offset = SVE_REGS_DEFAULT_OFFSET_LINUX;
-    reg_info_ref[fpu_fpsr].byte_offset = offset;
-    reg_info_ref[fpu_fpcr].byte_offset = offset + 4;
-    reg_info_ref[sve_vg].byte_offset = offset + 8;
+    reg_info_ref[fpu_fpsr_arm64].byte_offset = offset;
+    reg_info_ref[fpu_fpcr_arm64].byte_offset = offset + 4;
+    reg_info_ref[sve_vg_arm64].byte_offset = offset + 8;
     offset += 16;
 
     // Update Z registers size and offset
-    uint32_t s_reg_base = fpu_s0;
-    uint32_t d_reg_base = fpu_d0;
-    uint32_t v_reg_base = fpu_v0;
-    uint32_t z_reg_base = sve_z0;
+    uint32_t s_reg_base = fpu_s0_arm64;
+    uint32_t d_reg_base = fpu_d0_arm64;
+    uint32_t v_reg_base = fpu_v0_arm64;
+    uint32_t z_reg_base = sve_z0_arm64;
 
     for (uint32_t index = 0; index < 32; index++) {
       reg_info_ref[s_reg_base + index].byte_offset = offset;
@@ -533,13 +563,13 @@ uint32_t RegisterInfo_arm64::ConfigureVectorLengthSVE(uint32_t sve_vq) {
     }
 
     // Update P registers and FFR size and offset
-    for (uint32_t it = sve_p0; it <= sve_ffr; it++) {
+    for (uint32_t it = sve_p0_arm64; it <= sve_ffr_arm64; it++) {
       reg_info_ref[it].byte_offset = offset;
       reg_info_ref[it].byte_size = sve_vq * SVE_QUAD_WORD_BYTES / 8;
       offset += reg_info_ref[it].byte_size;
     }
 
-    for (uint32_t it = sve_ffr + 1; it < m_register_info_count; it++) {
+    for (uint32_t it = sve_ffr_arm64 + 1; it < m_register_info_count; it++) {
       reg_info_ref[it].byte_offset = offset;
       offset += reg_info_ref[it].byte_size;
     }
@@ -567,25 +597,25 @@ void RegisterInfo_arm64::ConfigureVectorLengthZA(uint32_t za_vq) {
 
 bool RegisterInfo_arm64::IsSVEReg(unsigned reg) const {
   if (m_vector_reg_vq > eVectorQuadwordAArch64)
-    return (sve_vg <= reg && reg <= sve_ffr);
+    return (sve_vg_arm64 <= reg && reg <= sve_ffr_arm64);
   else
     return false;
 }
 
 bool RegisterInfo_arm64::IsSVEZReg(unsigned reg) const {
-  return (sve_z0 <= reg && reg <= sve_z31);
+  return (sve_z0_arm64 <= reg && reg <= sve_z31_arm64);
 }
 
 bool RegisterInfo_arm64::IsSVEPReg(unsigned reg) const {
-  return (sve_p0 <= reg && reg <= sve_p15);
+  return (sve_p0_arm64 <= reg && reg <= sve_p15_arm64);
 }
 
 bool RegisterInfo_arm64::IsSVERegVG(unsigned reg) const {
-  return sve_vg == reg;
+  return sve_vg_arm64 == reg;
 }
 
 bool RegisterInfo_arm64::IsSVERegFFR(unsigned reg) const {
-  return sve_ffr == reg;
+  return sve_ffr_arm64 == reg;
 }
 
 bool RegisterInfo_arm64::IsSMERegZA(unsigned reg) const {
@@ -636,17 +666,17 @@ bool RegisterInfo_arm64::IsPOEReg(unsigned reg) const {
   return llvm::is_contained(m_poe_regnum_collection, reg);
 }
 
-uint32_t RegisterInfo_arm64::GetRegNumSVEZ0() const { return sve_z0; }
+uint32_t RegisterInfo_arm64::GetRegNumSVEZ0() const { return sve_z0_arm64; }
 
-uint32_t RegisterInfo_arm64::GetRegNumSVEFFR() const { return sve_ffr; }
+uint32_t RegisterInfo_arm64::GetRegNumSVEFFR() const { return sve_ffr_arm64; }
 
-uint32_t RegisterInfo_arm64::GetRegNumFPCR() const { return fpu_fpcr; }
+uint32_t RegisterInfo_arm64::GetRegNumFPCR() const { return fpu_fpcr_arm64; }
 
-uint32_t RegisterInfo_arm64::GetRegNumFPSR() const { return fpu_fpsr; }
+uint32_t RegisterInfo_arm64::GetRegNumFPSR() const { return fpu_fpsr_arm64; }
 
-uint32_t RegisterInfo_arm64::GetRegNumFPV0() const { return fpu_v0; }
+uint32_t RegisterInfo_arm64::GetRegNumFPV0() const { return fpu_v0_arm64; }
 
-uint32_t RegisterInfo_arm64::GetRegNumSVEVG() const { return sve_vg; }
+uint32_t RegisterInfo_arm64::GetRegNumSVEVG() const { return sve_vg_arm64; }
 
 uint32_t RegisterInfo_arm64::GetRegNumSMESVG() const {
   return m_sme_regnum_collection[1];

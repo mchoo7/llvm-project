@@ -21,7 +21,7 @@
 #include <memory>
 
 #include "RegisterContextDarwin_riscv32.h"
-#include "Utility/RISCV_DWARF_Registers.h"
+#include "lldb/Register/Arch/lldb-riscv-dwarf-eframe-register-enums.h"
 
 using namespace lldb;
 using namespace lldb_private;

@@ -10,7 +10,7 @@
 #include "Register/RegisterInfoInterface.h"
 #include "Register/Common/RegisterInfo_riscv32.h"
 #include "Register/Common/RegisterInfo_riscv64.h"
-#include "Register/Arch/lldb-riscv-register-enums.h"
+#include "lldb/Register/Arch/lldb-riscv-register-enums.h"
 #include "RISCVCInstructions.h"
 #include "RISCVInstructions.h"
 

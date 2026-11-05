@@ -12,7 +12,7 @@
 #include <cstdint>
 #include <variant>
 
-#include "Register/Arch/lldb-riscv-register-enums.h"
+#include "lldb/Register/Arch/lldb-riscv-register-enums.h"
 #include "RISCVInstructions.h"
 
 namespace lldb_private {

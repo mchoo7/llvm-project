@@ -12,7 +12,7 @@
 #include "EmulateInstructionLoongArch.h"
 #include "Plugins/Process/Utility/InstructionUtils.h"
 #include "Register/Common/RegisterInfo_loongarch64.h"
-#include "Register/Arch/lldb-loongarch-register-enums.h"
+#include "lldb/Register/Arch/lldb-loongarch-register-enums.h"
 #include "lldb/Core/Address.h"
 #include "lldb/Core/PluginManager.h"
 #include "lldb/Interpreter/OptionValueArray.h"

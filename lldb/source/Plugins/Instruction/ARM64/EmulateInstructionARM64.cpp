@@ -8,6 +8,16 @@
 
 #include "EmulateInstructionARM64.h"
 
+#include "lldb/Register/Arch/lldb-arm64-register-enums.h"
+#include "lldb/Register/Arch/lldb-arm64-dwarf-eframe-register-enums.h"
+#include "lldb/lldb-defines.h"
+#include "lldb/lldb-enumerations.h"
+#include "lldb/lldb-private-types.h"
+#include "lldb/lldb-private.h"
+#include "llvm/Support/Compiler.h"
+#include <cstddef>
+#include <cstdint>
+
 #include "lldb/Core/Address.h"
 #include "lldb/Core/PluginManager.h"
 #include "lldb/Symbol/UnwindPlan.h"
@@ -19,7 +29,6 @@
 
 #include "Plugins/Process/Utility/ARMDefines.h"
 #include "Plugins/Process/Utility/ARMUtils.h"
-#include "Register/Arch/lldb-arm64-register-enums.h"
 
 #include <algorithm>
 #include <cstdlib>
@@ -38,6 +47,8 @@
        LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM},                              \
       nullptr, nullptr, nullptr
 
+using namespace lldb_private;
+
 #define DECLARE_REGISTER_INFOS_ARM64_STRUCT
 
 #include "Register/Arch/RegisterInfos_arm64.h"
@@ -48,7 +59,6 @@
 #include "Plugins/Process/Utility/InstructionUtils.h"
 
 using namespace lldb;
-using namespace lldb_private;
 
 LLDB_PLUGIN_DEFINE_ADV(EmulateInstructionARM64, InstructionARM64)
 

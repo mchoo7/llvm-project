@@ -7,11 +7,19 @@
 //===----------------------------------------------------------------------===//
 
 #include <cassert>
+
 #include <lldb/Utility/Flags.h>
 #include <stddef.h>
 
+#include "lldb/Register/Arch/lldb-loongarch-register-enums.h"
+#include "lldb/Register/Arch/lldb-loongarch-dwarf-eframe-register-enums.h"
 #include "lldb/lldb-defines.h"
+#include "lldb/lldb-enumerations.h"
+#include "lldb/lldb-private-types.h"
+#include "lldb/lldb-private.h"
 #include "llvm/Support/Compiler.h"
+#include <cstddef>
+#include <cstdint>
 
 #include "RegisterInfo_loongarch64.h"
 
@@ -32,6 +40,8 @@
    sizeof(RegisterInfo_loongarch64::FPR) +                                \
    sizeof(RegisterInfo_loongarch64::LSX) +                                \
    sizeof(RegisterInfo_loongarch64::LASX))
+
+using namespace lldb_private;
 
 #define DECLARE_REGISTER_INFOS_LOONGARCH64_STRUCT
 #include "Register/Arch/RegisterInfos_loongarch64.h"

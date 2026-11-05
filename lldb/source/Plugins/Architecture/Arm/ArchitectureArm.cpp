@@ -9,7 +9,7 @@
 #include "Plugins/Architecture/Arm/ArchitectureArm.h"
 #include "Plugins/Process/Utility/ARMDefines.h"
 #include "Plugins/Process/Utility/InstructionUtils.h"
-#include "Utility/ARM_DWARF_Registers.h"
+#include "lldb/Register/Arch/lldb-arm-dwarf-eframe-register-enums.h"
 #include "lldb/Core/PluginManager.h"
 #include "lldb/Symbol/UnwindPlan.h"
 #include "lldb/Target/Process.h"

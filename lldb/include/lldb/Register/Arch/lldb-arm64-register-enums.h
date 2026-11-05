@@ -1,4 +1,4 @@
-//===-- lldb-arm64-register-enums.h -----------------------------*- C++ -*-===//
+//===----------------------------------------------------------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -6,8 +6,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLDB_SOURCE_REGISTER_ARCH_LLDB_ARM64_REGISTER_ENUMS_H
-#define LLDB_SOURCE_REGISTER_ARCH_LLDB_ARM64_REGISTER_ENUMS_H
+#ifndef LLDB_REGISTER_ARCH_LLDB_ARM64_REGISTER_ENUMS_H
+#define LLDB_REGISTER_ARCH_LLDB_ARM64_REGISTER_ENUMS_H
 
 namespace lldb_private {
 // LLDB register codes (e.g. RegisterKind == eRegisterKindLLDB)
@@ -259,6 +259,68 @@ enum {
   k_num_gpr_registers_arm64 = k_last_gpr_arm64 - k_first_gpr_arm64 + 1,
   k_num_fpr_registers_arm64 = k_last_fpr_arm64 - k_first_fpr_arm64 + 1
 };
+
+// Alternative names used by the register descriptions.
+enum {
+  gpr_x29_arm64 = gpr_fp_arm64,
+  gpr_x30_arm64 = gpr_lr_arm64,
+  gpr_ra_arm64 = gpr_lr_arm64,
+  gpr_x31_arm64 = gpr_sp_arm64,
+};
+
+// SVE replaces the exception-register portion of the base table.
+enum {
+  sve_vg_arm64 = exc_far_arm64,
+  sve_z0_arm64,
+  sve_z1_arm64,
+  sve_z2_arm64,
+  sve_z3_arm64,
+  sve_z4_arm64,
+  sve_z5_arm64,
+  sve_z6_arm64,
+  sve_z7_arm64,
+  sve_z8_arm64,
+  sve_z9_arm64,
+  sve_z10_arm64,
+  sve_z11_arm64,
+  sve_z12_arm64,
+  sve_z13_arm64,
+  sve_z14_arm64,
+  sve_z15_arm64,
+  sve_z16_arm64,
+  sve_z17_arm64,
+  sve_z18_arm64,
+  sve_z19_arm64,
+  sve_z20_arm64,
+  sve_z21_arm64,
+  sve_z22_arm64,
+  sve_z23_arm64,
+  sve_z24_arm64,
+  sve_z25_arm64,
+  sve_z26_arm64,
+  sve_z27_arm64,
+  sve_z28_arm64,
+  sve_z29_arm64,
+  sve_z30_arm64,
+  sve_z31_arm64,
+  sve_p0_arm64,
+  sve_p1_arm64,
+  sve_p2_arm64,
+  sve_p3_arm64,
+  sve_p4_arm64,
+  sve_p5_arm64,
+  sve_p6_arm64,
+  sve_p7_arm64,
+  sve_p8_arm64,
+  sve_p9_arm64,
+  sve_p10_arm64,
+  sve_p11_arm64,
+  sve_p12_arm64,
+  sve_p13_arm64,
+  sve_p14_arm64,
+  sve_p15_arm64,
+  sve_ffr_arm64,
+};
 }
 
-#endif // LLDB_SOURCE_REGISTER_ARCH_LLDB_ARM64_REGISTER_ENUMS_H
+#endif // LLDB_REGISTER_ARCH_LLDB_ARM64_REGISTER_ENUMS_H

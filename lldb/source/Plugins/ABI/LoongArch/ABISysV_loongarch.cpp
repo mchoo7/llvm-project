@@ -16,7 +16,7 @@
 #include "llvm/IR/DerivedTypes.h"
 #include "llvm/Support/MathExtras.h"
 
-#include "Utility/LoongArch_DWARF_Registers.h"
+#include "lldb/Register/Arch/lldb-loongarch-dwarf-eframe-register-enums.h"
 #include "lldb/Core/PluginManager.h"
 #include "lldb/Core/Value.h"
 #include "lldb/Target/RegisterContext.h"

@@ -8,7 +8,14 @@
 
 #include "RegisterInfoDynamic_riscv32.h"
 
-#include "Register/Arch/lldb-riscv-register-enums.h"
+#include "lldb/Register/Arch/lldb-riscv-dwarf-eframe-register-enums.h"
+#include "lldb/lldb-enumerations.h"
+#include "lldb/lldb-private-types.h"
+#include "lldb/lldb-private.h"
+#include <cstddef>
+#include <cstdint>
+
+#include "lldb/Register/Arch/lldb-riscv-register-enums.h"
 #include "lldb/lldb-defines.h"
 #include "llvm/ADT/StringMap.h"
 #include "llvm/Support/Compiler.h"
@@ -17,6 +24,8 @@
 
 #define GPR_OFFSET(idx) ((idx) * sizeof(uint32_t))
 #define FPR_OFFSET(idx) ((idx) * sizeof(uint32_t))
+
+using namespace lldb_private;
 
 #define DECLARE_REGISTER_INFOS_RISCV32_STRUCT
 #include "Register/Arch/RegisterInfos_riscv32.h"

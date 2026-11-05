@@ -1,5 +1,4 @@
-//===-- ARM64_ehframe_Registers.h -------------------------------------*- C++
-//-*-===//
+//===----------------------------------------------------------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -7,13 +6,11 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLDB_SOURCE_UTILITY_ARM64_EHFRAME_REGISTERS_H
-#define LLDB_SOURCE_UTILITY_ARM64_EHFRAME_REGISTERS_H
+#ifndef LLDB_REGISTER_ARCH_LLDB_ARM64_DWARF_EFRAME_REGISTER_ENUMS_H
+#define LLDB_REGISTER_ARCH_LLDB_ARM64_DWARF_EFRAME_REGISTER_ENUMS_H
 
-// The register numbers used in the eh_frame unwind information.
-// Should be the same as DWARF register numbers.
 
-namespace arm64_ehframe {
+namespace arm64_dwarf {
 
 enum {
   x0 = 0,
@@ -45,10 +42,13 @@ enum {
   x26,
   x27,
   x28,
-  fp, // aka x29
-  lr, // aka x30
-  sp, // aka x31 aka wzr
-  pc, // value is 32
+  x29 = 29,
+  fp = x29,
+  x30 = 30,
+  lr = x30,
+  x31 = 31,
+  sp = x31,
+  pc = 32,
   elr_mode = 33,
   ra_sign_state = 34,
   tpidrr0_el0 = 35,
@@ -150,6 +150,7 @@ enum {
   z30,
   z31
 };
-}
 
-#endif // LLDB_SOURCE_UTILITY_ARM64_EHFRAME_REGISTERS_H
+} // namespace arm64_dwarf
+
+#endif // LLDB_REGISTER_ARCH_LLDB_ARM64_DWARF_EFRAME_REGISTER_ENUMS_H

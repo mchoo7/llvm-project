@@ -36,10 +36,11 @@
 #include "llvm/ADT/STLExtras.h"
 
 #include "Plugins/Process/Utility/InstructionUtils.h"
-#include "Register/Arch/RegisterContext_mips.h"
+#include "lldb/Register/Arch/lldb-mips-dwarf-eframe-register-enums.h"
 
 using namespace lldb;
 using namespace lldb_private;
+using namespace mips_dwarf;
 
 LLDB_PLUGIN_DEFINE_ADV(EmulateInstructionMIPS64, InstructionMIPS64)
 

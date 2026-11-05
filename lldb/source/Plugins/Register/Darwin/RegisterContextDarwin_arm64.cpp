@@ -7,6 +7,16 @@
 //===----------------------------------------------------------------------===//
 
 #include "RegisterContextDarwin_arm64.h"
+
+#include "lldb/Register/Arch/lldb-arm64-register-enums.h"
+#include "lldb/Register/Arch/lldb-arm64-dwarf-eframe-register-enums.h"
+#include "lldb/lldb-defines.h"
+#include "lldb/lldb-enumerations.h"
+#include "lldb/lldb-private-types.h"
+#include "lldb/lldb-private.h"
+#include <cstddef>
+#include <cstdint>
+
 #include "RegisterContextDarwinConstants.h"
 
 #include "lldb/Target/Process.h"
@@ -29,7 +39,7 @@
 #include <sys/sysctl.h>
 #endif
 
-#include "Utility/ARM64_DWARF_Registers.h"
+#include "lldb/Register/Arch/lldb-arm64-dwarf-eframe-register-enums.h"
 
 using namespace lldb;
 using namespace lldb_private;
@@ -72,23 +82,23 @@ using namespace lldb_private;
 
 // General purpose registers
 static uint32_t g_gpr_regnums[] = {
-    gpr_x0,  gpr_x1,  gpr_x2,  gpr_x3,  gpr_x4,  gpr_x5,  gpr_x6,
-    gpr_x7,  gpr_x8,  gpr_x9,  gpr_x10, gpr_x11, gpr_x12, gpr_x13,
-    gpr_x14, gpr_x15, gpr_x16, gpr_x17, gpr_x18, gpr_x19, gpr_x20,
-    gpr_x21, gpr_x22, gpr_x23, gpr_x24, gpr_x25, gpr_x26, gpr_x27,
-    gpr_x28, gpr_fp,  gpr_lr,  gpr_sp,  gpr_pc,  gpr_cpsr};
+    gpr_x0_arm64,  gpr_x1_arm64,  gpr_x2_arm64,  gpr_x3_arm64,  gpr_x4_arm64,  gpr_x5_arm64,  gpr_x6_arm64,
+    gpr_x7_arm64,  gpr_x8_arm64,  gpr_x9_arm64,  gpr_x10_arm64, gpr_x11_arm64, gpr_x12_arm64, gpr_x13_arm64,
+    gpr_x14_arm64, gpr_x15_arm64, gpr_x16_arm64, gpr_x17_arm64, gpr_x18_arm64, gpr_x19_arm64, gpr_x20_arm64,
+    gpr_x21_arm64, gpr_x22_arm64, gpr_x23_arm64, gpr_x24_arm64, gpr_x25_arm64, gpr_x26_arm64, gpr_x27_arm64,
+    gpr_x28_arm64, gpr_fp_arm64,  gpr_lr_arm64,  gpr_sp_arm64,  gpr_pc_arm64,  gpr_cpsr_arm64};
 
 // Floating point registers
 static uint32_t g_fpu_regnums[] = {
-    fpu_v0,  fpu_v1,  fpu_v2,  fpu_v3,  fpu_v4,   fpu_v5,  fpu_v6,
-    fpu_v7,  fpu_v8,  fpu_v9,  fpu_v10, fpu_v11,  fpu_v12, fpu_v13,
-    fpu_v14, fpu_v15, fpu_v16, fpu_v17, fpu_v18,  fpu_v19, fpu_v20,
-    fpu_v21, fpu_v22, fpu_v23, fpu_v24, fpu_v25,  fpu_v26, fpu_v27,
-    fpu_v28, fpu_v29, fpu_v30, fpu_v31, fpu_fpsr, fpu_fpcr};
+    fpu_v0_arm64,  fpu_v1_arm64,  fpu_v2_arm64,  fpu_v3_arm64,  fpu_v4_arm64,   fpu_v5_arm64,  fpu_v6_arm64,
+    fpu_v7_arm64,  fpu_v8_arm64,  fpu_v9_arm64,  fpu_v10_arm64, fpu_v11_arm64,  fpu_v12_arm64, fpu_v13_arm64,
+    fpu_v14_arm64, fpu_v15_arm64, fpu_v16_arm64, fpu_v17_arm64, fpu_v18_arm64,  fpu_v19_arm64, fpu_v20_arm64,
+    fpu_v21_arm64, fpu_v22_arm64, fpu_v23_arm64, fpu_v24_arm64, fpu_v25_arm64,  fpu_v26_arm64, fpu_v27_arm64,
+    fpu_v28_arm64, fpu_v29_arm64, fpu_v30_arm64, fpu_v31_arm64, fpu_fpsr_arm64, fpu_fpcr_arm64};
 
 // Exception registers
 
-static uint32_t g_exc_regnums[] = {exc_far, exc_esr, exc_exception};
+static uint32_t g_exc_regnums[] = {exc_far_arm64, exc_esr_arm64, exc_exception_arm64};
 
 static size_t k_num_register_infos = std::size(g_register_infos_arm64_le);
 
@@ -110,14 +120,14 @@ void RegisterContextDarwin_arm64::InvalidateAllRegisters() {
 }
 
 size_t RegisterContextDarwin_arm64::GetRegisterCount() {
-  assert(k_num_register_infos == k_num_registers);
-  return k_num_registers;
+  assert(k_num_register_infos == k_num_registers_arm64);
+  return k_num_registers_arm64;
 }
 
 const RegisterInfo *
 RegisterContextDarwin_arm64::GetRegisterInfoAtIndex(size_t reg) {
-  assert(k_num_register_infos == k_num_registers);
-  if (reg < k_num_registers)
+  assert(k_num_register_infos == k_num_registers_arm64);
+  if (reg < k_num_registers_arm64)
     return &g_register_infos_arm64_le[reg];
   return nullptr;
 }
@@ -159,11 +169,11 @@ const RegisterSet *RegisterContextDarwin_arm64::GetRegisterSet(size_t reg_set) {
 
 // Register information definitions for arm64
 int RegisterContextDarwin_arm64::GetSetForNativeRegNum(int reg) {
-  if (reg < fpu_v0)
+  if (reg < fpu_v0_arm64)
     return GPRRegSet;
-  else if (reg < exc_far)
+  else if (reg < exc_far_arm64)
     return FPURegSet;
-  else if (reg < k_num_registers)
+  else if (reg < k_num_registers_arm64)
     return EXCRegSet;
   return -1;
 }
@@ -302,85 +312,85 @@ bool RegisterContextDarwin_arm64::ReadRegister(const RegisterInfo *reg_info,
     return false;
 
   switch (reg) {
-  case gpr_x0:
-  case gpr_x1:
-  case gpr_x2:
-  case gpr_x3:
-  case gpr_x4:
-  case gpr_x5:
-  case gpr_x6:
-  case gpr_x7:
-  case gpr_x8:
-  case gpr_x9:
-  case gpr_x10:
-  case gpr_x11:
-  case gpr_x12:
-  case gpr_x13:
-  case gpr_x14:
-  case gpr_x15:
-  case gpr_x16:
-  case gpr_x17:
-  case gpr_x18:
-  case gpr_x19:
-  case gpr_x20:
-  case gpr_x21:
-  case gpr_x22:
-  case gpr_x23:
-  case gpr_x24:
-  case gpr_x25:
-  case gpr_x26:
-  case gpr_x27:
-  case gpr_x28:
-    value.SetUInt64(gpr.x[reg - gpr_x0]);
+  case gpr_x0_arm64:
+  case gpr_x1_arm64:
+  case gpr_x2_arm64:
+  case gpr_x3_arm64:
+  case gpr_x4_arm64:
+  case gpr_x5_arm64:
+  case gpr_x6_arm64:
+  case gpr_x7_arm64:
+  case gpr_x8_arm64:
+  case gpr_x9_arm64:
+  case gpr_x10_arm64:
+  case gpr_x11_arm64:
+  case gpr_x12_arm64:
+  case gpr_x13_arm64:
+  case gpr_x14_arm64:
+  case gpr_x15_arm64:
+  case gpr_x16_arm64:
+  case gpr_x17_arm64:
+  case gpr_x18_arm64:
+  case gpr_x19_arm64:
+  case gpr_x20_arm64:
+  case gpr_x21_arm64:
+  case gpr_x22_arm64:
+  case gpr_x23_arm64:
+  case gpr_x24_arm64:
+  case gpr_x25_arm64:
+  case gpr_x26_arm64:
+  case gpr_x27_arm64:
+  case gpr_x28_arm64:
+    value.SetUInt64(gpr.x[reg - gpr_x0_arm64]);
     break;
-  case gpr_fp:
+  case gpr_fp_arm64:
     value.SetUInt64(gpr.fp);
     break;
-  case gpr_sp:
+  case gpr_sp_arm64:
     value.SetUInt64(gpr.sp);
     break;
-  case gpr_lr:
+  case gpr_lr_arm64:
     value.SetUInt64(gpr.lr);
     break;
-  case gpr_pc:
+  case gpr_pc_arm64:
     value.SetUInt64(gpr.pc);
     break;
-  case gpr_cpsr:
+  case gpr_cpsr_arm64:
     value.SetUInt64(gpr.cpsr);
     break;
 
-  case gpr_w0:
-  case gpr_w1:
-  case gpr_w2:
-  case gpr_w3:
-  case gpr_w4:
-  case gpr_w5:
-  case gpr_w6:
-  case gpr_w7:
-  case gpr_w8:
-  case gpr_w9:
-  case gpr_w10:
-  case gpr_w11:
-  case gpr_w12:
-  case gpr_w13:
-  case gpr_w14:
-  case gpr_w15:
-  case gpr_w16:
-  case gpr_w17:
-  case gpr_w18:
-  case gpr_w19:
-  case gpr_w20:
-  case gpr_w21:
-  case gpr_w22:
-  case gpr_w23:
-  case gpr_w24:
-  case gpr_w25:
-  case gpr_w26:
-  case gpr_w27:
-  case gpr_w28: {
+  case gpr_w0_arm64:
+  case gpr_w1_arm64:
+  case gpr_w2_arm64:
+  case gpr_w3_arm64:
+  case gpr_w4_arm64:
+  case gpr_w5_arm64:
+  case gpr_w6_arm64:
+  case gpr_w7_arm64:
+  case gpr_w8_arm64:
+  case gpr_w9_arm64:
+  case gpr_w10_arm64:
+  case gpr_w11_arm64:
+  case gpr_w12_arm64:
+  case gpr_w13_arm64:
+  case gpr_w14_arm64:
+  case gpr_w15_arm64:
+  case gpr_w16_arm64:
+  case gpr_w17_arm64:
+  case gpr_w18_arm64:
+  case gpr_w19_arm64:
+  case gpr_w20_arm64:
+  case gpr_w21_arm64:
+  case gpr_w22_arm64:
+  case gpr_w23_arm64:
+  case gpr_w24_arm64:
+  case gpr_w25_arm64:
+  case gpr_w26_arm64:
+  case gpr_w27_arm64:
+  case gpr_w28_arm64: {
     ProcessSP process_sp(m_thread.GetProcess());
     if (process_sp.get()) {
-      DataExtractor regdata(&gpr.x[reg - gpr_w0], 8, process_sp->GetByteOrder(),
+      DataExtractor regdata(&gpr.x[reg - gpr_w0_arm64], 8, process_sp->GetByteOrder(),
                             process_sp->GetAddressByteSize());
       offset_t offset = 0;
       uint64_t retval = regdata.GetMaxU64(&offset, 8);
@@ -389,139 +399,139 @@ bool RegisterContextDarwin_arm64::ReadRegister(const RegisterInfo *reg_info,
     }
   } break;
 
-  case fpu_v0:
-  case fpu_v1:
-  case fpu_v2:
-  case fpu_v3:
-  case fpu_v4:
-  case fpu_v5:
-  case fpu_v6:
-  case fpu_v7:
-  case fpu_v8:
-  case fpu_v9:
-  case fpu_v10:
-  case fpu_v11:
-  case fpu_v12:
-  case fpu_v13:
-  case fpu_v14:
-  case fpu_v15:
-  case fpu_v16:
-  case fpu_v17:
-  case fpu_v18:
-  case fpu_v19:
-  case fpu_v20:
-  case fpu_v21:
-  case fpu_v22:
-  case fpu_v23:
-  case fpu_v24:
-  case fpu_v25:
-  case fpu_v26:
-  case fpu_v27:
-  case fpu_v28:
-  case fpu_v29:
-  case fpu_v30:
-  case fpu_v31:
-    value.SetBytes(fpu.v[reg - fpu_v0].bytes, reg_info->byte_size,
+  case fpu_v0_arm64:
+  case fpu_v1_arm64:
+  case fpu_v2_arm64:
+  case fpu_v3_arm64:
+  case fpu_v4_arm64:
+  case fpu_v5_arm64:
+  case fpu_v6_arm64:
+  case fpu_v7_arm64:
+  case fpu_v8_arm64:
+  case fpu_v9_arm64:
+  case fpu_v10_arm64:
+  case fpu_v11_arm64:
+  case fpu_v12_arm64:
+  case fpu_v13_arm64:
+  case fpu_v14_arm64:
+  case fpu_v15_arm64:
+  case fpu_v16_arm64:
+  case fpu_v17_arm64:
+  case fpu_v18_arm64:
+  case fpu_v19_arm64:
+  case fpu_v20_arm64:
+  case fpu_v21_arm64:
+  case fpu_v22_arm64:
+  case fpu_v23_arm64:
+  case fpu_v24_arm64:
+  case fpu_v25_arm64:
+  case fpu_v26_arm64:
+  case fpu_v27_arm64:
+  case fpu_v28_arm64:
+  case fpu_v29_arm64:
+  case fpu_v30_arm64:
+  case fpu_v31_arm64:
+    value.SetBytes(fpu.v[reg - fpu_v0_arm64].bytes, reg_info->byte_size,
                    endian::InlHostByteOrder());
     break;
 
-  case fpu_s0:
-  case fpu_s1:
-  case fpu_s2:
-  case fpu_s3:
-  case fpu_s4:
-  case fpu_s5:
-  case fpu_s6:
-  case fpu_s7:
-  case fpu_s8:
-  case fpu_s9:
-  case fpu_s10:
-  case fpu_s11:
-  case fpu_s12:
-  case fpu_s13:
-  case fpu_s14:
-  case fpu_s15:
-  case fpu_s16:
-  case fpu_s17:
-  case fpu_s18:
-  case fpu_s19:
-  case fpu_s20:
-  case fpu_s21:
-  case fpu_s22:
-  case fpu_s23:
-  case fpu_s24:
-  case fpu_s25:
-  case fpu_s26:
-  case fpu_s27:
-  case fpu_s28:
-  case fpu_s29:
-  case fpu_s30:
-  case fpu_s31: {
+  case fpu_s0_arm64:
+  case fpu_s1_arm64:
+  case fpu_s2_arm64:
+  case fpu_s3_arm64:
+  case fpu_s4_arm64:
+  case fpu_s5_arm64:
+  case fpu_s6_arm64:
+  case fpu_s7_arm64:
+  case fpu_s8_arm64:
+  case fpu_s9_arm64:
+  case fpu_s10_arm64:
+  case fpu_s11_arm64:
+  case fpu_s12_arm64:
+  case fpu_s13_arm64:
+  case fpu_s14_arm64:
+  case fpu_s15_arm64:
+  case fpu_s16_arm64:
+  case fpu_s17_arm64:
+  case fpu_s18_arm64:
+  case fpu_s19_arm64:
+  case fpu_s20_arm64:
+  case fpu_s21_arm64:
+  case fpu_s22_arm64:
+  case fpu_s23_arm64:
+  case fpu_s24_arm64:
+  case fpu_s25_arm64:
+  case fpu_s26_arm64:
+  case fpu_s27_arm64:
+  case fpu_s28_arm64:
+  case fpu_s29_arm64:
+  case fpu_s30_arm64:
+  case fpu_s31_arm64: {
     ProcessSP process_sp(m_thread.GetProcess());
     if (process_sp.get()) {
-      DataExtractor regdata(&fpu.v[reg - fpu_s0], 4, process_sp->GetByteOrder(),
+      DataExtractor regdata(&fpu.v[reg - fpu_s0_arm64], 4, process_sp->GetByteOrder(),
                             process_sp->GetAddressByteSize());
       offset_t offset = 0;
       value.SetFloat(regdata.GetFloat(&offset));
     }
   } break;
 
-  case fpu_d0:
-  case fpu_d1:
-  case fpu_d2:
-  case fpu_d3:
-  case fpu_d4:
-  case fpu_d5:
-  case fpu_d6:
-  case fpu_d7:
-  case fpu_d8:
-  case fpu_d9:
-  case fpu_d10:
-  case fpu_d11:
-  case fpu_d12:
-  case fpu_d13:
-  case fpu_d14:
-  case fpu_d15:
-  case fpu_d16:
-  case fpu_d17:
-  case fpu_d18:
-  case fpu_d19:
-  case fpu_d20:
-  case fpu_d21:
-  case fpu_d22:
-  case fpu_d23:
-  case fpu_d24:
-  case fpu_d25:
-  case fpu_d26:
-  case fpu_d27:
-  case fpu_d28:
-  case fpu_d29:
-  case fpu_d30:
-  case fpu_d31: {
+  case fpu_d0_arm64:
+  case fpu_d1_arm64:
+  case fpu_d2_arm64:
+  case fpu_d3_arm64:
+  case fpu_d4_arm64:
+  case fpu_d5_arm64:
+  case fpu_d6_arm64:
+  case fpu_d7_arm64:
+  case fpu_d8_arm64:
+  case fpu_d9_arm64:
+  case fpu_d10_arm64:
+  case fpu_d11_arm64:
+  case fpu_d12_arm64:
+  case fpu_d13_arm64:
+  case fpu_d14_arm64:
+  case fpu_d15_arm64:
+  case fpu_d16_arm64:
+  case fpu_d17_arm64:
+  case fpu_d18_arm64:
+  case fpu_d19_arm64:
+  case fpu_d20_arm64:
+  case fpu_d21_arm64:
+  case fpu_d22_arm64:
+  case fpu_d23_arm64:
+  case fpu_d24_arm64:
+  case fpu_d25_arm64:
+  case fpu_d26_arm64:
+  case fpu_d27_arm64:
+  case fpu_d28_arm64:
+  case fpu_d29_arm64:
+  case fpu_d30_arm64:
+  case fpu_d31_arm64: {
     ProcessSP process_sp(m_thread.GetProcess());
     if (process_sp.get()) {
-      DataExtractor regdata(&fpu.v[reg - fpu_d0], 8, process_sp->GetByteOrder(),
+      DataExtractor regdata(&fpu.v[reg - fpu_d0_arm64], 8, process_sp->GetByteOrder(),
                             process_sp->GetAddressByteSize());
       offset_t offset = 0;
       value.SetDouble(regdata.GetDouble(&offset));
     }
   } break;
 
-  case fpu_fpsr:
+  case fpu_fpsr_arm64:
     value.SetUInt32(fpu.fpsr);
     break;
 
-  case fpu_fpcr:
+  case fpu_fpcr_arm64:
     value.SetUInt32(fpu.fpcr);
     break;
 
-  case exc_exception:
+  case exc_exception_arm64:
     value.SetUInt32(exc.exception);
     break;
-  case exc_esr:
+  case exc_esr_arm64:
     value.SetUInt32(exc.esr);
     break;
-  case exc_far:
+  case exc_far_arm64:
     value.SetUInt64(exc.far);
     break;
 
@@ -544,94 +554,94 @@ bool RegisterContextDarwin_arm64::WriteRegister(const RegisterInfo *reg_info,
     return false;
 
   switch (reg) {
-  case gpr_x0:
-  case gpr_x1:
-  case gpr_x2:
-  case gpr_x3:
-  case gpr_x4:
-  case gpr_x5:
-  case gpr_x6:
-  case gpr_x7:
-  case gpr_x8:
-  case gpr_x9:
-  case gpr_x10:
-  case gpr_x11:
-  case gpr_x12:
-  case gpr_x13:
-  case gpr_x14:
-  case gpr_x15:
-  case gpr_x16:
-  case gpr_x17:
-  case gpr_x18:
-  case gpr_x19:
-  case gpr_x20:
-  case gpr_x21:
-  case gpr_x22:
-  case gpr_x23:
-  case gpr_x24:
-  case gpr_x25:
-  case gpr_x26:
-  case gpr_x27:
-  case gpr_x28:
-  case gpr_fp:
-  case gpr_sp:
-  case gpr_lr:
-  case gpr_pc:
-  case gpr_cpsr:
-    gpr.x[reg - gpr_x0] = value.GetAsUInt64();
+  case gpr_x0_arm64:
+  case gpr_x1_arm64:
+  case gpr_x2_arm64:
+  case gpr_x3_arm64:
+  case gpr_x4_arm64:
+  case gpr_x5_arm64:
+  case gpr_x6_arm64:
+  case gpr_x7_arm64:
+  case gpr_x8_arm64:
+  case gpr_x9_arm64:
+  case gpr_x10_arm64:
+  case gpr_x11_arm64:
+  case gpr_x12_arm64:
+  case gpr_x13_arm64:
+  case gpr_x14_arm64:
+  case gpr_x15_arm64:
+  case gpr_x16_arm64:
+  case gpr_x17_arm64:
+  case gpr_x18_arm64:
+  case gpr_x19_arm64:
+  case gpr_x20_arm64:
+  case gpr_x21_arm64:
+  case gpr_x22_arm64:
+  case gpr_x23_arm64:
+  case gpr_x24_arm64:
+  case gpr_x25_arm64:
+  case gpr_x26_arm64:
+  case gpr_x27_arm64:
+  case gpr_x28_arm64:
+  case gpr_fp_arm64:
+  case gpr_sp_arm64:
+  case gpr_lr_arm64:
+  case gpr_pc_arm64:
+  case gpr_cpsr_arm64:
+    gpr.x[reg - gpr_x0_arm64] = value.GetAsUInt64();
     break;
 
-  case fpu_v0:
-  case fpu_v1:
-  case fpu_v2:
-  case fpu_v3:
-  case fpu_v4:
-  case fpu_v5:
-  case fpu_v6:
-  case fpu_v7:
-  case fpu_v8:
-  case fpu_v9:
-  case fpu_v10:
-  case fpu_v11:
-  case fpu_v12:
-  case fpu_v13:
-  case fpu_v14:
-  case fpu_v15:
-  case fpu_v16:
-  case fpu_v17:
-  case fpu_v18:
-  case fpu_v19:
-  case fpu_v20:
-  case fpu_v21:
-  case fpu_v22:
-  case fpu_v23:
-  case fpu_v24:
-  case fpu_v25:
-  case fpu_v26:
-  case fpu_v27:
-  case fpu_v28:
-  case fpu_v29:
-  case fpu_v30:
-  case fpu_v31:
-    ::memcpy(fpu.v[reg - fpu_v0].bytes, value.GetBytes(),
+  case fpu_v0_arm64:
+  case fpu_v1_arm64:
+  case fpu_v2_arm64:
+  case fpu_v3_arm64:
+  case fpu_v4_arm64:
+  case fpu_v5_arm64:
+  case fpu_v6_arm64:
+  case fpu_v7_arm64:
+  case fpu_v8_arm64:
+  case fpu_v9_arm64:
+  case fpu_v10_arm64:
+  case fpu_v11_arm64:
+  case fpu_v12_arm64:
+  case fpu_v13_arm64:
+  case fpu_v14_arm64:
+  case fpu_v15_arm64:
+  case fpu_v16_arm64:
+  case fpu_v17_arm64:
+  case fpu_v18_arm64:
+  case fpu_v19_arm64:
+  case fpu_v20_arm64:
+  case fpu_v21_arm64:
+  case fpu_v22_arm64:
+  case fpu_v23_arm64:
+  case fpu_v24_arm64:
+  case fpu_v25_arm64:
+  case fpu_v26_arm64:
+  case fpu_v27_arm64:
+  case fpu_v28_arm64:
+  case fpu_v29_arm64:
+  case fpu_v30_arm64:
+  case fpu_v31_arm64:
+    ::memcpy(fpu.v[reg - fpu_v0_arm64].bytes, value.GetBytes(),
              value.GetByteSize());
     break;
 
-  case fpu_fpsr:
+  case fpu_fpsr_arm64:
     fpu.fpsr = value.GetAsUInt32();
     break;
 
-  case fpu_fpcr:
+  case fpu_fpcr_arm64:
     fpu.fpcr = value.GetAsUInt32();
     break;
 
-  case exc_exception:
+  case exc_exception_arm64:
     exc.exception = value.GetAsUInt32();
     break;
-  case exc_esr:
+  case exc_esr_arm64:
     exc.esr = value.GetAsUInt32();
     break;
-  case exc_far:
+  case exc_far_arm64:
     exc.far = value.GetAsUInt64();
     break;
 
@@ -687,224 +697,224 @@ uint32_t RegisterContextDarwin_arm64::ConvertRegisterKindToRegisterNumber(
   if (kind == eRegisterKindGeneric) {
     switch (reg) {
     case LLDB_REGNUM_GENERIC_PC:
-      return gpr_pc;
+      return gpr_pc_arm64;
     case LLDB_REGNUM_GENERIC_SP:
-      return gpr_sp;
+      return gpr_sp_arm64;
     case LLDB_REGNUM_GENERIC_FP:
-      return gpr_fp;
+      return gpr_fp_arm64;
     case LLDB_REGNUM_GENERIC_RA:
-      return gpr_lr;
+      return gpr_lr_arm64;
     case LLDB_REGNUM_GENERIC_FLAGS:
-      return gpr_cpsr;
+      return gpr_cpsr_arm64;
     default:
       break;
     }
   } else if (kind == eRegisterKindDWARF) {
     switch (reg) {
     case arm64_dwarf::x0:
-      return gpr_x0;
+      return gpr_x0_arm64;
     case arm64_dwarf::x1:
-      return gpr_x1;
+      return gpr_x1_arm64;
     case arm64_dwarf::x2:
-      return gpr_x2;
+      return gpr_x2_arm64;
     case arm64_dwarf::x3:
-      return gpr_x3;
+      return gpr_x3_arm64;
     case arm64_dwarf::x4:
-      return gpr_x4;
+      return gpr_x4_arm64;
     case arm64_dwarf::x5:
-      return gpr_x5;
+      return gpr_x5_arm64;
     case arm64_dwarf::x6:
-      return gpr_x6;
+      return gpr_x6_arm64;
     case arm64_dwarf::x7:
-      return gpr_x7;
+      return gpr_x7_arm64;
     case arm64_dwarf::x8:
-      return gpr_x8;
+      return gpr_x8_arm64;
     case arm64_dwarf::x9:
-      return gpr_x9;
+      return gpr_x9_arm64;
     case arm64_dwarf::x10:
-      return gpr_x10;
+      return gpr_x10_arm64;
     case arm64_dwarf::x11:
-      return gpr_x11;
+      return gpr_x11_arm64;
     case arm64_dwarf::x12:
-      return gpr_x12;
+      return gpr_x12_arm64;
     case arm64_dwarf::x13:
-      return gpr_x13;
+      return gpr_x13_arm64;
     case arm64_dwarf::x14:
-      return gpr_x14;
+      return gpr_x14_arm64;
     case arm64_dwarf::x15:
-      return gpr_x15;
+      return gpr_x15_arm64;
     case arm64_dwarf::x16:
-      return gpr_x16;
+      return gpr_x16_arm64;
     case arm64_dwarf::x17:
-      return gpr_x17;
+      return gpr_x17_arm64;
     case arm64_dwarf::x18:
-      return gpr_x18;
+      return gpr_x18_arm64;
     case arm64_dwarf::x19:
-      return gpr_x19;
+      return gpr_x19_arm64;
     case arm64_dwarf::x20:
-      return gpr_x20;
+      return gpr_x20_arm64;
     case arm64_dwarf::x21:
-      return gpr_x21;
+      return gpr_x21_arm64;
     case arm64_dwarf::x22:
-      return gpr_x22;
+      return gpr_x22_arm64;
     case arm64_dwarf::x23:
-      return gpr_x23;
+      return gpr_x23_arm64;
     case arm64_dwarf::x24:
-      return gpr_x24;
+      return gpr_x24_arm64;
     case arm64_dwarf::x25:
-      return gpr_x25;
+      return gpr_x25_arm64;
     case arm64_dwarf::x26:
-      return gpr_x26;
+      return gpr_x26_arm64;
     case arm64_dwarf::x27:
-      return gpr_x27;
+      return gpr_x27_arm64;
     case arm64_dwarf::x28:
-      return gpr_x28;
+      return gpr_x28_arm64;
 
     case arm64_dwarf::fp:
-      return gpr_fp;
+      return gpr_fp_arm64;
     case arm64_dwarf::sp:
-      return gpr_sp;
+      return gpr_sp_arm64;
     case arm64_dwarf::lr:
-      return gpr_lr;
+      return gpr_lr_arm64;
     case arm64_dwarf::pc:
-      return gpr_pc;
+      return gpr_pc_arm64;
 
     case arm64_dwarf::v0:
-      return fpu_v0;
+      return fpu_v0_arm64;
     case arm64_dwarf::v1:
-      return fpu_v1;
+      return fpu_v1_arm64;
     case arm64_dwarf::v2:
-      return fpu_v2;
+      return fpu_v2_arm64;
     case arm64_dwarf::v3:
-      return fpu_v3;
+      return fpu_v3_arm64;
     case arm64_dwarf::v4:
-      return fpu_v4;
+      return fpu_v4_arm64;
     case arm64_dwarf::v5:
-      return fpu_v5;
+      return fpu_v5_arm64;
     case arm64_dwarf::v6:
-      return fpu_v6;
+      return fpu_v6_arm64;
     case arm64_dwarf::v7:
-      return fpu_v7;
+      return fpu_v7_arm64;
     case arm64_dwarf::v8:
-      return fpu_v8;
+      return fpu_v8_arm64;
     case arm64_dwarf::v9:
-      return fpu_v9;
+      return fpu_v9_arm64;
     case arm64_dwarf::v10:
-      return fpu_v10;
+      return fpu_v10_arm64;
     case arm64_dwarf::v11:
-      return fpu_v11;
+      return fpu_v11_arm64;
     case arm64_dwarf::v12:
-      return fpu_v12;
+      return fpu_v12_arm64;
     case arm64_dwarf::v13:
-      return fpu_v13;
+      return fpu_v13_arm64;
     case arm64_dwarf::v14:
-      return fpu_v14;
+      return fpu_v14_arm64;
     case arm64_dwarf::v15:
-      return fpu_v15;
+      return fpu_v15_arm64;
     case arm64_dwarf::v16:
-      return fpu_v16;
+      return fpu_v16_arm64;
     case arm64_dwarf::v17:
-      return fpu_v17;
+      return fpu_v17_arm64;
     case arm64_dwarf::v18:
-      return fpu_v18;
+      return fpu_v18_arm64;
     case arm64_dwarf::v19:
-      return fpu_v19;
+      return fpu_v19_arm64;
     case arm64_dwarf::v20:
-      return fpu_v20;
+      return fpu_v20_arm64;
     case arm64_dwarf::v21:
-      return fpu_v21;
+      return fpu_v21_arm64;
     case arm64_dwarf::v22:
-      return fpu_v22;
+      return fpu_v22_arm64;
     case arm64_dwarf::v23:
-      return fpu_v23;
+      return fpu_v23_arm64;
     case arm64_dwarf::v24:
-      return fpu_v24;
+      return fpu_v24_arm64;
     case arm64_dwarf::v25:
-      return fpu_v25;
+      return fpu_v25_arm64;
     case arm64_dwarf::v26:
-      return fpu_v26;
+      return fpu_v26_arm64;
     case arm64_dwarf::v27:
-      return fpu_v27;
+      return fpu_v27_arm64;
     case arm64_dwarf::v28:
-      return fpu_v28;
+      return fpu_v28_arm64;
     case arm64_dwarf::v29:
-      return fpu_v29;
+      return fpu_v29_arm64;
     case arm64_dwarf::v30:
-      return fpu_v30;
+      return fpu_v30_arm64;
     case arm64_dwarf::v31:
-      return fpu_v31;
+      return fpu_v31_arm64;
 
     default:
       break;
     }
   } else if (kind == eRegisterKindEHFrame) {
     switch (reg) {
-    case arm64_ehframe::x0:
-      return gpr_x0;
-    case arm64_ehframe::x1:
-      return gpr_x1;
-    case arm64_ehframe::x2:
-      return gpr_x2;
-    case arm64_ehframe::x3:
-      return gpr_x3;
-    case arm64_ehframe::x4:
-      return gpr_x4;
-    case arm64_ehframe::x5:
-      return gpr_x5;
-    case arm64_ehframe::x6:
-      return gpr_x6;
-    case arm64_ehframe::x7:
-      return gpr_x7;
-    case arm64_ehframe::x8:
-      return gpr_x8;
-    case arm64_ehframe::x9:
-      return gpr_x9;
-    case arm64_ehframe::x10:
-      return gpr_x10;
-    case arm64_ehframe::x11:
-      return gpr_x11;
-    case arm64_ehframe::x12:
-      return gpr_x12;
-    case arm64_ehframe::x13:
-      return gpr_x13;
-    case arm64_ehframe::x14:
-      return gpr_x14;
-    case arm64_ehframe::x15:
-      return gpr_x15;
-    case arm64_ehframe::x16:
-      return gpr_x16;
-    case arm64_ehframe::x17:
-      return gpr_x17;
-    case arm64_ehframe::x18:
-      return gpr_x18;
-    case arm64_ehframe::x19:
-      return gpr_x19;
-    case arm64_ehframe::x20:
-      return gpr_x20;
-    case arm64_ehframe::x21:
-      return gpr_x21;
-    case arm64_ehframe::x22:
-      return gpr_x22;
-    case arm64_ehframe::x23:
-      return gpr_x23;
-    case arm64_ehframe::x24:
-      return gpr_x24;
-    case arm64_ehframe::x25:
-      return gpr_x25;
-    case arm64_ehframe::x26:
-      return gpr_x26;
-    case arm64_ehframe::x27:
-      return gpr_x27;
-    case arm64_ehframe::x28:
-      return gpr_x28;
-    case arm64_ehframe::fp:
-      return gpr_fp;
-    case arm64_ehframe::sp:
-      return gpr_sp;
-    case arm64_ehframe::lr:
-      return gpr_lr;
-    case arm64_ehframe::pc:
-      return gpr_pc;
+    case arm64_dwarf::x0:
+      return gpr_x0_arm64;
+    case arm64_dwarf::x1:
+      return gpr_x1_arm64;
+    case arm64_dwarf::x2:
+      return gpr_x2_arm64;
+    case arm64_dwarf::x3:
+      return gpr_x3_arm64;
+    case arm64_dwarf::x4:
+      return gpr_x4_arm64;
+    case arm64_dwarf::x5:
+      return gpr_x5_arm64;
+    case arm64_dwarf::x6:
+      return gpr_x6_arm64;
+    case arm64_dwarf::x7:
+      return gpr_x7_arm64;
+    case arm64_dwarf::x8:
+      return gpr_x8_arm64;
+    case arm64_dwarf::x9:
+      return gpr_x9_arm64;
+    case arm64_dwarf::x10:
+      return gpr_x10_arm64;
+    case arm64_dwarf::x11:
+      return gpr_x11_arm64;
+    case arm64_dwarf::x12:
+      return gpr_x12_arm64;
+    case arm64_dwarf::x13:
+      return gpr_x13_arm64;
+    case arm64_dwarf::x14:
+      return gpr_x14_arm64;
+    case arm64_dwarf::x15:
+      return gpr_x15_arm64;
+    case arm64_dwarf::x16:
+      return gpr_x16_arm64;
+    case arm64_dwarf::x17:
+      return gpr_x17_arm64;
+    case arm64_dwarf::x18:
+      return gpr_x18_arm64;
+    case arm64_dwarf::x19:
+      return gpr_x19_arm64;
+    case arm64_dwarf::x20:
+      return gpr_x20_arm64;
+    case arm64_dwarf::x21:
+      return gpr_x21_arm64;
+    case arm64_dwarf::x22:
+      return gpr_x22_arm64;
+    case arm64_dwarf::x23:
+      return gpr_x23_arm64;
+    case arm64_dwarf::x24:
+      return gpr_x24_arm64;
+    case arm64_dwarf::x25:
+      return gpr_x25_arm64;
+    case arm64_dwarf::x26:
+      return gpr_x26_arm64;
+    case arm64_dwarf::x27:
+      return gpr_x27_arm64;
+    case arm64_dwarf::x28:
+      return gpr_x28_arm64;
+    case arm64_dwarf::fp:
+      return gpr_fp_arm64;
+    case arm64_dwarf::sp:
+      return gpr_sp_arm64;
+    case arm64_dwarf::lr:
+      return gpr_lr_arm64;
+    case arm64_dwarf::pc:
+      return gpr_pc_arm64;
     }
   } else if (kind == eRegisterKindLLDB) {
     return reg;

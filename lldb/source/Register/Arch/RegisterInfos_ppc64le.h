@@ -6,9 +6,15 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifdef DECLARE_REGISTER_INFOS_PPC64LE_STRUCT
+// Textual register-table fragment; intentionally has no include guard.
+// Include its ordinary dependencies at file scope before defining layout macros.
+// See README.md for the inclusion contract.
 
-#include <cstddef>
+#if !defined(DECLARE_REGISTER_INFOS_PPC64LE_STRUCT)
+#error Select a register-table generation mode before including this fragment
+#endif
+
+#ifdef DECLARE_REGISTER_INFOS_PPC64LE_STRUCT
 
 // Computes the offset of the given GPR in the user data area.
 #define GPR_OFFSET(regname) (offsetof(GPR, regname))
@@ -17,9 +23,6 @@
 #define VSX_OFFSET(regname)                                                    \
   (offsetof(VSX, regname) + sizeof(GPR) + sizeof(FPR) + sizeof(VMX))
 #define GPR_SIZE(regname) (sizeof(((GPR *)NULL)->regname))
-
-#include "Utility/PPC64LE_DWARF_Registers.h"
-#include "lldb-ppc64le-register-enums.h"
 
 // Note that the size and offset will be updated by platform-specific classes.
 #define DEFINE_GPR(reg, alt, lldb_kind)                                        \
@@ -457,7 +460,7 @@ typedef struct _VSX {
   uint32_t vs63[4];
 } VSX;
 
-static lldb_private::RegisterInfo g_register_infos_ppc64le[] = {
+static RegisterInfo g_register_infos_ppc64le[] = {
     POWERPC_REGS
 };
 
@@ -466,9 +469,15 @@ static_assert((sizeof(g_register_infos_ppc64le) /
                   k_num_registers_ppc64le,
               "g_register_infos_powerpc64 has wrong number of register infos");
 
-#undef DEFINE_FPR
+#endif // DECLARE_REGISTER_INFOS_PPC64LE_STRUCT
+
+#undef GPR_OFFSET
+#undef FPR_OFFSET
+#undef VMX_OFFSET
+#undef VSX_OFFSET
+#undef GPR_SIZE
 #undef DEFINE_GPR
+#undef DEFINE_FPR
 #undef DEFINE_VMX
 #undef DEFINE_VSX
-
-#endif // DECLARE_REGISTER_INFOS_PPC64LE_STRUCT
+#undef POWERPC_REGS

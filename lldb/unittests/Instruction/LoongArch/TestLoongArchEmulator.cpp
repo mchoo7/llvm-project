@@ -16,7 +16,7 @@
 
 #include "Plugins/Instruction/LoongArch/EmulateInstructionLoongArch.h"
 #include "Register/Common/RegisterInfo_loongarch64.h"
-#include "Register/Arch/lldb-loongarch-register-enums.h"
+#include "lldb/Register/Arch/lldb-loongarch-register-enums.h"
 
 using namespace llvm;
 using namespace lldb;

@@ -1,4 +1,4 @@
-//===-- RegisterContext_mips.h --------------------------------*- C++ -*-===//
+//===----------------------------------------------------------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -6,14 +6,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLDB_SOURCE_REGISTER_ARCH_REGISTERCONTEXT_MIPS_H
-#define LLDB_SOURCE_REGISTER_ARCH_REGISTERCONTEXT_MIPS_H
-
-#include <cstddef>
-#include <cstdint>
+#ifndef LLDB_REGISTER_ARCH_LLDB_MIPS_DWARF_EFRAME_REGISTER_ENUMS_H
+#define LLDB_REGISTER_ARCH_LLDB_MIPS_DWARF_EFRAME_REGISTER_ENUMS_H
 
 // eh_frame and DWARF Register numbers (eRegisterKindEHFrame &
 // eRegisterKindDWARF)
+
+namespace mips_dwarf {
 
 enum {
   // GP Registers
@@ -240,4 +239,6 @@ enum {
   dwarf_config5_mips64,
 };
 
-#endif // LLDB_SOURCE_REGISTER_ARCH_REGISTERCONTEXT_MIPS_H
+} // namespace mips_dwarf
+
+#endif // LLDB_REGISTER_ARCH_LLDB_MIPS_DWARF_EFRAME_REGISTER_ENUMS_H

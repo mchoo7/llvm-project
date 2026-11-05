@@ -1,4 +1,4 @@
-//===-- lldb-x86-register-enums.h -------------------------------*- C++ -*-===//
+//===----------------------------------------------------------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -6,8 +6,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLDB_SOURCE_REGISTER_ARCH_LLDB_X86_REGISTER_ENUMS_H
-#define LLDB_SOURCE_REGISTER_ARCH_LLDB_X86_REGISTER_ENUMS_H
+#ifndef LLDB_REGISTER_ARCH_LLDB_X86_REGISTER_ENUMS_H
+#define LLDB_REGISTER_ARCH_LLDB_X86_REGISTER_ENUMS_H
 
 namespace lldb_private {
 // LLDB register codes (e.g. RegisterKind == eRegisterKindLLDB)
@@ -514,4 +514,4 @@ enum {
 
 }
 
-#endif // LLDB_SOURCE_REGISTER_ARCH_LLDB_X86_REGISTER_ENUMS_H
+#endif // LLDB_REGISTER_ARCH_LLDB_X86_REGISTER_ENUMS_H

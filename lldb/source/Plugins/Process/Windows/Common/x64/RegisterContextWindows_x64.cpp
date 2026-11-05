@@ -14,8 +14,8 @@
 #include "lldb/Utility/Status.h"
 #include "lldb/lldb-private-types.h"
 
-#include "Register/Arch/RegisterContext_x86.h"
-#include "Register/Arch/lldb-x86-register-enums.h"
+#include "lldb/Register/Arch/lldb-x86-dwarf-register-enums.h"
+#include "lldb/Register/Arch/lldb-x86-register-enums.h"
 #include "ProcessWindowsLog.h"
 #include "RegisterContextWindows_x64.h"
 #include "TargetThreadWindows.h"

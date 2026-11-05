@@ -7,9 +7,18 @@
 //===----------------------------------------------------------------------===//
 
 #include "RegisterInfoLinux_x86_64.h"
+
+#include "Register/Arch/RegisterInfos_x86_64_with_base_shared.h"
+#include "lldb/lldb-enumerations.h"
+#include "lldb/lldb-private-types.h"
+#include "llvm/Support/Compiler.h"
+#include <cstddef>
+#include <cstdint>
+
 #include "RegisterInfoLinux_i386.h"
 #include "Register/Arch/RegisterContext_x86.h"
-#include "Register/Arch/lldb-x86-register-enums.h"
+#include "lldb/Register/Arch/lldb-x86-dwarf-register-enums.h"
+#include "lldb/Register/Arch/lldb-x86-register-enums.h"
 #include "lldb/lldb-defines.h"
 #include <vector>
 

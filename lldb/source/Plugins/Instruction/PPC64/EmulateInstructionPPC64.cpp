@@ -8,15 +8,25 @@
 
 #include "EmulateInstructionPPC64.h"
 
+#include "lldb/Register/Arch/lldb-ppc64le-dwarf-eframe-register-enums.h"
+#include "lldb/lldb-defines.h"
+#include "lldb/lldb-enumerations.h"
+#include "lldb/lldb-private-types.h"
+#include "llvm/Support/Compiler.h"
+#include <cstddef>
+#include <cstdint>
+
 #include <cstdlib>
 #include <optional>
 
-#include "Register/Arch/lldb-ppc64le-register-enums.h"
+#include "lldb/Register/Arch/lldb-ppc64le-register-enums.h"
 #include "lldb/Core/PluginManager.h"
 #include "lldb/Symbol/UnwindPlan.h"
 #include "lldb/Utility/ArchSpec.h"
 #include "lldb/Utility/ConstString.h"
 #include "lldb/Utility/LLDBLog.h"
+
+using namespace lldb_private;
 
 #define DECLARE_REGISTER_INFOS_PPC64LE_STRUCT
 #include "Register/Arch/RegisterInfos_ppc64le.h"
@@ -24,7 +34,6 @@
 #include "Plugins/Process/Utility/InstructionUtils.h"
 
 using namespace lldb;
-using namespace lldb_private;
 
 LLDB_PLUGIN_DEFINE_ADV(EmulateInstructionPPC64, InstructionPPC64)
 

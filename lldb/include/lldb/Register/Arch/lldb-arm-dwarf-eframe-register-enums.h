@@ -1,4 +1,4 @@
-//===-- ARM_DWARF_Registers.h -----------------------------------*- C++ -*-===//
+//===----------------------------------------------------------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -6,10 +6,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLDB_SOURCE_UTILITY_ARM_DWARF_REGISTERS_H
-#define LLDB_SOURCE_UTILITY_ARM_DWARF_REGISTERS_H
+#ifndef LLDB_REGISTER_ARCH_LLDB_ARM_DWARF_EFRAME_REGISTER_ENUMS_H
+#define LLDB_REGISTER_ARCH_LLDB_ARM_DWARF_EFRAME_REGISTER_ENUMS_H
 
-#include "lldb/lldb-private.h"
 
 enum {
   dwarf_r0 = 0,
@@ -204,4 +203,4 @@ enum {
   dwarf_q15
 };
 
-#endif // LLDB_SOURCE_UTILITY_ARM_DWARF_REGISTERS_H
+#endif // LLDB_REGISTER_ARCH_LLDB_ARM_DWARF_EFRAME_REGISTER_ENUMS_H

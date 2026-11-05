@@ -7,7 +7,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "Plugins/ABI/RISCV/ABISysV_riscv.h"
-#include "Utility/RISCV_DWARF_Registers.h"
+#include "lldb/Register/Arch/lldb-riscv-dwarf-eframe-register-enums.h"
 #include "lldb/Target/DynamicRegisterInfo.h"
 #include "lldb/Utility/ArchSpec.h"
 #include "llvm/Support/ManagedStatic.h"

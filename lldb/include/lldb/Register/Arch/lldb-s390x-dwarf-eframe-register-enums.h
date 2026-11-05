@@ -1,4 +1,4 @@
-//===-- RegisterContext_s390x.h ---------------------------------*- C++ -*-===//
+//===----------------------------------------------------------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -6,13 +6,15 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLDB_SOURCE_REGISTER_ARCH_REGISTERCONTEXT_S390X_H
-#define LLDB_SOURCE_REGISTER_ARCH_REGISTERCONTEXT_S390X_H
+#ifndef LLDB_REGISTER_ARCH_LLDB_S390X_DWARF_EFRAME_REGISTER_ENUMS_H
+#define LLDB_REGISTER_ARCH_LLDB_S390X_DWARF_EFRAME_REGISTER_ENUMS_H
 
 // SystemZ ehframe, dwarf regnums
 
 // EHFrame and DWARF Register numbers (eRegisterKindEHFrame &
 // eRegisterKindDWARF)
+namespace s390x_dwarf {
+
 enum {
   // General Purpose Registers
   dwarf_r0_s390x = 0,
@@ -87,4 +89,6 @@ enum {
   dwarf_v31_s390x,
 };
 
-#endif
+} // namespace s390x_dwarf
+
+#endif // LLDB_REGISTER_ARCH_LLDB_S390X_DWARF_EFRAME_REGISTER_ENUMS_H

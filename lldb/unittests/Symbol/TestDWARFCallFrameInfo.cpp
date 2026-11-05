@@ -11,7 +11,7 @@
 #include "gtest/gtest.h"
 
 #include "Plugins/ObjectFile/ELF/ObjectFileELF.h"
-#include "Register/Arch/RegisterContext_x86.h"
+#include "lldb/Register/Arch/lldb-x86-dwarf-register-enums.h"
 #include "Plugins/SymbolFile/Symtab/SymbolFileSymtab.h"
 #include "TestingSupport/SubsystemRAII.h"
 #include "TestingSupport/TestUtilities.h"

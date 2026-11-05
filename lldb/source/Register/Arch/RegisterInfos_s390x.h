@@ -6,10 +6,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include <cstddef>
+// Textual register-table fragment; intentionally has no include guard.
+// Include its ordinary dependencies at file scope before defining layout macros.
+// See README.md for the inclusion contract.
 
-#include "llvm/Support/Compiler.h"
-
+#if !defined(DECLARE_REGISTER_INFOS_S390X_STRUCT)
+#error Select a register-table generation mode before including this fragment
+#endif
 
 #ifdef DECLARE_REGISTER_INFOS_S390X_STRUCT
 
@@ -24,15 +27,15 @@
 
 #define DEFINE_GPR(name, size, offset, alt, generic)                           \
   {                                                                            \
-    #name, alt, size, offset, eEncodingUint, eFormatHex,                       \
-        {dwarf_##name##_s390x, dwarf_##name##_s390x, generic,                  \
+    #name, alt, size, offset, lldb::eEncodingUint, lldb::eFormatHex,                       \
+        {s390x_dwarf::dwarf_##name##_s390x, s390x_dwarf::dwarf_##name##_s390x, generic,                  \
          LLDB_INVALID_REGNUM, lldb_##name##_s390x },                           \
          NULL, NULL, NULL,                                                     \
   }
 
 #define DEFINE_GPR_NODWARF(name, size, offset, alt, generic)                   \
   {                                                                            \
-    #name, alt, size, offset, eEncodingUint, eFormatHex,                       \
+    #name, alt, size, offset, lldb::eEncodingUint, lldb::eFormatHex,                       \
         {LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM, generic,                    \
          LLDB_INVALID_REGNUM, lldb_##name##_s390x },                           \
          NULL, NULL, NULL,                                                     \
@@ -40,15 +43,15 @@
 
 #define DEFINE_FPR(name, size, offset)                                         \
   {                                                                            \
-    #name, NULL, size, offset, eEncodingUint, eFormatHex,                      \
-        {dwarf_##name##_s390x, dwarf_##name##_s390x, LLDB_INVALID_REGNUM,      \
+    #name, NULL, size, offset, lldb::eEncodingUint, lldb::eFormatHex,                      \
+        {s390x_dwarf::dwarf_##name##_s390x, s390x_dwarf::dwarf_##name##_s390x, LLDB_INVALID_REGNUM,      \
          LLDB_INVALID_REGNUM, lldb_##name##_s390x },                           \
          NULL, NULL, NULL,                                                     \
   }
 
 #define DEFINE_FPR_NODWARF(name, size, offset)                                 \
   {                                                                            \
-    #name, NULL, size, offset, eEncodingUint, eFormatHex,                      \
+    #name, NULL, size, offset, lldb::eEncodingUint, lldb::eFormatHex,                      \
         {LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM,        \
          LLDB_INVALID_REGNUM, lldb_##name##_s390x },                           \
          NULL, NULL, NULL,                                                     \
@@ -113,6 +116,8 @@ static_assert((sizeof(g_register_infos_s390x) /
                sizeof(g_register_infos_s390x[0])) == k_num_registers_s390x,
               "g_register_infos_s390x has wrong number of register infos");
 
+#endif // DECLARE_REGISTER_INFOS_S390X_STRUCT
+
 #undef GPR_OFFSET
 #undef ACR_OFFSET
 #undef FPR_OFFSET
@@ -120,5 +125,3 @@ static_assert((sizeof(g_register_infos_s390x) /
 #undef DEFINE_GPR_NODWARF
 #undef DEFINE_FPR
 #undef DEFINE_FPR_NODWARF
-
-#endif // DECLARE_REGISTER_INFOS_S390X_STRUCT

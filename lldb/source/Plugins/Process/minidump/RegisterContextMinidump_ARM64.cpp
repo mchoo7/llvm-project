@@ -8,7 +8,7 @@
 
 #include "RegisterContextMinidump_ARM64.h"
 
-#include "Utility/ARM64_DWARF_Registers.h"
+#include "lldb/Register/Arch/lldb-arm64-dwarf-eframe-register-enums.h"
 #include "lldb/Utility/RegisterValue.h"
 #include "lldb/Utility/DataExtractor.h"
 #include "lldb/lldb-enumerations.h"

@@ -6,12 +6,22 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "llvm/Support/Compiler.h"
-#include <cstddef>
-#include <cstdint>
+// Textual register-table fragment; intentionally has no include guard.
+// Include its ordinary dependencies at file scope before defining layout macros.
+// See README.md for the inclusion contract.
 
+#if !defined(DECLARE_REGISTER_INFOS_I386_STRUCT)
+#error Select a register-table generation mode before including this fragment
+#endif
 
 #ifdef DECLARE_REGISTER_INFOS_I386_STRUCT
+
+#ifndef DR_OFFSET
+#error DR_OFFSET must be defined before including this fragment
+#endif
+#ifndef DR_SIZE
+#error DR_SIZE must be defined before including this fragment
+#endif
 
 // Computes the offset of the given GPR in the user data area.
 #define GPR_OFFSET(regname) (LLVM_EXTENSION offsetof(GPR, regname))
@@ -61,7 +71,7 @@
 #define DEFINE_GPR(reg, alt, kind1, kind2, kind3, kind4)                       \
   {                                                                            \
     #reg, alt, sizeof(((GPR *)nullptr)->reg),                                  \
-                      GPR_OFFSET(reg), eEncodingUint, eFormatHex,              \
+                      GPR_OFFSET(reg), lldb::eEncodingUint, lldb::eFormatHex,              \
                                  {kind1, kind2, kind3, kind4,                  \
                                   lldb_##reg##_i386 },                         \
                                   nullptr, nullptr, nullptr,                   \
@@ -69,7 +79,7 @@
 
 #define DEFINE_FPR(name, reg, kind1, kind2, kind3, kind4)                      \
   {                                                                            \
-    #name, nullptr, FPR_SIZE(reg), FPR_OFFSET(reg), eEncodingUint, eFormatHex, \
+    #name, nullptr, FPR_SIZE(reg), FPR_OFFSET(reg), lldb::eEncodingUint, lldb::eFormatHex, \
                                            {kind1, kind2, kind3, kind4,        \
                                             lldb_##name##_i386 },              \
                                             nullptr, nullptr, nullptr,         \
@@ -81,7 +91,7 @@
   {                                                                            \
     #reg #i, nullptr, FP_SIZE,                                                 \
         LLVM_EXTENSION FPR_OFFSET(                                             \
-            stmm[i]), eEncodingVector, eFormatVectorOfUInt8,                   \
+            stmm[i]), lldb::eEncodingVector, lldb::eFormatVectorOfUInt8,                   \
             {ehframe_st##i##_i386, dwarf_st##i##_i386, LLDB_INVALID_REGNUM,    \
              LLDB_INVALID_REGNUM, lldb_st##i##_i386 },                         \
              nullptr, nullptr, nullptr,                                        \
@@ -90,7 +100,7 @@
 #define DEFINE_FP_MM(reg, i, streg)                                            \
   {                                                                            \
     #reg #i, nullptr, sizeof(uint64_t), LLVM_EXTENSION FPR_OFFSET(stmm[i]),    \
-    eEncodingUint, eFormatHex,                                                 \
+    lldb::eEncodingUint, lldb::eFormatHex,                                                 \
     {dwarf_mm##i##_i386, dwarf_mm##i##_i386, LLDB_INVALID_REGNUM,              \
      LLDB_INVALID_REGNUM, lldb_mm##i##_i386 },                                 \
     x86_register_info::g_contained_##streg##_32,                               \
@@ -102,7 +112,7 @@
   {                                                                            \
     #reg #i, nullptr, XMM_SIZE,                                                \
         LLVM_EXTENSION FPR_OFFSET(                                             \
-            reg[i]), eEncodingVector, eFormatVectorOfUInt8,                    \
+            reg[i]), lldb::eEncodingVector, lldb::eFormatVectorOfUInt8,                    \
             {ehframe_##reg##i##_i386, dwarf_##reg##i##_i386,                   \
              LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM, lldb_##reg##i##_i386 }, \
              nullptr, nullptr, nullptr,                                        \
@@ -113,7 +123,7 @@
 #define DEFINE_YMM(reg, i)                                                     \
   {                                                                            \
     #reg #i, nullptr, YMM_SIZE,                                                \
-        LLVM_EXTENSION YMM_OFFSET(i), eEncodingVector, eFormatVectorOfUInt8,   \
+        LLVM_EXTENSION YMM_OFFSET(i), lldb::eEncodingVector, lldb::eFormatVectorOfUInt8,   \
                                   {LLDB_INVALID_REGNUM, dwarf_xmm##i##_i386,   \
                                    LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM,   \
                                    lldb_##reg##i##_i386 },                     \
@@ -123,7 +133,7 @@
 #define DEFINE_BNDR(reg, i)                                                    \
   {                                                                            \
     #reg #i, nullptr, BNDR_SIZE,                                               \
-        LLVM_EXTENSION BNDR_OFFSET(i), eEncodingVector, eFormatVectorOfUInt64, \
+        LLVM_EXTENSION BNDR_OFFSET(i), lldb::eEncodingVector, lldb::eFormatVectorOfUInt64, \
         {dwarf_##reg##i##_i386, dwarf_##reg##i##_i386, LLDB_INVALID_REGNUM,    \
          LLDB_INVALID_REGNUM, lldb_##reg##i##_i386 },                          \
          nullptr, nullptr, nullptr,                                            \
@@ -132,8 +142,8 @@
 #define DEFINE_BNDC(name, i)                                                   \
   {                                                                            \
     #name, nullptr, BNDC_SIZE,                                                 \
-           LLVM_EXTENSION BNDC_OFFSET(i), eEncodingVector,                     \
-           eFormatVectorOfUInt8,                                               \
+           LLVM_EXTENSION BNDC_OFFSET(i), lldb::eEncodingVector,                     \
+           lldb::eFormatVectorOfUInt8,                                               \
            {LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM,     \
             LLDB_INVALID_REGNUM, lldb_##name##_i386 },                         \
             nullptr, nullptr, nullptr,                                         \
@@ -142,7 +152,7 @@
 #define DEFINE_DR(reg, i)                                                      \
   {                                                                            \
     #reg #i, nullptr, DR_SIZE,                                                 \
-        DR_OFFSET(i), eEncodingUint, eFormatHex,                               \
+        DR_OFFSET(i), lldb::eEncodingUint, lldb::eFormatHex,                               \
                   {LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM,                   \
                    LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM,                   \
                    lldb_##reg##i##_i386 },                                     \
@@ -152,7 +162,7 @@
 #define DEFINE_GPR_PSEUDO_16(reg16, reg32)                                     \
   {                                                                            \
     #reg16, nullptr, 2,                                                        \
-        GPR_OFFSET(reg32), eEncodingUint, eFormatHex,                          \
+        GPR_OFFSET(reg32), lldb::eEncodingUint, lldb::eFormatHex,                          \
                    {LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM,                  \
                     LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM,                  \
                     lldb_##reg16##_i386 },                                     \
@@ -164,7 +174,7 @@
 #define DEFINE_GPR_PSEUDO_8H(reg8, reg32)                                      \
   {                                                                            \
     #reg8, nullptr, 1,                                                         \
-        GPR_OFFSET(reg32) + 1, eEncodingUint, eFormatHex,                      \
+        GPR_OFFSET(reg32) + 1, lldb::eEncodingUint, lldb::eFormatHex,                      \
                    {LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM,                  \
                     LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM,                  \
                     lldb_##reg8##_i386 },                                      \
@@ -176,7 +186,7 @@
 #define DEFINE_GPR_PSEUDO_8L(reg8, reg32)                                      \
   {                                                                            \
     #reg8, nullptr, 1,                                                         \
-        GPR_OFFSET(reg32), eEncodingUint, eFormatHex,                          \
+        GPR_OFFSET(reg32), lldb::eEncodingUint, lldb::eFormatHex,                          \
                    {LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM,                  \
                     LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM,                  \
                     lldb_##reg8##_i386 },                                      \
@@ -288,16 +298,23 @@ static_assert((sizeof(g_register_infos_i386) /
                sizeof(g_register_infos_i386[0])) == k_num_registers_i386,
               "g_register_infos_x86_64 has wrong number of register infos");
 
+#endif // DECLARE_REGISTER_INFOS_I386_STRUCT
+
 #undef GPR_OFFSET
 #undef FPR_OFFSET
 #undef YMM_OFFSET
+#undef BNDR_OFFSET
+#undef BNDC_OFFSET
 #undef FPR_SIZE
 #undef FP_SIZE
 #undef XMM_SIZE
 #undef YMM_SIZE
+#undef BNDR_SIZE
+#undef BNDC_SIZE
 #undef DEFINE_GPR
 #undef DEFINE_FPR
-#undef DEFINE_FP
+#undef DEFINE_FP_ST
+#undef DEFINE_FP_MM
 #undef DEFINE_XMM
 #undef DEFINE_YMM
 #undef DEFINE_BNDR
@@ -306,5 +323,3 @@ static_assert((sizeof(g_register_infos_i386) /
 #undef DEFINE_GPR_PSEUDO_16
 #undef DEFINE_GPR_PSEUDO_8H
 #undef DEFINE_GPR_PSEUDO_8L
-
-#endif // DECLARE_REGISTER_INFOS_I386_STRUCT

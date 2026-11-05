@@ -9,7 +9,7 @@
 #include "gtest/gtest.h"
 
 #include "Plugins/Instruction/ARM/EmulateInstructionARM.h"
-#include "Utility/ARM_DWARF_Registers.h"
+#include "lldb/Register/Arch/lldb-arm-dwarf-eframe-register-enums.h"
 #include "lldb/Core/Address.h"
 #include "lldb/Core/PluginManager.h"
 #include "lldb/Utility/ArchSpec.h"

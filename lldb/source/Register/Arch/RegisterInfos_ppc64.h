@@ -6,9 +6,15 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifdef DECLARE_REGISTER_INFOS_PPC64_STRUCT
+// Textual register-table fragment; intentionally has no include guard.
+// Include its ordinary dependencies at file scope before defining layout macros.
+// See README.md for the inclusion contract.
 
-#include <cstddef>
+#if !defined(DECLARE_REGISTER_INFOS_PPC64_STRUCT)
+#error Select a register-table generation mode before including this fragment
+#endif
+
+#ifdef DECLARE_REGISTER_INFOS_PPC64_STRUCT
 
 // Computes the offset of the given GPR_PPC64 in the user data area.
 #define GPR_PPC64_OFFSET(regname) (offsetof(GPR_PPC64, regname))
@@ -20,9 +26,6 @@
   (offsetof(VSX_PPC64, regname) + sizeof(GPR_PPC64) + sizeof(FPR_PPC64) +      \
    sizeof(VMX_PPC64))
 #define GPR_PPC64_SIZE(regname) (sizeof(((GPR_PPC64 *)NULL)->regname))
-
-#include "Utility/PPC64_DWARF_Registers.h"
-#include "lldb-ppc64-register-enums.h"
 
 // Note that the size and offset will be updated by platform-specific classes.
 #define DEFINE_GPR_PPC64(reg, alt, lldb_kind)                                  \
@@ -517,13 +520,13 @@ typedef struct _VSX_PPC64 {
   uint32_t vs63[4];
 } VSX_PPC64;
 
-static lldb_private::RegisterInfo g_register_infos_ppc64[] = {PPC64_REGS};
+static RegisterInfo g_register_infos_ppc64[] = {PPC64_REGS};
 
 static_assert((sizeof(g_register_infos_ppc64) /
                sizeof(g_register_infos_ppc64[0])) == k_num_registers_ppc64,
               "g_register_infos_powerpc64 has wrong number of register infos");
 
-static lldb_private::RegisterInfo g_register_infos_ppc[] = {
+static RegisterInfo g_register_infos_ppc[] = {
 #define GPR_PPC64 GPR_PPC
     PPC64_REGS
 #undef GPR_PPC64
@@ -533,9 +536,15 @@ static_assert((sizeof(g_register_infos_ppc) /
                sizeof(g_register_infos_ppc[0])) == k_num_registers_ppc64,
               "g_register_infos_powerpc has wrong number of register infos");
 
-#undef DEFINE_FPR_PPC64
+#endif // DECLARE_REGISTER_INFOS_PPC64_STRUCT
+
+#undef GPR_PPC64_OFFSET
+#undef FPR_PPC64_OFFSET
+#undef VMX_PPC64_OFFSET
+#undef VSX_PPC64_OFFSET
+#undef GPR_PPC64_SIZE
 #undef DEFINE_GPR_PPC64
+#undef DEFINE_FPR_PPC64
 #undef DEFINE_VMX_PPC64
 #undef DEFINE_VSX_PPC64
-
-#endif // DECLARE_REGISTER_INFOS_PPC64_STRUCT
+#undef PPC64_REGS

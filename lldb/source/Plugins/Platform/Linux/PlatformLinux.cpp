@@ -15,8 +15,8 @@
 #endif
 
 #include "Plugins/Process/Utility/LinuxSignals.h"
-#include "Register/Arch/lldb-riscv-register-enums.h"
-#include "Utility/ARM64_DWARF_Registers.h"
+#include "lldb/Register/Arch/lldb-riscv-register-enums.h"
+#include "lldb/Register/Arch/lldb-arm64-dwarf-eframe-register-enums.h"
 #include "lldb/Core/Debugger.h"
 #include "lldb/Core/PluginManager.h"
 #include "lldb/Host/HostInfo.h"
