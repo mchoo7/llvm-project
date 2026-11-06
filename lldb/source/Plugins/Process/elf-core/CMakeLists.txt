@@ -13,7 +13,6 @@ add_lldb_library(lldbPluginProcessElfCore PLUGIN
   RegisterContextPOSIXCore_loongarch64.cpp
   RegisterUtilities.cpp
 
-  RegisterInfoDynamic_riscv32.cpp
   RegisterModelOpenBSD_i386.cpp
   RegisterModelOpenBSD_x86_64.cpp
 

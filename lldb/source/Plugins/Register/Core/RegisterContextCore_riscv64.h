@@ -9,8 +9,8 @@
 #ifndef LLDB_SOURCE_PLUGINS_REGISTER_CORE_REGISTERCONTEXTCORE_RISCV64_H
 #define LLDB_SOURCE_PLUGINS_REGISTER_CORE_REGISTERCONTEXTCORE_RISCV64_H
 
-#include "lldb/Register/RegisterInfoInterface.h"
-#include "Register/Common/RegisterInfo_riscv64.h"
+#include "lldb/Register/RegisterInfoProvider.h"
+#include "lldb/Register/Common/RegisterInfo_riscv64.h"
 #include "lldb/Register/Arch/lldb-riscv-register-enums.h"
 #include "lldb/Target/RegisterContext.h"
 #include "lldb/Utility/Log.h"
@@ -33,8 +33,6 @@ public:
 
   virtual unsigned GetRegisterSize(unsigned reg);
 
-  virtual unsigned GetRegisterOffset(unsigned reg);
-
   const lldb_private::RegisterInfo *GetRegisterInfoAtIndex(size_t reg) override;
 
   size_t GetRegisterSetCount() override;
@@ -50,7 +48,7 @@ protected:
 
   bool IsFPR(unsigned reg);
 
-  size_t GetFPRSize() { return sizeof(RegisterInfo_riscv64::FPR); }
+  size_t GetFPRSize() { return m_register_info_up->GetFPRSize(); }
 
   uint32_t GetRegNumFCSR() const { return lldb_private::fpr_fcsr_riscv; }
 

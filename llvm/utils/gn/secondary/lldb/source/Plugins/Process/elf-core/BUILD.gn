@@ -27,7 +27,6 @@ static_library("elf-core") {
     "RegisterContextPOSIXCore_riscv64.cpp",
     "RegisterContextPOSIXCore_s390x.cpp",
     "RegisterContextPOSIXCore_x86.cpp",
-    "RegisterInfoDynamic_riscv32.cpp",
     "RegisterModelOpenBSD_i386.cpp",
     "RegisterModelOpenBSD_x86_64.cpp",
     "RegisterUtilities.cpp",

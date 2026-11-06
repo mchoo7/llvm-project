@@ -13,6 +13,7 @@
 
 #include "lldb/Core/EmulateInstruction.h"
 #include "lldb/Interpreter/OptionValue.h"
+#include "lldb/Register/RegisterInfoInterface.h"
 #include "lldb/Utility/Log.h"
 #include "lldb/Utility/RegisterValue.h"
 #include "llvm/Support/Error.h"
@@ -135,6 +136,8 @@ private:
   }
   /// Last decoded instruction from m_opcode
   DecodeResult m_decoded;
+  // RegisterInfo contains pointers into this owning provider.
+  std::unique_ptr<RegisterInfoInterface> m_register_info;
   /// Last decoded instruction size estimate.
   std::optional<uint32_t> m_last_size;
 };

@@ -12,9 +12,10 @@
 
 #include "Plugins/Process/Linux/NativeProcessLinux.h"
 #include "Plugins/Process/Linux/Procfs.h"
-#include "Register/Common/RegisterInfo_riscv64.h"
-#include "lldb/Register/Arch/lldb-riscv-register-enums.h"
 #include "lldb/Host/HostInfo.h"
+#include "lldb/Register/Arch/lldb-riscv-register-enums.h"
+#include "lldb/Register/Common/RegisterInfo_riscv64.h"
+#include "lldb/Register/RegisterCodec.h"
 #include "lldb/Utility/DataBufferHeap.h"
 #include "lldb/Utility/Log.h"
 #include "lldb/Utility/RegisterValue.h"
@@ -41,7 +42,7 @@ NativeRegisterContextLinux::CreateHostNativeRegisterContextLinux(
   case llvm::Triple::riscv64: {
     Flags opt_regsets(RegisterInfo_riscv64::eRegsetMaskDefault);
 
-    RegisterInfo_riscv64::FPR fpr;
+    linux_riscv64::FPR fpr;
     struct iovec ioVec;
     ioVec.iov_base = &fpr;
     ioVec.iov_len = sizeof(fpr);
@@ -54,8 +55,9 @@ NativeRegisterContextLinux::CreateHostNativeRegisterContextLinux(
       opt_regsets.Set(RegisterInfo_riscv64::eRegsetMaskFP);
     }
 
-    auto register_info_up =
-        std::make_unique<RegisterInfo_riscv64>(target_arch, opt_regsets);
+    auto register_info_up = std::make_unique<RegisterInfo_riscv64>(
+        target_arch, opt_regsets,
+        CreateLinuxRISCV64RegisterModel(target_arch, opt_regsets));
     return std::make_unique<NativeRegisterContextLinux_riscv64>(
         target_arch, native_thread, std::move(register_info_up));
   }
@@ -85,7 +87,7 @@ NativeRegisterContextLinux_riscv64::NativeRegisterContextLinux_riscv64(
 const RegisterInfo_riscv64 &
 NativeRegisterContextLinux_riscv64::GetRegisterInfo() const {
   return static_cast<const RegisterInfo_riscv64 &>(
-      NativeRegisterContextRegisterInfo::GetRegisterInfoInterface());
+      NativeRegisterContextRegisterInfo::GetRegisterInfoProvider());
 }
 
 uint32_t NativeRegisterContextLinux_riscv64::GetRegisterSetCount() const {
@@ -107,102 +109,54 @@ uint32_t NativeRegisterContextLinux_riscv64::GetUserRegisterCount() const {
 Status
 NativeRegisterContextLinux_riscv64::ReadRegister(const RegisterInfo *reg_info,
                                                  RegisterValue &reg_value) {
-  Status error;
-
-  if (!reg_info) {
-    error = Status::FromErrorString("reg_info NULL");
-    return error;
-  }
-
-  const uint32_t reg = reg_info->kinds[lldb::eRegisterKindLLDB];
-
-  if (reg == LLDB_INVALID_REGNUM)
-    return Status::FromErrorStringWithFormat(
-        "no lldb regnum for %s",
-        reg_info && reg_info->name ? reg_info->name : "<unknown register>");
-
-  if (reg == gpr_x0_riscv) {
-    reg_value.SetUInt(0, reg_info->byte_size);
-    return error;
-  }
-
-  uint8_t *src = nullptr;
-  uint32_t offset = LLDB_INVALID_INDEX32;
-
-  if (IsGPR(reg)) {
-    error = ReadGPR();
+  if (!reg_info || !reg_info->name)
+    return Status::FromErrorString("invalid register description");
+  const auto &provider = GetRegisterInfo();
+  const auto *reg = provider.GetDescription().Find(reg_info->name);
+  if (!reg)
+    return Status::FromErrorString("unknown register");
+  std::vector<RegisterData> banks;
+  if (reg->id != gpr_x0_riscv) {
+    bool general = IsGPR(reg_info->kinds[lldb::eRegisterKindLLDB]);
+    Status error = general ? ReadGPR() : ReadFPR();
     if (error.Fail())
       return error;
-
-    offset = reg_info->byte_offset;
-    assert(offset < GetGPRSize());
-    src = (uint8_t *)GetGPRBuffer() + offset;
-
-  } else if (IsFPR(reg)) {
-    error = ReadFPR();
-    if (error.Fail())
-      return error;
-
-    offset = CalculateFprOffset(reg_info);
-    assert(offset < GetFPRSize());
-    src = (uint8_t *)GetFPRBuffer() + offset;
-  } else
-    return Status::FromErrorString(
-        "failed - register wasn't recognized to be a GPR or an FPR, "
-        "write strategy unknown");
-
-  reg_value.SetFromMemoryData(*reg_info, src, reg_info->byte_size,
-                              eByteOrderLittle, error);
-
-  return error;
+    banks.push_back({general ? 0u : 1u,
+                     {static_cast<const uint8_t *>(general ? GetGPRBuffer()
+                                                           : GetFPRBuffer()),
+                      general ? GetGPRSize() : GetFPRSize()}});
+  }
+  auto result = RegisterCodec::Read(provider.GetDescription(),
+                                    provider.GetLayout(), reg->id, banks);
+  if (!result)
+    return Status::FromError(result.takeError());
+  reg_value = std::move(*result);
+  return Status();
 }
 
 Status NativeRegisterContextLinux_riscv64::WriteRegister(
     const RegisterInfo *reg_info, const RegisterValue &reg_value) {
-  Status error;
-
-  if (!reg_info)
-    return Status::FromErrorString("reg_info NULL");
-
-  const uint32_t reg = reg_info->kinds[lldb::eRegisterKindLLDB];
-
-  if (reg == LLDB_INVALID_REGNUM)
-    return Status::FromErrorStringWithFormat(
-        "no lldb regnum for %s",
-        reg_info->name != nullptr ? reg_info->name : "<unknown register>");
-
-  if (reg == gpr_x0_riscv) {
-    // do nothing.
+  if (!reg_info || !reg_info->name)
+    return Status::FromErrorString("invalid register description");
+  const auto &provider = GetRegisterInfo();
+  const auto *reg = provider.GetDescription().Find(reg_info->name);
+  if (!reg)
+    return Status::FromErrorString("unknown register");
+  if (reg->id == gpr_x0_riscv)
+    return Status(); // Writes to architectural x0 have no effect.
+  bool general = IsGPR(reg_info->kinds[lldb::eRegisterKindLLDB]);
+  Status error = general ? ReadGPR() : ReadFPR();
+  if (error.Fail())
     return error;
-  }
-
-  uint8_t *dst = nullptr;
-  uint32_t offset = LLDB_INVALID_INDEX32;
-
-  if (IsGPR(reg)) {
-    error = ReadGPR();
-    if (error.Fail())
-      return error;
-
-    assert(reg_info->byte_offset < GetGPRSize());
-    dst = (uint8_t *)GetGPRBuffer() + reg_info->byte_offset;
-    ::memcpy(dst, reg_value.GetBytes(), reg_info->byte_size);
-
-    return WriteGPR();
-  } else if (IsFPR(reg)) {
-    error = ReadFPR();
-    if (error.Fail())
-      return error;
-
-    offset = CalculateFprOffset(reg_info);
-    assert(offset < GetFPRSize());
-    dst = (uint8_t *)GetFPRBuffer() + offset;
-    ::memcpy(dst, reg_value.GetBytes(), reg_info->byte_size);
-
-    return WriteFPR();
-  }
-
-  return Status::FromErrorString("Failed to write register value");
+  MutableRegisterData bank{
+      general ? 0u : 1u,
+      {static_cast<uint8_t *>(general ? GetGPRBuffer() : GetFPRBuffer()),
+       general ? GetGPRSize() : GetFPRSize()}};
+  if (llvm::Error error =
+          RegisterCodec::Write(provider.GetDescription(), provider.GetLayout(),
+                               reg->id, reg_value, bank))
+    return Status::FromError(std::move(error));
+  return general ? WriteGPR() : WriteFPR();
 }
 
 Status NativeRegisterContextLinux_riscv64::ReadAllRegisterValues(
@@ -258,13 +212,13 @@ Status NativeRegisterContextLinux_riscv64::WriteAllRegisterValues(
         __FUNCTION__);
     return error;
   }
-  ::memcpy(GetGPRBuffer(), src, GetRegisterInfoInterface().GetGPRSize());
+  ::memcpy(GetGPRBuffer(), src, GetRegisterInfoProvider().GetGPRSize());
 
   error = WriteGPR();
   if (error.Fail())
     return error;
 
-  src += GetRegisterInfoInterface().GetGPRSize();
+  src += GetRegisterInfoProvider().GetGPRSize();
 
   if (GetRegisterInfo().IsFPPresent()) {
     ::memcpy(GetFPRBuffer(), src, GetFPRSize());
@@ -285,8 +239,8 @@ size_t NativeRegisterContextLinux_riscv64::GetRegContextSize() {
 }
 
 bool NativeRegisterContextLinux_riscv64::IsGPR(unsigned reg) const {
-  return GetRegisterInfo().GetRegisterSetFromRegisterIndex(reg) ==
-         RegisterInfo_riscv64::GPRegSet;
+  return GetRegisterInfo().GetRegisterSetFromRegisterNumber(reg) ==
+         linux_riscv64::GPRegSet;
 }
 
 bool NativeRegisterContextLinux_riscv64::IsFPR(unsigned reg) const {
@@ -360,11 +314,6 @@ Status NativeRegisterContextLinux_riscv64::WriteFPR() {
 void NativeRegisterContextLinux_riscv64::InvalidateAllRegisters() {
   m_gpr_is_valid = false;
   m_fpu_is_valid = false;
-}
-
-uint32_t NativeRegisterContextLinux_riscv64::CalculateFprOffset(
-    const RegisterInfo *reg_info) const {
-  return reg_info->byte_offset - GetGPRSize();
 }
 
 std::vector<uint32_t> NativeRegisterContextLinux_riscv64::GetExpeditedRegisters(

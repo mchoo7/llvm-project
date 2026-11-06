@@ -8,8 +8,8 @@
 
 #include "RegisterContextPOSIXCore_riscv32.h"
 
-#include "lldb/Register/Arch/lldb-riscv-register-enums.h"
 #include "lldb/Register/Arch/lldb-riscv-dwarf-eframe-register-enums.h"
+#include "lldb/Register/Arch/lldb-riscv-register-enums.h"
 #include "lldb/lldb-defines.h"
 #include "lldb/lldb-enumerations.h"
 #include "lldb/lldb-private-types.h"
@@ -21,20 +21,15 @@
 
 #include "lldb/Core/Debugger.h"
 #include "lldb/Core/Module.h"
+#include "lldb/Register/RegisterCodec.h"
 #include "lldb/Utility/DataBufferHeap.h"
 #include "llvm/ADT/ArrayRef.h"
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/ADT/StringRef.h"
 #include "llvm/TargetParser/SubtargetFeature.h"
 
-#define GPR_OFFSET(idx) ((idx) * sizeof(uint32_t))
-#define FPR_OFFSET(idx) ((idx) * sizeof(uint32_t))
-
 using namespace lldb_private;
-
-#define DECLARE_REGISTER_INFOS_RISCV32_STRUCT
-#include "Register/Arch/RegisterInfos_riscv32.h"
-#undef DECLARE_REGISTER_INFOS_RISCV32_STRUCT
 
 static std::vector<uint32_t> CopyRegisterListToVector(const uint32_t *regs) {
   if (!regs)
@@ -52,44 +47,45 @@ RegisterContextCorePOSIX_riscv32::Create(Thread &thread, const ArchSpec &arch,
                                          const DataExtractor &gpregset,
                                          llvm::ArrayRef<CoreNote> notes) {
   return std::unique_ptr<RegisterContextCorePOSIX_riscv32>(
-      new RegisterContextCorePOSIX_riscv32(
-          thread, std::make_unique<RegisterInfoDynamic_riscv32>(arch),
-          gpregset, notes));
+      new RegisterContextCorePOSIX_riscv32(thread, arch, gpregset, notes));
 }
 
 RegisterContextCorePOSIX_riscv32::RegisterContextCorePOSIX_riscv32(
-    Thread &thread,
-    std::unique_ptr<RegisterInfoDynamic_riscv32> register_info,
-    const DataExtractor &gpregset, llvm::ArrayRef<CoreNote> notes)
-    : RegisterContext(thread, 0), m_reg_infos_up(std::move(register_info)) {
-  // Compute the maximum register counts for GPR, FPR, and CSR.
-  constexpr uint32_t k_num_gpr_registers =
-      std::size(g_register_infos_riscv32_gpr);
-  UNUSED_IF_ASSERT_DISABLED(k_num_gpr_registers);
-  constexpr uint32_t k_num_fpr_registers =
-      std::size(g_register_infos_riscv32_fpr);
-  UNUSED_IF_ASSERT_DISABLED(k_num_fpr_registers);
+    Thread &thread, const ArchSpec &arch, const DataExtractor &gpregset,
+    llvm::ArrayRef<CoreNote> notes)
+    : RegisterContext(thread, 0) {
+  RegisterInfo_riscv32 cpu(arch, 0, RegisterLayout(arch.GetByteOrder()));
+  std::vector<RegisterInfo> g_register_infos_riscv32_gpr,
+      g_register_infos_riscv32_fpr;
+  for (size_t set_index = 0; set_index < cpu.GetRegisterSetCount();
+       ++set_index) {
+    const auto *set = cpu.GetRegisterSet(set_index);
+    auto &values = set_index == 0 ? g_register_infos_riscv32_gpr
+                                  : g_register_infos_riscv32_fpr;
+    for (uint32_t index : llvm::ArrayRef(set->registers, set->num_registers))
+      values.push_back(cpu.GetRegisterInfo()[index]);
+  }
+  const auto k_num_gpr_registers = g_register_infos_riscv32_gpr.size();
+  const auto k_num_fpr_registers = g_register_infos_riscv32_fpr.size();
   llvm::SmallVector<std::string> features;
   GetFeatures(features);
   llvm::SmallVector<lldb_private::RegisterInfo> reg_infos_riscv32_csr;
-  m_reg_infos_up->BuildCSRegInfos(features, reg_infos_riscv32_csr);
+  RegisterInfo_riscv32::BuildCSRegInfos(features, reg_infos_riscv32_csr);
   uint32_t k_num_csr_registers = reg_infos_riscv32_csr.size();
-  const ArchSpec &target_arch = m_reg_infos_up->GetTargetArchitecture();
+  const ArchSpec &target_arch = arch;
   const llvm::Triple triple = target_arch.GetTriple();
   const lldb::ByteOrder byte_order = target_arch.GetByteOrder();
 
-  std::vector<DynamicRegisterInfo::Register> registers;
+  std::vector<RegisterDescriptionBuilder::Register> registers;
   uint32_t byte_offset = 0;
+  std::map<RegisterID, uint64_t> csr_offsets;
 
   // Build dynamic register information for GPR.
   const lldb_private::ConstString gpr_set("GPR");
   m_gpregset.SetData(std::make_shared<DataBufferHeap>(gpregset.GetDataStart(),
                                                       gpregset.GetByteSize()));
   if (m_gpregset.GetByteSize() >= g_register_infos_riscv32_gpr[0].byte_size) {
-    // GPR is available.
-    assert((m_gpregset.GetByteSize() /
-            g_register_infos_riscv32_gpr[0].byte_size) == k_num_gpr_registers &&
-           "GPR has the wrong number of registers!");
+    // A note may omit a synthetic zero slot or end before all registers.
     m_gpregset.SetByteOrder(gpregset.GetByteOrder());
     for (const auto &gpr : g_register_infos_riscv32_gpr) {
       registers.push_back(BuildDynamicRegister(gpr, gpr_set, byte_offset));
@@ -101,10 +97,7 @@ RegisterContextCorePOSIX_riscv32::RegisterContextCorePOSIX_riscv32(
   const lldb_private::ConstString fpr_set("FPR");
   m_fpregset = getRegset(notes, triple, FPR_Desc);
   if (m_fpregset.GetByteSize() >= g_register_infos_riscv32_fpr[0].byte_size) {
-    // FPR is available.
-    assert((m_fpregset.GetByteSize() /
-            g_register_infos_riscv32_fpr[0].byte_size) == k_num_fpr_registers &&
-           "FPR has the wrong number of registers!");
+    // A note may omit a synthetic zero slot or end before all registers.
     m_fpregset.SetByteOrder(byte_order);
     for (const auto &fpr : g_register_infos_riscv32_fpr) {
       registers.push_back(BuildDynamicRegister(fpr, fpr_set, byte_offset));
@@ -121,8 +114,12 @@ RegisterContextCorePOSIX_riscv32::RegisterContextCorePOSIX_riscv32(
     m_csregset.SetByteOrder(byte_order);
     lldb::offset_t offset = 0;
     std::vector<uint32_t> csregset_regnums = {};
-    while (m_csregset.BytesLeft(offset)) {
+    while (m_csregset.BytesLeft(offset) >= sizeof(csr_kv_t)) {
       uint32_t csr_addr = m_csregset.GetU32(&offset);
+      if (csr_addr >= k_num_csr_registers) {
+        (void)m_csregset.GetU32(&offset);
+        continue;
+      }
       if (csregset_regnums.size() == k_num_csr_registers) {
         Debugger::ReportWarning(
             llvm::formatv("parsed the permissible number of CSRs {0:x} but "
@@ -138,7 +135,20 @@ RegisterContextCorePOSIX_riscv32::RegisterContextCorePOSIX_riscv32(
       } else {
         csregset_regnums.push_back(csr_addr);
         const RegisterInfo &csr = reg_infos_riscv32_csr[csr_addr];
-        registers.push_back(BuildDynamicRegister(csr, csr_set, byte_offset));
+        csr_offsets[csr.kinds[lldb::eRegisterKindLLDB]] = offset;
+        auto dynamic = BuildDynamicRegister(csr, csr_set, byte_offset);
+        // FCSR can be present both in the FP note and in the CSR map. Keep
+        // both source locations addressable without duplicating display names.
+        if (llvm::any_of(registers, [&](const auto &reg) {
+              return reg.name == dynamic.name;
+            })) {
+          dynamic.name =
+              dynamic.alt_name && dynamic.alt_name != dynamic.name
+                  ? dynamic.alt_name
+                  : ConstString(llvm::formatv("csr_{0:x}", csr_addr).str());
+          dynamic.alt_name = ConstString(csr.name);
+        }
+        registers.push_back(std::move(dynamic));
         byte_offset += csr.byte_size;
       }
       // Consume and skip the CSR value to advance to the next entry.
@@ -146,7 +156,34 @@ RegisterContextCorePOSIX_riscv32::RegisterContextCorePOSIX_riscv32(
     }
   }
 
-  m_reg_infos_up->SetRegisterInfo(std::move(registers));
+  RegisterDescriptionBuilder builder;
+  builder.SetRegisterInfo(std::move(registers), arch);
+  auto model = llvm::cantFail(builder.BuildModel(arch.GetByteOrder()));
+  RegisterLayout layout(arch.GetByteOrder());
+  llvm::cantFail(layout.AddBank(0, k_num_gpr_registers * 4));
+  llvm::cantFail(layout.AddBank(1, k_num_fpr_registers * 4));
+  llvm::cantFail(layout.AddBank(2, m_csregset.GetByteSize()));
+  for (const auto &reg : model.description->GetRegisters()) {
+    RegisterLocation location;
+
+    if (reg.id == gpr_x0_riscv) {
+      location.kind = RegisterLocation::Constant;
+      location.constant.resize(reg.byte_size, 0);
+    } else {
+      location.kind = RegisterLocation::Stored;
+      if (reg.id < fpr_first_riscv)
+        location.pieces.push_back(
+            {0, (reg.id - gpr_first_riscv) * 4, reg.byte_size});
+      else if (reg.id <= fpr_last_riscv)
+        location.pieces.push_back(
+            {1, (reg.id - fpr_first_riscv) * 4, reg.byte_size});
+      else
+        location.pieces.push_back({2, csr_offsets.at(reg.id), reg.byte_size});
+    }
+    llvm::cantFail(layout.Add(reg.id, std::move(location)));
+  }
+  m_reg_infos_up = std::make_unique<RegisterInfoProvider>(
+      arch, std::move(model.description), std::move(layout));
 }
 
 RegisterContextCorePOSIX_riscv32::~RegisterContextCorePOSIX_riscv32() = default;
@@ -175,135 +212,22 @@ RegisterContextCorePOSIX_riscv32::GetRegisterSet(size_t set) {
 
 bool RegisterContextCorePOSIX_riscv32::ReadRegister(
     const RegisterInfo *reg_info, RegisterValue &value) {
-  const lldb_private::RegisterInfo *dyn_reg_info;
-  const uint8_t *src = nullptr;
-  if ((dyn_reg_info = m_reg_infos_up->GetRegisterInfo(reg_info->name))) {
-    lldb::offset_t offset = dyn_reg_info->byte_offset;
-    if (IsGPR(dyn_reg_info->kinds[lldb::eRegisterKindLLDB])) {
-      // clang-format off
-      //
-      // |____|                                                 |_______________|
-      // |    |                                          src -> |               |
-      // | pc | <- dyn_reg_info->byte_offset = 0                | m_gpregset[0] | uint32_t
-      // |____|                                   offset = 0 -> |_______________|
-      // |    |                                                 |               |
-      // | x1 |                                                 | m_gpregset[4] | uint32_t
-      // |____|                                                 |_______________|
-      //   ..                                                           ..
-      // |____|                                                 |_______________|
-      // |    |                                                 |               |
-      // | xn | <- dyn_reg_info->byte_offset          offset -> | m_gpregset[n] | uint32_t
-      // |____|                                                 |_______________|
-      // |    |                                                 |               |
-      //   ..                                                           ..
-      //
-      // clang-format on
-      src = m_gpregset.GetDataStart();
-    } else if (IsFPR(dyn_reg_info->kinds[lldb::eRegisterKindLLDB])) {
-      // clang-format off
-      //
-      // |____|
-      // |    |
-      // | pc | <- dyn_reg_info->byte_offset = 0
-      // |____|
-      // |    |
-      // | x1 |
-      // |____|
-      //   ..
-      // |____|
-      // |    |
-      // | x0 |
-      // |____|                                                 |_______________|
-      // |    |                                          src -> |               |
-      // | f0 |                                                 | m_fpregset[0] | uint32_t
-      // |____|                                   offset = 0 -> |_______________|
-      // |    |                                                 |               |
-      // | f1 |                                                 | m_fpregset[4] | uint32_t
-      // |____|                                                 |_______________|
-      //   ..                                                           ..
-      // |____|                                                 |_______________|
-      // |    |                                                 |               |
-      // | fn | <- dyn_reg_info->byte_offset          offset -> | m_fpregset[n] | uint32_t
-      // |____|                                                 |_______________|
-      // |    |                                                 |               |
-      //    ..                                                          ..
-      //
-      // clang-format on
-      src = m_fpregset.GetDataStart();
-      offset -= (g_register_infos_riscv32_gpr[0].byte_size *
-                 m_reg_infos_up->GetGPRSize());
-    } else if (IsCSR(dyn_reg_info->kinds[lldb::eRegisterKindLLDB])) {
-      // clang-format off
-      //
-      // |______|
-      // |      |
-      // |  pc  | <- dyn_reg_info->byte_offset = 0
-      // |______|
-      // |      |
-      // |  x1  |
-      // |______|
-      //    ..
-      // |______|
-      // |      |
-      // |  x0  |
-      // |______|
-      // |      |
-      // |  f0  |
-      // |______|
-      // |      |
-      // |  f1  |
-      // |______|
-      //    ..
-      // |______|
-      // |      |
-      // |  f31 |
-      // |______|                                                 |________________|
-      // |      |                                          src -> |                |
-      // |      |                                   csr0::addr -> | m_csregset[00] | uint32_t
-      // |      |                                   offset = 0 -> |                | 
-      // | csr0 |                                                 |----------------|
-      // |      |                                                 |                |
-      // |      |                                    csr0::val -> | m_csregset[04] | uint32_t
-      // |______|                                                 |________________|
-      // |      |                                                 |                |
-      // |      |                                   csr1::addr -> | m_csregset[08] | uint32_t
-      // |      |                                                 |                | 
-      // | csr1 |                                                 |----------------|
-      // |      |                                                 |                |
-      // |      |                                    csr1::val -> | m_csregset[12] | uint32_t
-      // |______|                                                 |________________|
-      //    ..                                                            ..
-      // |______|                                                 |________________|
-      // |      |                                                 |                |
-      // |      |                                   csrn::addr -> | m_csregset[..] | uint32_t
-      // |      |                                                 |                | 
-      // | csrn |                                                 |----------------|
-      // |      |                                    csrn::val -> |                |
-      // |      |                                                 | m_csregset[..] | uint32_t
-      // |______|                                       offset -> |________________|
-      // |      |                                                 |                |
-      //    ..                                                            ..
-      //
-      // clang-format on
-      src = m_csregset.GetDataStart();
-      offset -= ((g_register_infos_riscv32_gpr[0].byte_size *
-                  m_reg_infos_up->GetGPRSize()) +
-                 (g_register_infos_riscv32_fpr[0].byte_size *
-                  m_reg_infos_up->GetFPRSize()));
-      offset *= 2;
-      offset += dyn_reg_info->byte_size;
-    } else {
-      return false;
-    }
-
-    Status error;
-    value.SetFromMemoryData(*dyn_reg_info, src + offset,
-                            dyn_reg_info->byte_size, lldb::eByteOrderLittle,
-                            error);
-    return error.Success();
-  } else {
+  if (!reg_info)
+    return false;
+  auto *reg = m_reg_infos_up->GetDescription().Find(reg_info->name);
+  if (!reg)
+    return false;
+  auto result = RegisterCodec::Read(
+      m_reg_infos_up->GetDescription(), m_reg_infos_up->GetLayout(), reg->id,
+      {{0, {m_gpregset.GetDataStart(), m_gpregset.GetByteSize()}},
+       {1, {m_fpregset.GetDataStart(), m_fpregset.GetByteSize()}},
+       {2, {m_csregset.GetDataStart(), m_csregset.GetByteSize()}}});
+  if (!result) {
+    llvm::consumeError(result.takeError());
     return false;
   }
+  value = std::move(*result);
+  return true;
 }
 
 bool RegisterContextCorePOSIX_riscv32::WriteRegister(
@@ -311,38 +235,11 @@ bool RegisterContextCorePOSIX_riscv32::WriteRegister(
   return false;
 }
 
-bool RegisterContextCorePOSIX_riscv32::IsGPR(unsigned reg) {
-  if (llvm::StringRef(
-          GetRegisterSet(m_reg_infos_up->GetRegisterSetFromRegisterIndex(reg))
-              ->name)
-          .equals_insensitive(llvm::StringRef("GPR")))
-    return true;
-  return false;
-}
-
-bool RegisterContextCorePOSIX_riscv32::IsFPR(unsigned reg) {
-  if (llvm::StringRef(
-          GetRegisterSet(m_reg_infos_up->GetRegisterSetFromRegisterIndex(reg))
-              ->name)
-          .equals_insensitive(llvm::StringRef("FPR")))
-    return true;
-  return false;
-}
-
-bool RegisterContextCorePOSIX_riscv32::IsCSR(unsigned reg) {
-  if (llvm::StringRef(
-          GetRegisterSet(m_reg_infos_up->GetRegisterSetFromRegisterIndex(reg))
-              ->name)
-          .equals_insensitive(llvm::StringRef("CSR")))
-    return true;
-  return false;
-}
-
-lldb_private::DynamicRegisterInfo::Register
+lldb_private::RegisterDescriptionBuilder::Register
 RegisterContextCorePOSIX_riscv32::BuildDynamicRegister(
     const lldb_private::RegisterInfo &reg_info,
     const lldb_private::ConstString &set_name, uint32_t byte_offset) {
-  return DynamicRegisterInfo::Register{
+  return RegisterDescriptionBuilder::Register{
       lldb_private::ConstString(reg_info.name),
       lldb_private::ConstString(reg_info.alt_name),
       set_name,
@@ -357,7 +254,8 @@ RegisterContextCorePOSIX_riscv32::BuildDynamicRegister(
       CopyRegisterListToVector(reg_info.value_regs),
       CopyRegisterListToVector(reg_info.invalidate_regs),
       /*value_reg_offset=*/0,
-      reg_info.register_type};
+      reg_info.register_type,
+      reg_info.kinds[lldb::eRegisterKindLLDB]};
 }
 
 void RegisterContextCorePOSIX_riscv32::GetFeatures(

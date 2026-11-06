@@ -16,6 +16,7 @@ set(LLVM_OPTIONAL_SOURCES
 
 add_lldb_unittest(RegisterTests
   RegisterDescriptionBuilderTest.cpp
+  RegisterInfoRISCVTest.cpp
   RegisterInfoX86LayoutTest.cpp
   RegisterInfoX86ModelTest.cpp
   RegisterInfo_x86Test.cpp
