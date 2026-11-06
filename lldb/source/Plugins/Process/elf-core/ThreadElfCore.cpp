@@ -85,7 +85,7 @@ ThreadElfCore::CreateRegisterContextForFrame(StackFrame *frame) {
 
     ProcessElfCore *process = static_cast<ProcessElfCore *>(GetProcess().get());
     ArchSpec arch = process->GetArchitecture();
-    RegisterInfoInterface *reg_interface = nullptr;
+    RegisterInfoProvider *reg_interface = nullptr;
 
     switch (arch.GetTriple().getOS()) {
     case llvm::Triple::FreeBSD: {
@@ -223,8 +223,7 @@ ThreadElfCore::CreateRegisterContextForFrame(StackFrame *frame) {
     case llvm::Triple::ppc:
     case llvm::Triple::ppc64:
       m_thread_reg_ctx_sp = std::make_shared<RegisterContextCorePOSIX_powerpc>(
-          *this, static_cast<RegisterInfoProvider *>(reg_interface),
-          m_gpregset_data, m_notes);
+          *this, reg_interface, m_gpregset_data, m_notes);
       break;
     case llvm::Triple::ppc64le:
       m_thread_reg_ctx_sp = std::make_shared<RegisterContextCorePOSIX_ppc64le>(
@@ -233,19 +232,16 @@ ThreadElfCore::CreateRegisterContextForFrame(StackFrame *frame) {
       break;
     case llvm::Triple::systemz:
       m_thread_reg_ctx_sp = std::make_shared<RegisterContextCorePOSIX_s390x>(
-          *this, static_cast<RegisterInfoProvider *>(reg_interface),
-          m_gpregset_data, m_notes);
+          *this, reg_interface, m_gpregset_data, m_notes);
       break;
     case llvm::Triple::x86:
     case llvm::Triple::x86_64:
       if (is_linux) {
         m_thread_reg_ctx_sp = std::make_shared<RegisterContextLinuxCore_x86>(
-            *this, static_cast<RegisterInfoProvider *>(reg_interface),
-            m_gpregset_data, m_notes);
+            *this, reg_interface, m_gpregset_data, m_notes);
       } else {
         m_thread_reg_ctx_sp = std::make_shared<RegisterContextCorePOSIX_x86>(
-            *this, static_cast<RegisterInfoProvider *>(reg_interface),
-            m_gpregset_data, m_notes);
+            *this, reg_interface, m_gpregset_data, m_notes);
       }
       break;
     default:

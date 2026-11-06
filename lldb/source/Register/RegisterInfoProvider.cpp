@@ -15,7 +15,7 @@ RegisterInfoProvider::RegisterInfoProvider(
     const ArchSpec &arch,
     std::shared_ptr<const RegisterDescription> description,
     RegisterLayout layout)
-    : RegisterInfoAndSetInterface(arch), m_layout(std::move(layout)),
+    : m_arch(arch), m_layout(std::move(layout)),
       m_view(llvm::cantFail(
           RegisterInfoView::Create(std::move(description), m_layout))) {}
 
@@ -132,7 +132,7 @@ RegisterInfoProvider::GetRegisterValueOffset(const RegisterInfo &info) const {
   if (!reg || reg->value_registers.size() != 1)
     return 0;
   const auto *parent = GetDescription().Find(reg->value_registers.front());
-  if (GetTargetArchitecture().GetByteOrder() == lldb::eByteOrderBig && parent &&
+  if (m_arch.GetByteOrder() == lldb::eByteOrderBig && parent &&
       reg->byte_size + reg->value_byte_offset <= parent->byte_size)
     return parent->byte_size - reg->byte_size - reg->value_byte_offset;
   return reg->value_byte_offset;

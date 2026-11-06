@@ -10,14 +10,13 @@
 #define LLDB_REGISTER_REGISTERINFOPROVIDER_H
 
 #include "lldb/Register/RegisterCodec.h"
-#include "lldb/Register/RegisterInfoAndSetInterface.h"
 #include "lldb/Utility/ArchSpec.h"
 
 namespace lldb_private {
 
 /// Compatibility with existing contexts is implemented once, independently of
 /// architecture construction and of the source register-buffer format.
-class RegisterInfoProvider : public RegisterInfoAndSetInterface {
+class RegisterInfoProvider {
 public:
   RegisterInfoProvider(const ArchSpec &arch,
                        std::shared_ptr<const RegisterDescription> description,
@@ -41,6 +40,7 @@ public:
     Reconfigure(std::move(model.description), std::move(model.layout));
   }
 
+  const ArchSpec &GetTargetArchitecture() const { return m_arch; }
   virtual uint32_t GetUserRegisterCount() const {
     return m_user_register_count == LLDB_INVALID_REGNUM ? GetRegisterCount()
                                                         : m_user_register_count;
@@ -76,6 +76,7 @@ protected:
 
 private:
   uint32_t m_user_register_count = LLDB_INVALID_REGNUM;
+  ArchSpec m_arch;
   RegisterLayout m_layout;
   RegisterInfoView m_view;
 };

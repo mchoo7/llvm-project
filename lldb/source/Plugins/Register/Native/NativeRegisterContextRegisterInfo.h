@@ -23,29 +23,22 @@ public:
   ///
   NativeRegisterContextRegisterInfo(
       NativeThreadProtocol &thread,
-      RegisterInfoInterface *register_info_interface);
-
-  NativeRegisterContextRegisterInfo(NativeThreadProtocol &thread,
-                                    RegisterInfoProvider *provider);
-  const RegisterInfoProvider &GetRegisterInfoProvider() const;
-  uint32_t GetRegisterValueOffset(uint32_t index) const override;
+      RegisterInfoProvider *register_info_interface);
 
   uint32_t GetRegisterCount() const override;
+  uint32_t GetRegisterValueOffset(uint32_t index) const override;
 
   uint32_t GetUserRegisterCount() const override;
 
   const RegisterInfo *GetRegisterInfoAtIndex(uint32_t reg_index) const override;
 
-  const RegisterInfoInterface &GetRegisterInfoInterface() const;
+  const RegisterInfoProvider &GetRegisterInfoProvider() const;
 
   // Invalidate cached values in register context data structures.
   virtual void InvalidateAllRegisters() {}
 
 protected:
-  std::unique_ptr<RegisterInfoInterface> m_register_info_interface_up;
-
-private:
-  RegisterInfoProvider *m_provider = nullptr;
+  std::unique_ptr<RegisterInfoProvider> m_register_info_interface_up;
 };
 } // namespace lldb_private
 #endif

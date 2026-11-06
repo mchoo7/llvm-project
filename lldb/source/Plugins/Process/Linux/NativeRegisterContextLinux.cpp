@@ -100,7 +100,7 @@ NativeRegisterContextLinux::WriteRegisterRaw(uint32_t reg_index,
           *reg_info, src.data(), src.size(), byte_order, error);
       if (error.Success() && src_size && (src_size < dest_size)) {
         // Copy the src bytes to the destination.
-        memcpy(dst.data() + (reg_info->byte_offset & 0x1), src.data(),
+        memcpy(dst.data() + GetRegisterValueOffset(reg_index), src.data(),
                src_size);
         // Set this full register as the value to write.
         value_to_write.SetBytes(dst.data(), full_value.GetByteSize(),

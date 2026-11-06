@@ -12,7 +12,7 @@
 #include "lldb/Register/Arch/lldb-riscv-register-enums.h"
 #include "lldb/Register/Common/RegisterInfo_riscv32.h"
 #include "lldb/Register/Common/RegisterInfo_riscv64.h"
-#include "lldb/Register/RegisterInfoInterface.h"
+#include "lldb/Register/RegisterInfoProvider.h"
 
 #include "lldb/Core/Address.h"
 #include "lldb/Core/PluginManager.h"

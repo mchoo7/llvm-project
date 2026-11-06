@@ -33,12 +33,6 @@
 using namespace lldb;
 using namespace lldb_private;
 
-std::pair<size_t, size_t> GetRegParams(RegisterInfoInterface &ctx,
-                                       uint32_t reg) {
-  const RegisterInfo &info = ctx.GetRegisterInfo()[reg];
-  return {info.byte_offset, info.byte_size};
-}
-
 std::pair<size_t, size_t> GetRegParams(RegisterInfoProvider &ctx,
                                        uint32_t reg) {
   const RegisterInfo &info = ctx.GetRegisterInfo()[reg];

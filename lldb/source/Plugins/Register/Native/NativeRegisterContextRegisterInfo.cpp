@@ -13,8 +13,7 @@
 using namespace lldb_private;
 
 NativeRegisterContextRegisterInfo::NativeRegisterContextRegisterInfo(
-    NativeThreadProtocol &thread,
-    RegisterInfoInterface *register_info_interface)
+    NativeThreadProtocol &thread, RegisterInfoProvider *register_info_interface)
     : NativeRegisterContext(thread),
       m_register_info_interface_up(register_info_interface) {
   assert(register_info_interface && "null register_info_interface");
@@ -36,26 +35,13 @@ const RegisterInfo *NativeRegisterContextRegisterInfo::GetRegisterInfoAtIndex(
     return nullptr;
 }
 
-const RegisterInfoInterface &
-NativeRegisterContextRegisterInfo::GetRegisterInfoInterface() const {
+const RegisterInfoProvider &
+NativeRegisterContextRegisterInfo::GetRegisterInfoProvider() const {
   return *m_register_info_interface_up;
 }
 
-NativeRegisterContextRegisterInfo::NativeRegisterContextRegisterInfo(
-    NativeThreadProtocol &thread, RegisterInfoProvider *provider)
-    : NativeRegisterContextRegisterInfo(
-          thread, static_cast<RegisterInfoInterface *>(provider)) {
-  m_provider = provider;
-}
-const RegisterInfoProvider &
-NativeRegisterContextRegisterInfo::GetRegisterInfoProvider() const {
-  assert(m_provider && "this backend has not migrated to the register model");
-  return *m_provider;
-}
 uint32_t NativeRegisterContextRegisterInfo::GetRegisterValueOffset(
     uint32_t index) const {
   const auto *reg = GetRegisterInfoAtIndex(index);
-  if (m_provider && reg)
-    return m_provider->GetRegisterValueOffset(*reg);
-  return NativeRegisterContext::GetRegisterValueOffset(index);
+  return reg ? GetRegisterInfoProvider().GetRegisterValueOffset(*reg) : 0;
 }
