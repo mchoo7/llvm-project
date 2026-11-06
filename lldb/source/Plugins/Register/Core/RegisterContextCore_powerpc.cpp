@@ -90,7 +90,7 @@ bool RegisterContextCore_powerpc::IsVMX(unsigned reg) {
 
 RegisterContextCore_powerpc::RegisterContextCore_powerpc(
     Thread &thread, uint32_t concrete_frame_idx,
-    RegisterInfoInterface *register_info)
+    RegisterInfoProvider *register_info)
     : RegisterContext(thread, concrete_frame_idx) {
   m_register_info_up.reset(register_info);
 }
@@ -100,11 +100,6 @@ RegisterContextCore_powerpc::~RegisterContextCore_powerpc() = default;
 void RegisterContextCore_powerpc::Invalidate() {}
 
 void RegisterContextCore_powerpc::InvalidateAllRegisters() {}
-
-unsigned RegisterContextCore_powerpc::GetRegisterOffset(unsigned reg) {
-  assert(reg < k_num_registers_powerpc && "Invalid register number.");
-  return GetRegisterInfo()[reg].byte_offset;
-}
 
 unsigned RegisterContextCore_powerpc::GetRegisterSize(unsigned reg) {
   assert(reg < k_num_registers_powerpc && "Invalid register number.");

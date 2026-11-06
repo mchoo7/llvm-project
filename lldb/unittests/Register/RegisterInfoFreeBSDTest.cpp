@@ -19,13 +19,13 @@
 #include "gtest/gtest.h"
 
 #include "lldb/Register/Layouts/FreeBSD/RegisterModelFreeBSD_i386.h"
-#include "Register/FreeBSD/RegisterInfoFreeBSD_powerpc.h"
+#include "lldb/Register/Layouts/FreeBSD/RegisterModelFreeBSD_powerpc.h"
 #include "lldb/Register/Layouts/FreeBSD/RegisterModelFreeBSD_x86_64.h"
-#include "lldb/Register/Arch/lldb-powerpc-register-enums.h"
 #include "Register/Common/RegisterInfo_arm.h"
 #include "Register/Common/RegisterInfo_arm64.h"
 #include "lldb/Register/Arch/lldb-arm-register-enums.h"
 #include "lldb/Register/Arch/lldb-arm64-register-enums.h"
+#include "lldb/Register/Arch/lldb-powerpc-register-enums.h"
 #include "lldb/Register/Arch/lldb-x86-register-enums.h"
 
 using namespace lldb;
@@ -418,12 +418,12 @@ TEST(RegisterInfoFreeBSDTest, arm64) {
               ::testing::Pair(offsetof(reg, fbsd_reg), sizeof(reg::fbsd_reg)))
 #define EXPECT_FPU_PPC(lldb_reg, fbsd_reg)                                     \
   EXPECT_THAT(GetRegParams(reg_ctx, fpr_##lldb_reg##_powerpc),                 \
-              ::testing::Pair(offsetof(fpreg, fbsd_reg) + base_offset,         \
+              ::testing::Pair(offsetof(fpreg, fbsd_reg),         \
                               sizeof(fpreg::fbsd_reg)))
 
 TEST(RegisterInfoFreeBSDTest, powerpc32) {
   ArchSpec arch{"powerpc-unknown-freebsd"};
-  RegisterInfoFreeBSD_powerpc32 reg_ctx{arch};
+  RegisterInfo_powerpc reg_ctx{arch, CreateFreeBSDPowerPC32RegisterModel(arch)};
 
   EXPECT_GPR_PPC(r0, fixreg[0]);
   EXPECT_GPR_PPC(r1, fixreg[1]);
@@ -462,8 +462,6 @@ TEST(RegisterInfoFreeBSDTest, powerpc32) {
   EXPECT_GPR_PPC(xer, xer);
   EXPECT_GPR_PPC(ctr, ctr);
   EXPECT_GPR_PPC(pc, pc);
-
-  size_t base_offset = reg_ctx.GetRegisterInfo()[fpr_f0_powerpc].byte_offset;
 
   EXPECT_FPU_PPC(f0, fpreg[0]);
   EXPECT_FPU_PPC(f1, fpreg[1]);

@@ -9,7 +9,7 @@
 #ifndef LLDB_SOURCE_PLUGINS_REGISTER_CORE_REGISTERCONTEXTCORE_POWERPC_H
 #define LLDB_SOURCE_PLUGINS_REGISTER_CORE_REGISTERCONTEXTCORE_POWERPC_H
 
-#include "lldb/Register/RegisterInfoInterface.h"
+#include "lldb/Register/RegisterInfoProvider.h"
 #include "lldb/Register/Arch/lldb-powerpc-register-enums.h"
 #include "lldb/Target/RegisterContext.h"
 #include "lldb/Utility/Log.h"
@@ -18,7 +18,7 @@ class RegisterContextCore_powerpc : public lldb_private::RegisterContext {
 public:
   RegisterContextCore_powerpc(
       lldb_private::Thread &thread, uint32_t concrete_frame_idx,
-      lldb_private::RegisterInfoInterface *register_info);
+      lldb_private::RegisterInfoProvider *register_info);
 
   ~RegisterContextCore_powerpc() override;
 
@@ -31,8 +31,6 @@ public:
   virtual size_t GetGPRSize();
 
   virtual unsigned GetRegisterSize(unsigned reg);
-
-  virtual unsigned GetRegisterOffset(unsigned reg);
 
   const lldb_private::RegisterInfo *GetRegisterInfoAtIndex(size_t reg) override;
 
@@ -48,7 +46,7 @@ protected:
   // Floating point registers.
   uint64_t m_fpr_powerpc[lldb_private::k_num_fpr_registers_powerpc];
   uint32_t m_vmx_powerpc[lldb_private::k_num_vmx_registers_powerpc][4];
-  std::unique_ptr<lldb_private::RegisterInfoInterface>
+  std::unique_ptr<lldb_private::RegisterInfoProvider>
       m_register_info_up; // Register Info Interface (FreeBSD or Linux)
 
   // Determines if an extended register set is supported on the processor

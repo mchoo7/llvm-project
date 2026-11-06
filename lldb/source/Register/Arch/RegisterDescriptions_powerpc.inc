@@ -1,52 +1,56 @@
-//===-- RegisterInfos_powerpc.h ---------------------------------*- C++ -*-===//
+//===----------------------------------------------------------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
 // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
-//===---------------------------------------------------------------------===//
+//===----------------------------------------------------------------------===//
 
-// Textual register-table fragment; intentionally has no include guard.
-// Include its ordinary dependencies at file scope before defining layout macros.
-// See README.md for the inclusion contract.
-
-#if !defined(DECLARE_REGISTER_INFOS_POWERPC_STRUCT)
-#error Select a register-table generation mode before including this fragment
-#endif
-
-// Computes the offset of the given GPR in the user data area.
-#define GPR_OFFSET(regname) (offsetof(GPR, regname))
-#define FPR_OFFSET(regname) (sizeof(GPR) + offsetof(FPR, regname))
-#define VMX_OFFSET(regname) (sizeof(GPR) + sizeof(FPR) + offsetof(VMX, regname))
-#define GPR_SIZE(regname) (sizeof(((GPR *)NULL)->regname))
-
-#ifdef DECLARE_REGISTER_INFOS_POWERPC_STRUCT
-
-// Note that the size and offset will be updated by platform-specific classes.
+#define GPR_OFFSET(...) 0
+#define FPR_OFFSET(...) 0
+#define VMX_OFFSET(...) 0
+#define GPR_SIZE(...) word_size
 #define DEFINE_GPR(reg, alt, lldb_kind)                                        \
   {                                                                            \
-    #reg, alt, GPR_SIZE(reg), GPR_OFFSET(reg), lldb::eEncodingUint, lldb::eFormatHex,      \
-                                         {ppc_dwarf::dwarf_##reg##_powerpc,               \
-                                          ppc_dwarf::dwarf_##reg##_powerpc, lldb_kind,    \
-                                          LLDB_INVALID_REGNUM,                 \
-                                          gpr_##reg##_powerpc },               \
-                                          NULL, NULL, NULL,                    \
+      #reg,                                                                    \
+      alt,                                                                     \
+      GPR_SIZE(reg),                                                           \
+      GPR_OFFSET(reg),                                                         \
+      lldb::eEncodingUint,                                                     \
+      lldb::eFormatHex,                                                        \
+      {ppc_dwarf::dwarf_##reg##_powerpc, ppc_dwarf::dwarf_##reg##_powerpc,     \
+       lldb_kind, LLDB_INVALID_REGNUM, gpr_##reg##_powerpc},                   \
+      NULL,                                                                    \
+      NULL,                                                                    \
+      NULL,                                                                    \
   }
 #define DEFINE_FPR(reg, lldb_kind)                                             \
   {                                                                            \
-    #reg, NULL, 8, FPR_OFFSET(reg), lldb::eEncodingIEEE754, lldb::eFormatFloat,            \
-                              {ppc_dwarf::dwarf_##reg##_powerpc, ppc_dwarf::dwarf_##reg##_powerpc,   \
-                               lldb_kind, LLDB_INVALID_REGNUM,                 \
-                               fpr_##reg##_powerpc },                          \
-                               NULL, NULL, NULL,                               \
+      #reg,                                                                    \
+      NULL,                                                                    \
+      8,                                                                       \
+      FPR_OFFSET(reg),                                                         \
+      lldb::eEncodingIEEE754,                                                  \
+      lldb::eFormatFloat,                                                      \
+      {ppc_dwarf::dwarf_##reg##_powerpc, ppc_dwarf::dwarf_##reg##_powerpc,     \
+       lldb_kind, LLDB_INVALID_REGNUM, fpr_##reg##_powerpc},                   \
+      NULL,                                                                    \
+      NULL,                                                                    \
+      NULL,                                                                    \
   }
 #define DEFINE_VMX(reg, lldb_kind)                                             \
   {                                                                            \
-    #reg, NULL, 16, VMX_OFFSET(reg), lldb::eEncodingVector, lldb::eFormatVectorOfUInt32,   \
-                               {ppc_dwarf::dwarf_##reg##_powerpc, ppc_dwarf::dwarf_##reg##_powerpc,  \
-                                lldb_kind, LLDB_INVALID_REGNUM,                \
-                                vmx_##reg##_powerpc },                         \
-                                NULL, NULL, NULL,                              \
+      #reg,                                                                    \
+      NULL,                                                                    \
+      16,                                                                      \
+      VMX_OFFSET(reg),                                                         \
+      lldb::eEncodingVector,                                                   \
+      lldb::eFormatVectorOfUInt32,                                             \
+      {ppc_dwarf::dwarf_##reg##_powerpc, ppc_dwarf::dwarf_##reg##_powerpc,     \
+       lldb_kind, LLDB_INVALID_REGNUM, vmx_##reg##_powerpc},                   \
+      NULL,                                                                    \
+      NULL,                                                                    \
+      NULL,                                                                    \
   }
 
 // General purpose registers.            EH_Frame,                  DWARF,
@@ -121,18 +125,19 @@
       DEFINE_FPR(f29, LLDB_INVALID_REGNUM),                                    \
       DEFINE_FPR(f30, LLDB_INVALID_REGNUM),                                    \
       DEFINE_FPR(f31, LLDB_INVALID_REGNUM),                                    \
-      {"fpscr",                                                                \
-       NULL,                                                                   \
-       8,                                                                      \
-       FPR_OFFSET(fpscr),                                                      \
-       lldb::eEncodingUint,                                                          \
-       lldb::eFormatHex,                                                             \
-       {ppc_dwarf::dwarf_fpscr_powerpc, ppc_dwarf::dwarf_fpscr_powerpc, LLDB_INVALID_REGNUM,         \
-        LLDB_INVALID_REGNUM, fpr_fpscr_powerpc},                               \
-       NULL,                                                                   \
-       NULL,                                                                   \
-       NULL,                                                                   \
-        },                                                                     \
+      {                                                                        \
+          "fpscr",                                                             \
+          NULL,                                                                \
+          8,                                                                   \
+          FPR_OFFSET(fpscr),                                                   \
+          lldb::eEncodingUint,                                                 \
+          lldb::eFormatHex,                                                    \
+          {ppc_dwarf::dwarf_fpscr_powerpc, ppc_dwarf::dwarf_fpscr_powerpc,     \
+           LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM, fpr_fpscr_powerpc},       \
+          NULL,                                                                \
+          NULL,                                                                \
+          NULL,                                                                \
+      },                                                                       \
       DEFINE_VMX(v0, LLDB_INVALID_REGNUM),                                     \
       DEFINE_VMX(v1, LLDB_INVALID_REGNUM),                                     \
       DEFINE_VMX(v2, LLDB_INVALID_REGNUM),                                     \
@@ -165,74 +170,39 @@
       DEFINE_VMX(v29, LLDB_INVALID_REGNUM),                                    \
       DEFINE_VMX(v30, LLDB_INVALID_REGNUM),                                    \
       DEFINE_VMX(v31, LLDB_INVALID_REGNUM),                                    \
-      {"vrsave",                                                               \
-       NULL,                                                                   \
-       4,                                                                      \
-       VMX_OFFSET(vrsave),                                                     \
-       lldb::eEncodingUint,                                                          \
-       lldb::eFormatHex,                                                             \
-       {ppc_dwarf::dwarf_vrsave_powerpc, ppc_dwarf::dwarf_vrsave_powerpc, LLDB_INVALID_REGNUM,       \
-        LLDB_INVALID_REGNUM, vmx_vrsave_powerpc},                              \
-       NULL,                                                                   \
-       NULL,                                                                   \
-       NULL,                                                                   \
-        },                                                                     \
-      {"vscr",                                                                 \
-       NULL,                                                                   \
-       4,                                                                      \
-       VMX_OFFSET(vscr),                                                       \
-       lldb::eEncodingUint,                                                          \
-       lldb::eFormatHex,                                                             \
-       {ppc_dwarf::dwarf_vscr_powerpc, ppc_dwarf::dwarf_vscr_powerpc, LLDB_INVALID_REGNUM,           \
-        LLDB_INVALID_REGNUM, vmx_vscr_powerpc},                                \
-       NULL,                                                                   \
-       NULL,                                                                   \
-       NULL,                                                                   \
-       },
+      {                                                                        \
+          "vrsave",                                                            \
+          NULL,                                                                \
+          4,                                                                   \
+          VMX_OFFSET(vrsave),                                                  \
+          lldb::eEncodingUint,                                                 \
+          lldb::eFormatHex,                                                    \
+          {ppc_dwarf::dwarf_vrsave_powerpc, ppc_dwarf::dwarf_vrsave_powerpc,   \
+           LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM, vmx_vrsave_powerpc},      \
+          NULL,                                                                \
+          NULL,                                                                \
+          NULL,                                                                \
+      },                                                                       \
+      {                                                                        \
+          "vscr",                                                              \
+          NULL,                                                                \
+          4,                                                                   \
+          VMX_OFFSET(vscr),                                                    \
+          lldb::eEncodingUint,                                                 \
+          lldb::eFormatHex,                                                    \
+          {ppc_dwarf::dwarf_vscr_powerpc, ppc_dwarf::dwarf_vscr_powerpc,       \
+           LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM, vmx_vscr_powerpc},        \
+          NULL,                                                                \
+          NULL,                                                                \
+          NULL,                                                                \
+      },
 
-static RegisterInfo g_register_infos_powerpc64[] = {
-#define GPR GPR64
-    POWERPC_REGS
-#undef GPR
-};
-
-static RegisterInfo g_register_infos_powerpc32[] = {
-#define GPR GPR32
-    POWERPC_REGS
-#undef GPR
-};
-
-static RegisterInfo g_register_infos_powerpc64_32[] = {
-#define GPR GPR64
-#undef GPR_SIZE
-#define GPR_SIZE(reg) (sizeof(uint32_t))
-#undef GPR_OFFSET
-#define GPR_OFFSET(regname)                                                    \
-  (offsetof(GPR, regname) + (sizeof(((GPR *)NULL)->regname) - GPR_SIZE(reg)))
-    POWERPC_REGS
-#undef GPR
-};
-
-static_assert((sizeof(g_register_infos_powerpc32) /
-               sizeof(g_register_infos_powerpc32[0])) ==
-                  k_num_registers_powerpc,
-              "g_register_infos_powerpc32 has wrong number of register infos");
-static_assert((sizeof(g_register_infos_powerpc64) /
-               sizeof(g_register_infos_powerpc64[0])) ==
-                  k_num_registers_powerpc,
-              "g_register_infos_powerpc64 has wrong number of register infos");
-static_assert(sizeof(g_register_infos_powerpc64_32) ==
-                  sizeof(g_register_infos_powerpc64),
-              "g_register_infos_powerpc64_32 doesn't match size of "
-              "g_register_infos_powerpc64");
-
-#endif // DECLARE_REGISTER_INFOS_POWERPC_STRUCT
-
-#undef GPR_OFFSET
-#undef FPR_OFFSET
-#undef VMX_OFFSET
-#undef GPR_SIZE
-#undef DEFINE_GPR
+static RegisterInfo values[] = {POWERPC_REGS};
 #undef DEFINE_FPR
+#undef DEFINE_GPR
 #undef DEFINE_VMX
+#undef FPR_OFFSET
+#undef GPR_OFFSET
+#undef GPR_SIZE
 #undef POWERPC_REGS
+#undef VMX_OFFSET

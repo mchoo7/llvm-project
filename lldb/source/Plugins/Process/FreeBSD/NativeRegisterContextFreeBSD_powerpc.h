@@ -17,7 +17,7 @@
 // clang-format on
 
 #include "Plugins/Process/FreeBSD/NativeRegisterContextFreeBSD.h"
-#include "Register/FreeBSD/RegisterInfoFreeBSD_powerpc.h"
+#include "lldb/Register/Layouts/FreeBSD/RegisterModelFreeBSD_powerpc.h"
 
 #include <array>
 #include <optional>
@@ -57,14 +57,15 @@ private:
     GPRegSet,
     FPRegSet,
   };
-  std::array<uint8_t, sizeof(reg) + sizeof(fpreg)> m_reg_data;
+  reg m_gpr{};
+  fpreg m_fpr{};
 
   std::optional<RegSetKind> GetSetForNativeRegNum(uint32_t reg_num) const;
 
   Status ReadRegisterSet(RegSetKind set);
   Status WriteRegisterSet(RegSetKind set);
 
-  RegisterInfoFreeBSD_powerpc &GetRegisterInfo() const;
+  RegisterInfo_powerpc &GetRegisterInfo() const;
 };
 
 } // namespace process_freebsd

@@ -17,7 +17,7 @@
 using namespace lldb_private;
 
 RegisterContextCorePOSIX_powerpc::RegisterContextCorePOSIX_powerpc(
-    Thread &thread, RegisterInfoInterface *register_info,
+    Thread &thread, RegisterInfoProvider *register_info,
     const DataExtractor &gpregset, llvm::ArrayRef<CoreNote> notes)
     : RegisterContextCore_powerpc(thread, 0, register_info) {
   m_gpr_buffer = std::make_shared<DataBufferHeap>(gpregset.GetDataStart(),
@@ -64,31 +64,18 @@ bool RegisterContextCorePOSIX_powerpc::WriteVMX() {
 
 bool RegisterContextCorePOSIX_powerpc::ReadRegister(
     const RegisterInfo *reg_info, RegisterValue &value) {
-  lldb::offset_t offset = reg_info->byte_offset;
-  if (IsFPR(reg_info->kinds[lldb::eRegisterKindLLDB])) {
-    uint64_t v = m_fpr.GetMaxU64(&offset, reg_info->byte_size);
-    if (offset == reg_info->byte_offset + reg_info->byte_size) {
-      value = v;
-      return true;
-    }
-  } else if (IsVMX(reg_info->kinds[lldb::eRegisterKindLLDB])) {
-    uint32_t v[4];
-    offset = m_vec.CopyData(offset, reg_info->byte_size, &v);
-    if (offset == reg_info->byte_size) {
-      value.SetBytes(v, reg_info->byte_size, m_vec.GetByteOrder());
-      return true;
-    }
-  } else {
-    uint64_t v = m_gpr.GetMaxU64(&offset, reg_info->byte_size);
-    if (offset == reg_info->byte_offset + reg_info->byte_size) {
-      if (reg_info->byte_size < sizeof(v))
-        value = (uint32_t)v;
-      else
-        value = v;
-      return true;
-    }
+  if (!reg_info)
+    return false;
+  auto result = m_register_info_up->ReadRegister(
+      *reg_info, {{0, {m_gpr.GetDataStart(), m_gpr.GetByteSize()}},
+                  {1, {m_fpr.GetDataStart(), m_fpr.GetByteSize()}},
+                  {2, {m_vec.GetDataStart(), m_vec.GetByteSize()}}});
+  if (!result) {
+    llvm::consumeError(result.takeError());
+    return false;
   }
-  return false;
+  value = std::move(*result);
+  return true;
 }
 
 bool RegisterContextCorePOSIX_powerpc::ReadAllRegisterValues(

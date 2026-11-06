@@ -9,6 +9,7 @@
 #include "lldb/Register/Arch/lldb-ppc64le-register-enums.h"
 #include "lldb/Register/Common/RegisterInfo_ppc64.h"
 #include "lldb/Register/Common/RegisterInfo_ppc64le.h"
+#include "lldb/Register/Layouts/FreeBSD/RegisterModelFreeBSD_powerpc.h"
 #include "lldb/Register/Layouts/Linux/RegisterModelLinux_ppc64le.h"
 #include "lldb/Register/RegisterCodec.h"
 #include "llvm/Testing/Support/Error.h"
@@ -71,6 +72,30 @@ TEST(RegisterInfoPowerPCTest, BigEndianDescriptionUsesExplicitStorage) {
   auto value = RegisterCodec::Read(*description, layout, pc, data);
   ASSERT_THAT_EXPECTED(value, Succeeded());
   EXPECT_EQ(value->GetAsUInt64(), 0x01020304u);
+}
+
+TEST(RegisterInfoPowerPCTest, FreeBSD32ValuesIn64BitBigEndianSlots) {
+  RegisterInfo_powerpc compat(
+      ArchSpec("powerpc-unknown-freebsd"),
+      CreateFreeBSDPowerPC64RegisterModel(ArchSpec("powerpc-unknown-freebsd")));
+  auto *pc = compat.GetDescription().Find("pc");
+  ASSERT_NE(pc, nullptr);
+  EXPECT_EQ(pc->byte_size, 4u);
+  auto *location = compat.GetLayout().Find(pc->id);
+  ASSERT_NE(location, nullptr);
+  EXPECT_EQ(compat.GetGPRSize(), 296u);
+  EXPECT_EQ(location->pieces[0].byte_offset, 292u);
+  EXPECT_EQ(location->pieces[0].byte_size, 4u);
+  RegisterInfo_powerpc native32(
+      ArchSpec("powerpc-unknown-freebsd"),
+      CreateFreeBSDPowerPC32RegisterModel(ArchSpec("powerpc-unknown-freebsd")));
+  EXPECT_EQ(native32.GetGPRSize(), 148u);
+  auto *native_pc = native32.GetDescription().Find("pc");
+  EXPECT_EQ(native32.GetLayout().Find(native_pc->id)->pieces[0].byte_offset,
+            144u);
+  auto generic = RegisterInfo_ppc64::CreateDescription(
+      ArchSpec("powerpc64-unknown-unknown"));
+  EXPECT_EQ(native_pc->id, generic->Find("pc")->id);
 }
 
 TEST(RegisterInfoPowerPCTest, LinuxVSXUsesTheActualSplitBanks) {
