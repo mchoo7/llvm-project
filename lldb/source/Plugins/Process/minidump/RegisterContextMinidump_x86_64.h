@@ -11,8 +11,8 @@
 
 #include "MinidumpTypes.h"
 
-#include "lldb/Register/RegisterInfoInterface.h"
 #include "lldb/Register/Arch/lldb-x86-register-enums.h"
+#include "lldb/Register/RegisterInfoProvider.h"
 
 #include "lldb/Target/RegisterContext.h"
 
@@ -26,14 +26,6 @@
 namespace lldb_private {
 
 namespace minidump {
-
-// This function receives an ArrayRef pointing to the bytes of the Minidump
-// register context and returns a DataBuffer that's ordered by the offsets
-// specified in the RegisterInfoInterface argument
-// This way we can reuse the already existing register contexts
-lldb::DataBufferSP
-ConvertMinidumpContext_x86_64(llvm::ArrayRef<uint8_t> source_data,
-                              RegisterInfoInterface *target_reg_interface);
 
 struct Uint128 {
   llvm::support::ulittle64_t high;

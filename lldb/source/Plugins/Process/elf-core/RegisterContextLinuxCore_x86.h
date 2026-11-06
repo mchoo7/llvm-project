@@ -16,7 +16,7 @@ class RegisterContextLinuxCore_x86 : public RegisterContextCorePOSIX_x86 {
 public:
   RegisterContextLinuxCore_x86(
       lldb_private::Thread &thread,
-      lldb_private::RegisterInfoInterface *register_info,
+      lldb_private::RegisterInfoProvider *register_info,
       const lldb_private::DataExtractor &gpregset,
       llvm::ArrayRef<lldb_private::CoreNote> notes);
 

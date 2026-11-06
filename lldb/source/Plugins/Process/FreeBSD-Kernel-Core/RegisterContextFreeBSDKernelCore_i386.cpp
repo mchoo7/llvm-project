@@ -21,7 +21,7 @@ using namespace lldb;
 using namespace lldb_private;
 
 RegisterContextFreeBSDKernelCore_i386::RegisterContextFreeBSDKernelCore_i386(
-    Thread &thread, RegisterInfoInterface *register_info, lldb::addr_t pcb_addr)
+    Thread &thread, RegisterInfoProvider *register_info, lldb::addr_t pcb_addr)
     : RegisterContextCore_x86(thread, 0, register_info), m_pcb_addr(pcb_addr) {
 }
 

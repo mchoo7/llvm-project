@@ -16,127 +16,22 @@
 
 #include "ProcessWindowsLog.h"
 #include "RegisterContextWindows_x86.h"
-#include "lldb/Register/Arch/lldb-x86-dwarf-register-enums.h"
+#include "RegisterModelWindows_x86.h"
 #include "TargetThreadWindows.h"
 #include "lldb/Register/Arch/lldb-x86-register-enums.h"
-
-#include "llvm/ADT/STLExtras.h"
 
 using namespace lldb;
 using namespace lldb_private;
 
-#define DEFINE_GPR(reg, alt) #reg, alt, 4, 0, eEncodingUint, eFormatHex
-#define DEFINE_GPR_BIN(reg, alt) #reg, alt, 4, 0, eEncodingUint, eFormatBinary
-
 namespace {
-
-// This enum defines the layout of the global RegisterInfo array.  This is
-// necessary because lldb register sets are defined in terms of indices into
-// the register array. As such, the order of RegisterInfos defined in global
-// registers array must match the order defined here. When defining the
-// register set layouts, these values can appear in an arbitrary order, and
-// that determines the order that register values are displayed in a dump.
-enum RegisterIndex {
-  eRegisterIndexEax,
-  eRegisterIndexEbx,
-  eRegisterIndexEcx,
-  eRegisterIndexEdx,
-  eRegisterIndexEdi,
-  eRegisterIndexEsi,
-  eRegisterIndexEbp,
-  eRegisterIndexEsp,
-  eRegisterIndexEip,
-  eRegisterIndexEflags
-};
-
-// Array of all register information supported by Windows x86
-RegisterInfo g_register_infos[] = {
-    {DEFINE_GPR(eax, nullptr),
-     {ehframe_eax_i386, dwarf_eax_i386, LLDB_INVALID_REGNUM,
-      LLDB_INVALID_REGNUM, lldb_eax_i386},
-     nullptr,
-     nullptr,
-     nullptr,
-    },
-    {DEFINE_GPR(ebx, nullptr),
-     {ehframe_ebx_i386, dwarf_ebx_i386, LLDB_INVALID_REGNUM,
-      LLDB_INVALID_REGNUM, lldb_ebx_i386},
-     nullptr,
-     nullptr,
-     nullptr,
-    },
-    {DEFINE_GPR(ecx, nullptr),
-     {ehframe_ecx_i386, dwarf_ecx_i386, LLDB_INVALID_REGNUM,
-      LLDB_INVALID_REGNUM, lldb_ecx_i386},
-     nullptr,
-     nullptr,
-     nullptr,
-    },
-    {DEFINE_GPR(edx, nullptr),
-     {ehframe_edx_i386, dwarf_edx_i386, LLDB_INVALID_REGNUM,
-      LLDB_INVALID_REGNUM, lldb_edx_i386},
-     nullptr,
-     nullptr,
-     nullptr,
-    },
-    {DEFINE_GPR(edi, nullptr),
-     {ehframe_edi_i386, dwarf_edi_i386, LLDB_INVALID_REGNUM,
-      LLDB_INVALID_REGNUM, lldb_edi_i386},
-     nullptr,
-     nullptr,
-     nullptr,
-    },
-    {DEFINE_GPR(esi, nullptr),
-     {ehframe_esi_i386, dwarf_esi_i386, LLDB_INVALID_REGNUM,
-      LLDB_INVALID_REGNUM, lldb_esi_i386},
-     nullptr,
-     nullptr,
-     nullptr,
-    },
-    {DEFINE_GPR(ebp, "fp"),
-     {ehframe_ebp_i386, dwarf_ebp_i386, LLDB_REGNUM_GENERIC_FP,
-      LLDB_INVALID_REGNUM, lldb_ebp_i386},
-     nullptr,
-     nullptr,
-     nullptr,
-    },
-    {DEFINE_GPR(esp, "sp"),
-     {ehframe_esp_i386, dwarf_esp_i386, LLDB_REGNUM_GENERIC_SP,
-      LLDB_INVALID_REGNUM, lldb_esp_i386},
-     nullptr,
-     nullptr,
-     nullptr,
-    },
-    {DEFINE_GPR(eip, "pc"),
-     {ehframe_eip_i386, dwarf_eip_i386, LLDB_REGNUM_GENERIC_PC,
-      LLDB_INVALID_REGNUM, lldb_eip_i386},
-     nullptr,
-     nullptr,
-     nullptr,
-    },
-    {DEFINE_GPR_BIN(eflags, "flags"),
-     {ehframe_eflags_i386, dwarf_eflags_i386, LLDB_REGNUM_GENERIC_FLAGS,
-      LLDB_INVALID_REGNUM, lldb_eflags_i386},
-     nullptr,
-     nullptr,
-     nullptr,
-    },
-};
-static size_t k_num_register_infos = std::size(g_register_infos);
-
-// Array of lldb register numbers used to define the set of all General Purpose
-// Registers
-uint32_t g_gpr_reg_indices[] = {eRegisterIndexEax, eRegisterIndexEbx,
-                                eRegisterIndexEcx, eRegisterIndexEdx,
-                                eRegisterIndexEdi, eRegisterIndexEsi,
-                                eRegisterIndexEbp, eRegisterIndexEsp,
-                                eRegisterIndexEip, eRegisterIndexEflags};
-
-RegisterSet g_register_sets[] = {
-    {"General Purpose Registers", "gpr", std::size(g_gpr_reg_indices),
-     g_gpr_reg_indices},
-};
+const RegisterInfo_x86 &RegisterMetadata() {
+  static const ArchSpec arch("i686-pc-windows");
+  static const RegisterInfo_x86 info(
+      arch, CreateWindowsX86RegisterModel(arch, X86RegisterMode::I386,
+                                          WindowsX86ContextKind::Frame));
+  return info;
 }
+} // namespace
 
 // Constructors and Destructors
 RegisterContextWindows_x86::RegisterContextWindows_x86(
@@ -146,22 +41,21 @@ RegisterContextWindows_x86::RegisterContextWindows_x86(
 RegisterContextWindows_x86::~RegisterContextWindows_x86() {}
 
 size_t RegisterContextWindows_x86::GetRegisterCount() {
-  return std::size(g_register_infos);
+  return RegisterMetadata().GetRegisterCount();
 }
 
 const RegisterInfo *
 RegisterContextWindows_x86::GetRegisterInfoAtIndex(size_t reg) {
-  if (reg < k_num_register_infos)
-    return &g_register_infos[reg];
-  return nullptr;
+  const auto &info = RegisterMetadata();
+  return reg < info.GetRegisterCount() ? info.GetRegisterInfo() + reg : nullptr;
 }
 
 size_t RegisterContextWindows_x86::GetRegisterSetCount() {
-  return std::size(g_register_sets);
+  return RegisterMetadata().GetRegisterSetCount();
 }
 
 const RegisterSet *RegisterContextWindows_x86::GetRegisterSet(size_t reg_set) {
-  return &g_register_sets[reg_set];
+  return RegisterMetadata().GetRegisterSet(reg_set);
 }
 
 bool RegisterContextWindows_x86::ReadRegister(const RegisterInfo *reg_info,

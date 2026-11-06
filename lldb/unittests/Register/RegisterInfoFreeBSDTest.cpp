@@ -14,12 +14,13 @@
 #endif
 // clang-format on
 
+#include "lldb/Register/Common/RegisterInfo_x86.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
-#include "Register/FreeBSD/RegisterInfoFreeBSD_i386.h"
+#include "lldb/Register/Layouts/FreeBSD/RegisterModelFreeBSD_i386.h"
 #include "Register/FreeBSD/RegisterInfoFreeBSD_powerpc.h"
-#include "Register/FreeBSD/RegisterInfoFreeBSD_x86_64.h"
+#include "lldb/Register/Layouts/FreeBSD/RegisterModelFreeBSD_x86_64.h"
 #include "lldb/Register/Arch/lldb-powerpc-register-enums.h"
 #include "Register/Common/RegisterInfo_arm.h"
 #include "Register/Common/RegisterInfo_arm64.h"
@@ -36,9 +37,29 @@ std::pair<size_t, size_t> GetRegParams(RegisterInfoInterface &ctx,
   return {info.byte_offset, info.byte_size};
 }
 
+std::pair<size_t, size_t> GetRegParams(RegisterInfoProvider &ctx,
+                                       uint32_t reg) {
+  const RegisterInfo &info = ctx.GetRegisterInfo()[reg];
+  const auto *descriptor = ctx.GetDescription().Find(info.name);
+  const auto *location = ctx.GetLayout().Find(descriptor->id);
+  EXPECT_NE(location, nullptr);
+  if (!location || location->pieces.size() != 1)
+    return {size_t(-1), 0};
+  const auto &piece = location->pieces.front();
+  const auto *group =
+      ctx.GetRegisterSet(ctx.GetRegisterSetFromRegisterIndex(reg));
+  if (group && llvm::StringRef(group->short_name) == "gpr")
+    EXPECT_EQ(piece.bank, 0u);
+  if (group && llvm::StringRef(group->short_name) == "fpu")
+    EXPECT_EQ(piece.bank, 1u);
+  if (group && llvm::StringRef(group->short_name) == "dbr")
+    EXPECT_EQ(piece.bank, x86_layout::Debug);
+  return {piece.byte_offset, piece.byte_size};
+}
+
 #define EXPECT_OFF(regname, offset, size)                                      \
   EXPECT_THAT(GetRegParams(reg_ctx, lldb_##regname),                           \
-              ::testing::Pair(offset + base_offset, size))
+              ::testing::Pair(offset, size))
 
 #if defined(__x86_64__)
 
@@ -51,7 +72,7 @@ std::pair<size_t, size_t> GetRegParams(RegisterInfoInterface &ctx,
 
 TEST(RegisterInfoFreeBSDTest, x86_64) {
   ArchSpec arch{"x86_64-unknown-freebsd"};
-  RegisterInfoFreeBSD_x86_64 reg_ctx{arch};
+  RegisterInfo_x86 reg_ctx{arch, CreateFreeBSDX86_64RegisterModel(arch)};
 
   EXPECT_GPR_X86_64(r15);
   EXPECT_GPR_X86_64(r14);
@@ -78,14 +99,9 @@ TEST(RegisterInfoFreeBSDTest, x86_64) {
   EXPECT_GPR_X86_64(rsp);
   EXPECT_GPR_X86_64(ss);
 
-  // fctrl is the first FPR field, it is used to determine offset of the whole
-  // FPR struct
-  size_t base_offset = reg_ctx.GetRegisterInfo()[lldb_fctrl_x86_64].byte_offset;
-
   // assert against FXSAVE struct
   EXPECT_OFF(fctrl_x86_64, 0x00, 2);
   EXPECT_OFF(fstat_x86_64, 0x02, 2);
-  // TODO: This is a known bug, abridged ftag should is 8 bits in length.
   EXPECT_OFF(ftag_x86_64, 0x04, 2);
   EXPECT_OFF(fop_x86_64, 0x06, 2);
   // NB: Technically fiseg/foseg are 16-bit long and the higher 16 bits
@@ -133,7 +149,6 @@ TEST(RegisterInfoFreeBSDTest, x86_64) {
   EXPECT_OFF(xmm14_x86_64, 0x180, 16);
   EXPECT_OFF(xmm15_x86_64, 0x190, 16);
 
-  base_offset = reg_ctx.GetRegisterInfo()[lldb_dr0_x86_64].byte_offset;
   EXPECT_DBR_X86_64(0);
   EXPECT_DBR_X86_64(1);
   EXPECT_DBR_X86_64(2);
@@ -158,7 +173,7 @@ TEST(RegisterInfoFreeBSDTest, x86_64) {
 
 TEST(RegisterInfoFreeBSDTest, i386) {
   ArchSpec arch{"i686-unknown-freebsd"};
-  RegisterInfoFreeBSD_i386 reg_ctx{arch};
+  RegisterInfo_x86 reg_ctx{arch, CreateFreeBSDI386RegisterModel(arch)};
 
 #if defined(__i386__)
   using native_i386_regs = ::reg;
@@ -185,14 +200,9 @@ TEST(RegisterInfoFreeBSDTest, i386) {
   EXPECT_GPR_I386(ss);
   EXPECT_GPR_I386(gs);
 
-  // fctrl is the first FPR field, it is used to determine offset of the whole
-  // FPR struct
-  size_t base_offset = reg_ctx.GetRegisterInfo()[lldb_fctrl_i386].byte_offset;
-
   // assert against FXSAVE struct
   EXPECT_OFF(fctrl_i386, 0x00, 2);
   EXPECT_OFF(fstat_i386, 0x02, 2);
-  // TODO: This is a known bug, abridged ftag should is 8 bits in length.
   EXPECT_OFF(ftag_i386, 0x04, 2);
   EXPECT_OFF(fop_i386, 0x06, 2);
   // NB: Technically fiseg/foseg are 16-bit long and the higher 16 bits
@@ -228,7 +238,6 @@ TEST(RegisterInfoFreeBSDTest, i386) {
   EXPECT_OFF(xmm6_i386, 0x100, 16);
   EXPECT_OFF(xmm7_i386, 0x110, 16);
 
-  base_offset = reg_ctx.GetRegisterInfo()[lldb_dr0_i386].byte_offset;
   EXPECT_DBR_I386(0);
   EXPECT_DBR_I386(1);
   EXPECT_DBR_I386(2);

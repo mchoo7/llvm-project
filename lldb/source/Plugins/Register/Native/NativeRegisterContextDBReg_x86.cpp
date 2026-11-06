@@ -82,7 +82,7 @@ static constexpr uint64_t watchpoint_all_control_bit_mask = 0xFFFF00FF;
 
 const RegisterInfo *NativeRegisterContextDBReg_x86::GetDR(int num) const {
   assert(num >= 0 && num <= 7);
-  switch (GetRegisterInfoInterface().GetTargetArchitecture().GetMachine()) {
+  switch (GetRegisterInfoProvider().GetTargetArchitecture().GetMachine()) {
   case llvm::Triple::x86:
     return GetRegisterInfoAtIndex(lldb_dr0_i386 + num);
   case llvm::Triple::x86_64:

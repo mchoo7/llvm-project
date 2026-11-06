@@ -14,6 +14,8 @@ add_lldb_library(lldbPluginProcessElfCore PLUGIN
   RegisterUtilities.cpp
 
   RegisterInfoDynamic_riscv32.cpp
+  RegisterModelOpenBSD_i386.cpp
+  RegisterModelOpenBSD_x86_64.cpp
 
   LINK_COMPONENTS
     BinaryFormat
@@ -25,5 +27,6 @@ add_lldb_library(lldbPluginProcessElfCore PLUGIN
     lldbPluginObjectFilePlaceholder
     lldbPluginProcessUtility
     lldbPluginRegisterCore
+    lldbRegister
     lldbTarget
   )

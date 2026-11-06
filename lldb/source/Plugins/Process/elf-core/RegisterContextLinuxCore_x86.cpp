@@ -211,7 +211,7 @@ static const RegisterSet g_reg_sets_x86_64[] = {
      g_avx_regnums_x86_64}};
 
 RegisterContextLinuxCore_x86::RegisterContextLinuxCore_x86(
-    Thread &thread, RegisterInfoInterface *register_info,
+    Thread &thread, RegisterInfoProvider *register_info,
     const DataExtractor &gpregset, llvm::ArrayRef<CoreNote> notes)
     : RegisterContextCorePOSIX_x86(thread, register_info, gpregset, notes) {}
 

@@ -196,7 +196,7 @@ bool RegisterContextCore_x86::IsFPR(unsigned reg, FPRType fpr_type) {
 
 RegisterContextCore_x86::RegisterContextCore_x86(
     Thread &thread, uint32_t concrete_frame_idx,
-    RegisterInfoInterface *register_info)
+    RegisterInfoProvider *register_info)
     : RegisterContext(thread, concrete_frame_idx) {
   m_register_info_up.reset(register_info);
 
@@ -222,11 +222,6 @@ void RegisterContextCore_x86::Invalidate() {}
 
 void RegisterContextCore_x86::InvalidateAllRegisters() {}
 
-unsigned RegisterContextCore_x86::GetRegisterOffset(unsigned reg) {
-  assert(reg < GetRegInfo().num_registers && "Invalid register number.");
-  return GetRegisterInfo()[reg].byte_offset;
-}
-
 RegInfo &RegisterContextCore_x86::GetRegInfo() {
   return GetRegInfoShared(
       m_register_info_up->GetTargetArchitecture().GetMachine(),
@@ -248,10 +243,6 @@ size_t RegisterContextCore_x86::GetRegisterCount() {
 
 size_t RegisterContextCore_x86::GetGPRSize() {
   return m_register_info_up->GetGPRSize();
-}
-
-size_t RegisterContextCore_x86::GetFXSAVEOffset() {
-  return GetRegisterInfo()[GetRegInfo().first_fpr].byte_offset;
 }
 
 const RegisterInfo *RegisterContextCore_x86::GetRegisterInfo() {

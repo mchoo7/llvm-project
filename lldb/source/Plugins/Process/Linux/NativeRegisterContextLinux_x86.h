@@ -13,9 +13,8 @@
 
 #include "Plugins/Process/Linux/NativeRegisterContextLinux.h"
 #include "Plugins/Register/Native/NativeRegisterContextDBReg_x86.h"
-#include "Register/Linux/RegisterInfoLinux_x86.h"
-#include "Register/Arch/RegisterContext_x86.h"
 #include "lldb/Register/Arch/lldb-x86-register-enums.h"
+#include "lldb/Register/Common/RegisterInfo_x86.h"
 #include <optional>
 #include <sys/uio.h>
 
@@ -107,12 +106,10 @@ private:
   std::unique_ptr<FPR, llvm::FreeDeleter>
       m_xstate; // Extended States Area, named FPR for historical reasons.
   struct iovec m_iovec;
-  YMM m_ymm_set;
-  MPX m_mpx_set;
   RegInfo m_reg_info;
+  RegisterInfo m_orig_ax_info = {};
   RegisterInfo m_i386_thread_pointer_info = {};
   uint64_t m_gpr_x86_64[x86_64_with_base::k_num_gpr_registers];
-  uint32_t m_fctrl_offset_in_userarea;
 
   // Private member methods.
   bool IsCPUFeatureAvailable(RegSet feature_code) const;
@@ -125,15 +122,7 @@ private:
 
   bool IsDR(uint32_t reg_index) const;
 
-  bool CopyXSTATEtoYMM(uint32_t reg_index, lldb::ByteOrder byte_order);
-
-  bool CopyYMMtoXSTATE(uint32_t reg, lldb::ByteOrder byte_order);
-
   bool IsAVX(uint32_t reg_index) const;
-
-  bool CopyXSTATEtoMPX(uint32_t reg);
-
-  bool CopyMPXtoXSTATE(uint32_t reg);
 
   bool IsMPX(uint32_t reg_index) const;
 
@@ -145,9 +134,8 @@ private:
 
   void UpdateXSTATEforWrite(uint32_t reg_index);
 
-  RegisterInfoLinux_x86 &GetRegisterInfo() const {
-    return static_cast<RegisterInfoLinux_x86 &>(
-        *m_register_info_interface_up);
+  RegisterInfo_x86 &GetRegisterInfo() const {
+    return static_cast<RegisterInfo_x86 &>(*m_register_info_interface_up);
   }
 };
 

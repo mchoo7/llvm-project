@@ -7,18 +7,12 @@
 //===----------------------------------------------------------------------===//
 
 #include "ThreadMinidump.h"
+#include "RegisterContextMinidump_x86.h"
 
 #include "ProcessMinidump.h"
 
 #include "RegisterContextMinidump_ARM.h"
 #include "RegisterContextMinidump_ARM64.h"
-#include "RegisterContextMinidump_x86_32.h"
-#include "RegisterContextMinidump_x86_64.h"
-
-#include "Register/Linux/RegisterInfoLinux_i386.h"
-#include "Register/Linux/RegisterInfoLinux_x86_64.h"
-#include "Plugins/Process/elf-core/RegisterContextPOSIXCore_x86.h"
-#include "Plugins/Process/elf-core/RegisterUtilities.h"
 
 #include "lldb/Target/RegisterContext.h"
 #include "lldb/Target/StopInfo.h"
@@ -64,30 +58,14 @@ ThreadMinidump::CreateRegisterContextForFrame(StackFrame *frame) {
     ProcessMinidump *process =
         static_cast<ProcessMinidump *>(GetProcess().get());
     ArchSpec arch = process->GetArchitecture();
-    RegisterInfoInterface *reg_interface = nullptr;
 
     // TODO write other register contexts and add them here
     switch (arch.GetMachine()) {
-    case llvm::Triple::x86: {
-      reg_interface = new RegisterInfoLinux_i386(arch);
-      lldb::DataBufferSP buf =
-          ConvertMinidumpContext_x86_32(m_gpregset_data, reg_interface);
-      DataExtractor gpregset(buf, lldb::eByteOrderLittle, 4);
-      m_thread_reg_ctx_sp = std::make_shared<RegisterContextCorePOSIX_x86>(
-          *this, reg_interface, gpregset,
-          llvm::ArrayRef<lldb_private::CoreNote>());
+    case llvm::Triple::x86:
+    case llvm::Triple::x86_64:
+      m_thread_reg_ctx_sp = std::make_shared<RegisterContextMinidump_x86>(
+          *this, arch, m_gpregset_data);
       break;
-    }
-    case llvm::Triple::x86_64: {
-      reg_interface = new RegisterInfoLinux_x86_64(arch);
-      lldb::DataBufferSP buf =
-          ConvertMinidumpContext_x86_64(m_gpregset_data, reg_interface);
-      DataExtractor gpregset(buf, lldb::eByteOrderLittle, 8);
-      m_thread_reg_ctx_sp = std::make_shared<RegisterContextCorePOSIX_x86>(
-          *this, reg_interface, gpregset,
-          llvm::ArrayRef<lldb_private::CoreNote>());
-      break;
-    }
     case llvm::Triple::aarch64: {
       DataExtractor data(m_gpregset_data.data(), m_gpregset_data.size(),
                          lldb::eByteOrderLittle, 8);

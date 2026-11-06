@@ -14,7 +14,7 @@
 using namespace lldb_private;
 
 RegisterContextCorePOSIX_x86::RegisterContextCorePOSIX_x86(
-    Thread &thread, RegisterInfoInterface *register_info,
+    Thread &thread, RegisterInfoProvider *register_info,
     const DataExtractor &gpregset, llvm::ArrayRef<CoreNote> notes)
     : RegisterContextCore_x86(thread, 0, register_info) {
   size_t size, len;
@@ -55,28 +55,26 @@ bool RegisterContextCorePOSIX_x86::WriteFPR() {
 }
 
 bool RegisterContextCorePOSIX_x86::ReadRegister(const RegisterInfo *reg_info,
-                                                   RegisterValue &value) {
-  const uint8_t *src;
-  size_t offset;
-  const size_t fxsave_offset = reg_info->byte_offset - GetFXSAVEOffset();
-  // make the offset relative to the beginning of the FXSAVE structure because
-  // this is the data that we have (not the entire UserArea)
-
-  if (m_gpregset && reg_info->byte_offset < GetGPRSize()) {
-    src = m_gpregset.get();
-    offset = reg_info->byte_offset;
-  } else if (m_fpregset && fxsave_offset < sizeof(FXSAVE)) {
-    src = m_fpregset.get();
-    offset = fxsave_offset;
-  } else {
+                                                RegisterValue &value) {
+  if (!reg_info)
+    return false;
+  if (llvm::StringRef(reg_info->name) == "ftag") {
+    if (!m_fpregset)
+      return false;
+    const auto *fp = reinterpret_cast<const FXSAVE *>(m_fpregset.get());
+    value.SetUInt16(AbridgedToFullTagWord(fp->ftag, fp->fstat, fp->stmm));
+    return true;
+  }
+  auto result = m_register_info_up->ReadRegister(
+      *reg_info,
+      {{x86_layout::GP, {m_gpregset.get(), m_gpregset ? GetGPRSize() : 0}},
+       {x86_layout::FP, {m_fpregset.get(), m_fpregset ? sizeof(FXSAVE) : 0}}});
+  if (!result) {
+    llvm::consumeError(result.takeError());
     return false;
   }
-
-  Status error;
-  value.SetFromMemoryData(*reg_info, src + offset, reg_info->byte_size,
-                          lldb::eByteOrderLittle, error);
-
-  return error.Success();
+  value = std::move(*result);
+  return true;
 }
 
 bool RegisterContextCorePOSIX_x86::ReadAllRegisterValues(

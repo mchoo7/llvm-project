@@ -11,8 +11,8 @@
 #include "NativeRegisterContextWindows_WoW64.h"
 
 #include "NativeThreadWindows.h"
-#include "Register/Windows/RegisterInfoWindows_i386.h"
 #include "ProcessWindowsLog.h"
+#include "RegisterModelWindows_x86.h"
 #include "lldb/Host/HostInfo.h"
 #include "lldb/Host/HostThread.h"
 #include "lldb/Host/windows/HostThreadWindows.h"
@@ -47,13 +47,15 @@ static const DWORD kWoW64ContextFlags =
 
 } // namespace
 
-static RegisterInfoInterface *
+static RegisterInfoProvider *
 CreateRegisterInfoInterface(const ArchSpec &target_arch) {
   // i686 32bit instruction set.
   assert((target_arch.GetAddressByteSize() == 4 &&
           HostInfo::GetArchitecture().GetAddressByteSize() == 8) &&
          "Register setting path assumes this is a 64-bit host");
-  return new RegisterInfoWindows_i386(target_arch);
+  return new RegisterInfo_x86(
+      target_arch,
+      CreateWindowsX86RegisterModel(target_arch, X86RegisterMode::I386));
 }
 
 static Status

@@ -9,10 +9,9 @@
 #ifndef LLDB_SOURCE_PLUGINS_REGISTER_CORE_REGISTERCONTEXTCORE_X86_H
 #define LLDB_SOURCE_PLUGINS_REGISTER_CORE_REGISTERCONTEXTCORE_X86_H
 
-#include "Register/Arch/RegisterContext_x86.h"
-#include "lldb/Register/RegisterInfoInterface.h"
-#include "Register/Arch/RegisterInfos_x86_64_with_base_shared.h"
 #include "lldb/Register/Arch/lldb-x86-register-enums.h"
+#include "lldb/Register/Common/RegisterInfo_x86.h"
+#include "lldb/Register/RegisterInfoProvider.h"
 #include "lldb/Target/RegisterContext.h"
 #include "lldb/Utility/Log.h"
 
@@ -20,7 +19,7 @@ class RegisterContextCore_x86 : public lldb_private::RegisterContext {
 public:
   RegisterContextCore_x86(lldb_private::Thread &thread,
                            uint32_t concrete_frame_idx,
-                           lldb_private::RegisterInfoInterface *register_info);
+                           lldb_private::RegisterInfoProvider *register_info);
 
   ~RegisterContextCore_x86() override;
 
@@ -32,11 +31,7 @@ public:
 
   virtual size_t GetGPRSize();
 
-  virtual size_t GetFXSAVEOffset();
-
   virtual unsigned GetRegisterSize(unsigned reg);
-
-  virtual unsigned GetRegisterOffset(unsigned reg);
 
   const lldb_private::RegisterInfo *GetRegisterInfoAtIndex(size_t reg) override;
 
@@ -61,7 +56,7 @@ protected:
   lldb_private::FPR m_fpr;     // floating-point registers including extended
                                // register sets.
   lldb_private::YMM m_ymm_set; // copy of ymmh and xmm register halves.
-  std::unique_ptr<lldb_private::RegisterInfoInterface>
+  std::unique_ptr<lldb_private::RegisterInfoProvider>
       m_register_info_up; // Register Info Interface (FreeBSD or Linux)
 
   // Determines if an extended register set is supported on the processor

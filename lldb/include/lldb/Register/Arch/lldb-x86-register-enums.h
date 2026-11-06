@@ -130,9 +130,8 @@ enum {
   k_num_avx_registers_i386 = k_last_avx_i386 - k_first_avx_i386 + 1,
   k_num_mpx_registers_i386 = k_last_mpxc_i386 - k_first_mpxr_i386 + 1,
   k_num_user_registers_i386 = k_num_gpr_registers_i386 +
-                              k_num_fpr_registers_i386 +
-                              k_num_avx_registers_i386 +
-                              k_num_mpx_registers_i386,
+      k_num_fpr_registers_i386 + k_num_avx_registers_i386 +
+      k_num_mpx_registers_i386,
   k_num_dbr_registers_i386 = k_last_dbr_i386 - k_first_dbr_i386 + 1,
 };
 
@@ -316,9 +315,8 @@ enum {
   k_num_avx_registers_x86_64 = k_last_avx_x86_64 - k_first_avx_x86_64 + 1,
   k_num_mpx_registers_x86_64 = k_last_mpxc_x86_64 - k_first_mpxr_x86_64 + 1,
   k_num_user_registers_x86_64 = k_num_gpr_registers_x86_64 +
-                                k_num_fpr_registers_x86_64 +
-                                k_num_avx_registers_x86_64 +
-                                k_num_mpx_registers_x86_64,
+      k_num_fpr_registers_x86_64 + k_num_avx_registers_x86_64 +
+      k_num_mpx_registers_x86_64,
   k_num_dbr_registers_x86_64 = k_last_dbr_x86_64 - k_first_dbr_x86_64 + 1,
 };
 
@@ -504,14 +502,12 @@ enum {
   k_num_fpr_registers = k_last_fpr - k_first_fpr + 1,
   k_num_avx_registers = k_last_avx - k_first_avx + 1,
   k_num_mpx_registers = k_last_mpxc - k_first_mpxr + 1,
-  k_num_user_registers = k_num_gpr_registers +
-                                k_num_fpr_registers +
-                                k_num_avx_registers +
-                                k_num_mpx_registers,
+  k_num_user_registers = k_num_gpr_registers + k_num_fpr_registers +
+      k_num_avx_registers + k_num_mpx_registers,
   k_num_dbr_registers = k_last_dbr - k_first_dbr + 1,
 };
 } // namespace x86_64_with_base
 
-}
+} // namespace lldb_private
 
 #endif // LLDB_REGISTER_ARCH_LLDB_X86_REGISTER_ENUMS_H

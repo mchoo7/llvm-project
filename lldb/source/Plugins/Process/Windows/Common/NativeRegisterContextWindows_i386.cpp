@@ -11,8 +11,8 @@
 #include "NativeRegisterContextWindows_i386.h"
 
 #include "NativeThreadWindows.h"
-#include "Register/Windows/RegisterInfoWindows_i386.h"
 #include "ProcessWindowsLog.h"
+#include "RegisterModelWindows_x86.h"
 #include "lldb/Host/HostInfo.h"
 #include "lldb/Host/HostThread.h"
 #include "lldb/Host/windows/HostThreadWindows.h"
@@ -45,11 +45,13 @@ enum { k_num_register_sets = 1 };
 
 } // namespace
 
-static RegisterInfoInterface *
+static RegisterInfoProvider *
 CreateRegisterInfoInterface(const ArchSpec &target_arch) {
   assert((HostInfo::GetArchitecture().GetAddressByteSize() == 4) &&
          "Register setting path assumes this is a 32-bit host");
-  return new RegisterInfoWindows_i386(target_arch);
+  return new RegisterInfo_x86(
+      target_arch,
+      CreateWindowsX86RegisterModel(target_arch, X86RegisterMode::I386));
 }
 
 static Status GetThreadContextHelper(lldb::thread_t thread_handle,

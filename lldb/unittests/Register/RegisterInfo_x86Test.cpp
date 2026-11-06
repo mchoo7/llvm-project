@@ -8,7 +8,7 @@
 
 #include "gtest/gtest.h"
 
-#include "Register/Arch/RegisterContext_x86.h"
+#include "lldb/Register/Common/RegisterInfo_x86.h"
 
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/Support/FormatVariadic.h"

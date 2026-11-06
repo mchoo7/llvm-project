@@ -17,7 +17,7 @@ class RegisterContextFreeBSDKernelCore_x86_64
 public:
   RegisterContextFreeBSDKernelCore_x86_64(
       lldb_private::Thread &thread,
-      lldb_private::RegisterInfoInterface *register_info,
+      lldb_private::RegisterInfoProvider *register_info,
       lldb::addr_t pcb_addr);
 
   bool ReadRegister(const lldb_private::RegisterInfo *reg_info,

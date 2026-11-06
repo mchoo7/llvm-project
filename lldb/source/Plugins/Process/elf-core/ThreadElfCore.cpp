@@ -16,16 +16,16 @@
 #include "lldb/Utility/Log.h"
 #include "lldb/Utility/ProcessInfo.h"
 
-#include "Register/FreeBSD/RegisterInfoFreeBSD_i386.h"
+#include "lldb/Register/Layouts/FreeBSD/RegisterModelFreeBSD_i386.h"
 #include "Register/FreeBSD/RegisterInfoFreeBSD_powerpc.h"
-#include "Register/FreeBSD/RegisterInfoFreeBSD_x86_64.h"
-#include "Register/Linux/RegisterInfoLinux_i386.h"
+#include "lldb/Register/Layouts/FreeBSD/RegisterModelFreeBSD_x86_64.h"
+#include "lldb/Register/Layouts/Linux/RegisterModelLinux_i386.h"
 #include "Register/Linux/RegisterInfoLinux_s390x.h"
-#include "Register/Linux/RegisterInfoLinux_x86_64.h"
-#include "Register/NetBSD/RegisterInfoNetBSD_i386.h"
-#include "Register/NetBSD/RegisterInfoNetBSD_x86_64.h"
-#include "Register/OpenBSD/RegisterInfoOpenBSD_i386.h"
-#include "Register/OpenBSD/RegisterInfoOpenBSD_x86_64.h"
+#include "lldb/Register/Layouts/Linux/RegisterModelLinux_x86_64.h"
+#include "lldb/Register/Layouts/NetBSD/RegisterModelNetBSD_i386.h"
+#include "lldb/Register/Layouts/NetBSD/RegisterModelNetBSD_x86_64.h"
+#include "RegisterModelOpenBSD_i386.h"
+#include "RegisterModelOpenBSD_x86_64.h"
 #include "Register/Common/RegisterInfo_arm.h"
 #include "Register/Common/RegisterInfo_arm64.h"
 #include "Register/Common/RegisterInfo_ppc64le.h"
@@ -98,10 +98,12 @@ ThreadElfCore::CreateRegisterContextForFrame(StackFrame *frame) {
         reg_interface = new RegisterInfoFreeBSD_powerpc64(arch);
         break;
       case llvm::Triple::x86:
-        reg_interface = new RegisterInfoFreeBSD_i386(arch);
+        reg_interface =
+            new RegisterInfo_x86(arch, CreateFreeBSDI386RegisterModel(arch));
         break;
       case llvm::Triple::x86_64:
-        reg_interface = new RegisterInfoFreeBSD_x86_64(arch);
+        reg_interface =
+            new RegisterInfo_x86(arch, CreateFreeBSDX86_64RegisterModel(arch));
         break;
       default:
         break;
@@ -114,10 +116,12 @@ ThreadElfCore::CreateRegisterContextForFrame(StackFrame *frame) {
       case llvm::Triple::aarch64:
         break;
       case llvm::Triple::x86:
-        reg_interface = new RegisterInfoNetBSD_i386(arch);
+        reg_interface =
+            new RegisterInfo_x86(arch, CreateNetBSDI386RegisterModel(arch));
         break;
       case llvm::Triple::x86_64:
-        reg_interface = new RegisterInfoNetBSD_x86_64(arch);
+        reg_interface =
+            new RegisterInfo_x86(arch, CreateNetBSDX86_64RegisterModel(arch));
         break;
       default:
         break;
@@ -137,10 +141,12 @@ ThreadElfCore::CreateRegisterContextForFrame(StackFrame *frame) {
         reg_interface = new RegisterInfoLinux_s390x(arch);
         break;
       case llvm::Triple::x86:
-        reg_interface = new RegisterInfoLinux_i386(arch);
+        reg_interface =
+            new RegisterInfo_x86(arch, CreateLinuxI386RegisterModel(arch));
         break;
       case llvm::Triple::x86_64:
-        reg_interface = new RegisterInfoLinux_x86_64(arch);
+        reg_interface =
+            new RegisterInfo_x86(arch, CreateLinuxX86_64RegisterModel(arch));
         break;
       default:
         break;
@@ -153,10 +159,12 @@ ThreadElfCore::CreateRegisterContextForFrame(StackFrame *frame) {
       case llvm::Triple::aarch64:
         break;
       case llvm::Triple::x86:
-        reg_interface = new RegisterInfoOpenBSD_i386(arch);
+        reg_interface =
+            new RegisterInfo_x86(arch, CreateOpenBSDI386RegisterModel(arch));
         break;
       case llvm::Triple::x86_64:
-        reg_interface = new RegisterInfoOpenBSD_x86_64(arch);
+        reg_interface =
+            new RegisterInfo_x86(arch, CreateOpenBSDX86_64RegisterModel(arch));
         break;
       default:
         break;
@@ -217,10 +225,10 @@ ThreadElfCore::CreateRegisterContextForFrame(StackFrame *frame) {
     case llvm::Triple::x86_64:
       if (is_linux) {
         m_thread_reg_ctx_sp = std::make_shared<RegisterContextLinuxCore_x86>(
-              *this, reg_interface, m_gpregset_data, m_notes);
+              *this, static_cast<RegisterInfoProvider *>(reg_interface), m_gpregset_data, m_notes);
       } else {
         m_thread_reg_ctx_sp = std::make_shared<RegisterContextCorePOSIX_x86>(
-              *this, reg_interface, m_gpregset_data, m_notes);
+              *this, static_cast<RegisterInfoProvider *>(reg_interface), m_gpregset_data, m_notes);
       }
       break;
     default:

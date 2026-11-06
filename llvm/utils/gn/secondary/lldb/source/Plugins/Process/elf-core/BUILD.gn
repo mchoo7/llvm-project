@@ -7,6 +7,7 @@ static_library("elf-core") {
     "//lldb/source/Plugins/ObjectFile/ELF",
     "//lldb/source/Plugins/Process/Utility",
     "//lldb/source/Plugins/Register/Core",
+    "//lldb/source/Register",
     "//lldb/source/Target",
     "//llvm/lib/BinaryFormat",
     "//llvm/lib/Support",
@@ -27,6 +28,8 @@ static_library("elf-core") {
     "RegisterContextPOSIXCore_s390x.cpp",
     "RegisterContextPOSIXCore_x86.cpp",
     "RegisterInfoDynamic_riscv32.cpp",
+    "RegisterModelOpenBSD_i386.cpp",
+    "RegisterModelOpenBSD_x86_64.cpp",
     "RegisterUtilities.cpp",
     "ThreadElfCore.cpp",
   ]

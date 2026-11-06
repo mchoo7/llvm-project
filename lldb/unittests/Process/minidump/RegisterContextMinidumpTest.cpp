@@ -6,11 +6,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "Register/Linux/RegisterInfoLinux_i386.h"
-#include "Register/Linux/RegisterInfoLinux_x86_64.h"
+#include "Plugins/Process/minidump/RegisterContextMinidump_ARM.h"
+#include "Plugins/Process/minidump/RegisterContextMinidump_x86.h"
 #include "Plugins/Process/minidump/RegisterContextMinidump_x86_32.h"
 #include "Plugins/Process/minidump/RegisterContextMinidump_x86_64.h"
-#include "Plugins/Process/minidump/RegisterContextMinidump_ARM.h"
 #include "lldb/Utility/DataBuffer.h"
 #include "llvm/ADT/StringRef.h"
 #include "gtest/gtest.h"
@@ -18,15 +17,22 @@
 using namespace lldb_private;
 using namespace lldb_private::minidump;
 
-static uint32_t reg32(const DataBuffer &Buf, const RegisterInfo &Info) {
-  return *reinterpret_cast<const uint32_t *>(Buf.GetBytes() + Info.byte_offset);
+static uint64_t reg64(const RegisterInfoProvider &provider,
+                      llvm::ArrayRef<uint8_t> bytes, const RegisterInfo &reg) {
+  auto value = ReadMinidumpX86Register(provider, bytes, reg);
+  EXPECT_TRUE(bool(value));
+  if (!value) {
+    llvm::consumeError(value.takeError());
+    return 0;
+  }
+  return value->GetAsUInt64();
+}
+static uint32_t reg32(const RegisterInfoProvider &provider,
+                      llvm::ArrayRef<uint8_t> bytes, const RegisterInfo &reg) {
+  return reg64(provider, bytes, reg);
 }
 
-static uint64_t reg64(const DataBuffer &Buf, const RegisterInfo &Info) {
-  return *reinterpret_cast<const uint64_t *>(Buf.GetBytes() + Info.byte_offset);
-}
-
-TEST(RegisterContextMinidump, ConvertMinidumpContext_x86_32) {
+TEST(RegisterContextMinidump, ReadMinidumpContext_x86_32) {
   MinidumpContext_x86_32 Context;
   Context.context_flags =
       static_cast<uint32_t>(MinidumpContext_x86_32_Flags::x86_32_Flag |
@@ -53,33 +59,32 @@ TEST(RegisterContextMinidump, ConvertMinidumpContext_x86_32) {
                                      sizeof(Context));
 
   ArchSpec arch("i386-pc-linux");
-  auto RegInterface = std::make_unique<RegisterInfoLinux_i386>(arch);
-  lldb::DataBufferSP Buf =
-      ConvertMinidumpContext_x86_32(ContextRef, RegInterface.get());
-  ASSERT_EQ(RegInterface->GetGPRSize(), Buf->GetByteSize());
+  auto RegInterface = std::make_unique<RegisterInfo_x86>(
+      arch, CreateMinidumpX86RegisterModel(arch));
 
   const RegisterInfo *Info = RegInterface->GetRegisterInfo();
   ASSERT_NE(nullptr, Info);
 
-  EXPECT_EQ(Context.eax, reg32(*Buf, Info[lldb_eax_i386]));
-  EXPECT_EQ(Context.ebx, reg32(*Buf, Info[lldb_ebx_i386]));
-  EXPECT_EQ(Context.ecx, reg32(*Buf, Info[lldb_ecx_i386]));
-  EXPECT_EQ(Context.edx, reg32(*Buf, Info[lldb_edx_i386]));
-  EXPECT_EQ(Context.edi, reg32(*Buf, Info[lldb_edi_i386]));
-  EXPECT_EQ(Context.esi, reg32(*Buf, Info[lldb_esi_i386]));
-  EXPECT_EQ(Context.ebp, reg32(*Buf, Info[lldb_ebp_i386]));
-  EXPECT_EQ(Context.esp, reg32(*Buf, Info[lldb_esp_i386]));
-  EXPECT_EQ(Context.eip, reg32(*Buf, Info[lldb_eip_i386]));
-  EXPECT_EQ(Context.eflags, reg32(*Buf, Info[lldb_eflags_i386]));
-  EXPECT_EQ(Context.cs, reg32(*Buf, Info[lldb_cs_i386]));
-  EXPECT_EQ(Context.fs, reg32(*Buf, Info[lldb_fs_i386]));
-  EXPECT_EQ(Context.gs, reg32(*Buf, Info[lldb_gs_i386]));
-  EXPECT_EQ(Context.ss, reg32(*Buf, Info[lldb_ss_i386]));
-  EXPECT_EQ(Context.ds, reg32(*Buf, Info[lldb_ds_i386]));
-  EXPECT_EQ(Context.es, reg32(*Buf, Info[lldb_es_i386]));
+  EXPECT_EQ(Context.eax, reg32(*RegInterface, ContextRef, Info[lldb_eax_i386]));
+  EXPECT_EQ(Context.ebx, reg32(*RegInterface, ContextRef, Info[lldb_ebx_i386]));
+  EXPECT_EQ(Context.ecx, reg32(*RegInterface, ContextRef, Info[lldb_ecx_i386]));
+  EXPECT_EQ(Context.edx, reg32(*RegInterface, ContextRef, Info[lldb_edx_i386]));
+  EXPECT_EQ(Context.edi, reg32(*RegInterface, ContextRef, Info[lldb_edi_i386]));
+  EXPECT_EQ(Context.esi, reg32(*RegInterface, ContextRef, Info[lldb_esi_i386]));
+  EXPECT_EQ(Context.ebp, reg32(*RegInterface, ContextRef, Info[lldb_ebp_i386]));
+  EXPECT_EQ(Context.esp, reg32(*RegInterface, ContextRef, Info[lldb_esp_i386]));
+  EXPECT_EQ(Context.eip, reg32(*RegInterface, ContextRef, Info[lldb_eip_i386]));
+  EXPECT_EQ(Context.eflags,
+            reg32(*RegInterface, ContextRef, Info[lldb_eflags_i386]));
+  EXPECT_EQ(Context.cs, reg32(*RegInterface, ContextRef, Info[lldb_cs_i386]));
+  EXPECT_EQ(Context.fs, reg32(*RegInterface, ContextRef, Info[lldb_fs_i386]));
+  EXPECT_EQ(Context.gs, reg32(*RegInterface, ContextRef, Info[lldb_gs_i386]));
+  EXPECT_EQ(Context.ss, reg32(*RegInterface, ContextRef, Info[lldb_ss_i386]));
+  EXPECT_EQ(Context.ds, reg32(*RegInterface, ContextRef, Info[lldb_ds_i386]));
+  EXPECT_EQ(Context.es, reg32(*RegInterface, ContextRef, Info[lldb_es_i386]));
 }
 
-TEST(RegisterContextMinidump, ConvertMinidumpContext_x86_64) {
+TEST(RegisterContextMinidump, ReadMinidumpContext_x86_64) {
   MinidumpContext_x86_64 Context;
   Context.context_flags =
       static_cast<uint32_t>(MinidumpContext_x86_64_Flags::x86_64_Flag |
@@ -114,36 +119,50 @@ TEST(RegisterContextMinidump, ConvertMinidumpContext_x86_64) {
                                      sizeof(Context));
 
   ArchSpec arch("x86_64-pc-linux");
-  auto RegInterface = std::make_unique<RegisterInfoLinux_x86_64>(arch);
-  lldb::DataBufferSP Buf =
-      ConvertMinidumpContext_x86_64(ContextRef, RegInterface.get());
-  ASSERT_EQ(RegInterface->GetGPRSize(), Buf->GetByteSize());
+  auto RegInterface = std::make_unique<RegisterInfo_x86>(
+      arch, CreateMinidumpX86RegisterModel(arch));
 
   const RegisterInfo *Info = RegInterface->GetRegisterInfo();
-  EXPECT_EQ(Context.rax, reg64(*Buf, Info[lldb_rax_x86_64]));
-  EXPECT_EQ(Context.rbx, reg64(*Buf, Info[lldb_rbx_x86_64]));
-  EXPECT_EQ(Context.rcx, reg64(*Buf, Info[lldb_rcx_x86_64]));
-  EXPECT_EQ(Context.rdx, reg64(*Buf, Info[lldb_rdx_x86_64]));
-  EXPECT_EQ(Context.rdi, reg64(*Buf, Info[lldb_rdi_x86_64]));
-  EXPECT_EQ(Context.rsi, reg64(*Buf, Info[lldb_rsi_x86_64]));
-  EXPECT_EQ(Context.rbp, reg64(*Buf, Info[lldb_rbp_x86_64]));
-  EXPECT_EQ(Context.rsp, reg64(*Buf, Info[lldb_rsp_x86_64]));
-  EXPECT_EQ(Context.r8, reg64(*Buf, Info[lldb_r8_x86_64]));
-  EXPECT_EQ(Context.r9, reg64(*Buf, Info[lldb_r9_x86_64]));
-  EXPECT_EQ(Context.r10, reg64(*Buf, Info[lldb_r10_x86_64]));
-  EXPECT_EQ(Context.r11, reg64(*Buf, Info[lldb_r11_x86_64]));
-  EXPECT_EQ(Context.r12, reg64(*Buf, Info[lldb_r12_x86_64]));
-  EXPECT_EQ(Context.r13, reg64(*Buf, Info[lldb_r13_x86_64]));
-  EXPECT_EQ(Context.r14, reg64(*Buf, Info[lldb_r14_x86_64]));
-  EXPECT_EQ(Context.r15, reg64(*Buf, Info[lldb_r15_x86_64]));
-  EXPECT_EQ(Context.rip, reg64(*Buf, Info[lldb_rip_x86_64]));
-  EXPECT_EQ(Context.eflags, reg64(*Buf, Info[lldb_rflags_x86_64]));
-  EXPECT_EQ(Context.cs, reg64(*Buf, Info[lldb_cs_x86_64]));
-  EXPECT_EQ(Context.fs, reg64(*Buf, Info[lldb_fs_x86_64]));
-  EXPECT_EQ(Context.gs, reg64(*Buf, Info[lldb_gs_x86_64]));
-  EXPECT_EQ(Context.ss, reg64(*Buf, Info[lldb_ss_x86_64]));
-  EXPECT_EQ(Context.ds, reg64(*Buf, Info[lldb_ds_x86_64]));
-  EXPECT_EQ(Context.es, reg64(*Buf, Info[lldb_es_x86_64]));
+  EXPECT_EQ(Context.rax,
+            reg64(*RegInterface, ContextRef, Info[lldb_rax_x86_64]));
+  EXPECT_EQ(Context.rbx,
+            reg64(*RegInterface, ContextRef, Info[lldb_rbx_x86_64]));
+  EXPECT_EQ(Context.rcx,
+            reg64(*RegInterface, ContextRef, Info[lldb_rcx_x86_64]));
+  EXPECT_EQ(Context.rdx,
+            reg64(*RegInterface, ContextRef, Info[lldb_rdx_x86_64]));
+  EXPECT_EQ(Context.rdi,
+            reg64(*RegInterface, ContextRef, Info[lldb_rdi_x86_64]));
+  EXPECT_EQ(Context.rsi,
+            reg64(*RegInterface, ContextRef, Info[lldb_rsi_x86_64]));
+  EXPECT_EQ(Context.rbp,
+            reg64(*RegInterface, ContextRef, Info[lldb_rbp_x86_64]));
+  EXPECT_EQ(Context.rsp,
+            reg64(*RegInterface, ContextRef, Info[lldb_rsp_x86_64]));
+  EXPECT_EQ(Context.r8, reg64(*RegInterface, ContextRef, Info[lldb_r8_x86_64]));
+  EXPECT_EQ(Context.r9, reg64(*RegInterface, ContextRef, Info[lldb_r9_x86_64]));
+  EXPECT_EQ(Context.r10,
+            reg64(*RegInterface, ContextRef, Info[lldb_r10_x86_64]));
+  EXPECT_EQ(Context.r11,
+            reg64(*RegInterface, ContextRef, Info[lldb_r11_x86_64]));
+  EXPECT_EQ(Context.r12,
+            reg64(*RegInterface, ContextRef, Info[lldb_r12_x86_64]));
+  EXPECT_EQ(Context.r13,
+            reg64(*RegInterface, ContextRef, Info[lldb_r13_x86_64]));
+  EXPECT_EQ(Context.r14,
+            reg64(*RegInterface, ContextRef, Info[lldb_r14_x86_64]));
+  EXPECT_EQ(Context.r15,
+            reg64(*RegInterface, ContextRef, Info[lldb_r15_x86_64]));
+  EXPECT_EQ(Context.rip,
+            reg64(*RegInterface, ContextRef, Info[lldb_rip_x86_64]));
+  EXPECT_EQ(Context.eflags,
+            reg64(*RegInterface, ContextRef, Info[lldb_rflags_x86_64]));
+  EXPECT_EQ(Context.cs, reg64(*RegInterface, ContextRef, Info[lldb_cs_x86_64]));
+  EXPECT_EQ(Context.fs, reg64(*RegInterface, ContextRef, Info[lldb_fs_x86_64]));
+  EXPECT_EQ(Context.gs, reg64(*RegInterface, ContextRef, Info[lldb_gs_x86_64]));
+  EXPECT_EQ(Context.ss, reg64(*RegInterface, ContextRef, Info[lldb_ss_x86_64]));
+  EXPECT_EQ(Context.ds, reg64(*RegInterface, ContextRef, Info[lldb_ds_x86_64]));
+  EXPECT_EQ(Context.es, reg64(*RegInterface, ContextRef, Info[lldb_es_x86_64]));
 }
 
 static void TestARMRegInfo(const lldb_private::RegisterInfo *info) {
@@ -190,12 +209,31 @@ static void TestARMRegInfo(const lldb_private::RegisterInfo *info) {
 TEST(RegisterContextMinidump, CheckRegisterContextMinidump_ARM) {
   size_t num_regs = RegisterContextMinidump_ARM::GetRegisterCountStatic();
   const lldb_private::RegisterInfo *reg_info;
-  for (size_t reg=0; reg<num_regs; ++reg) {
-    reg_info = RegisterContextMinidump_ARM::GetRegisterInfoAtIndexStatic(reg,
-                                                                         true);
+  for (size_t reg = 0; reg < num_regs; ++reg) {
+    reg_info =
+        RegisterContextMinidump_ARM::GetRegisterInfoAtIndexStatic(reg, true);
     TestARMRegInfo(reg_info);
-    reg_info = RegisterContextMinidump_ARM::GetRegisterInfoAtIndexStatic(reg,
-                                                                         false);
+    reg_info =
+        RegisterContextMinidump_ARM::GetRegisterInfoAtIndexStatic(reg, false);
     TestARMRegInfo(reg_info);
   }
+}
+
+TEST(RegisterContextMinidump, RejectsAbsentRegisterSetsAndTruncatedContexts) {
+  ArchSpec arch("x86_64-pc-windows");
+  RegisterInfo_x86 info(arch, CreateMinidumpX86RegisterModel(arch));
+  MinidumpContext_x86_64 context{};
+  context.context_flags =
+      static_cast<uint32_t>(MinidumpContext_x86_64_Flags::x86_64_Flag);
+  llvm::ArrayRef<uint8_t> bytes(reinterpret_cast<const uint8_t *>(&context),
+                                sizeof(context));
+  const auto *rax = info.GetRegisterInfoByNumber(lldb_rax_x86_64);
+  auto absent = ReadMinidumpX86Register(info, bytes, *rax);
+  EXPECT_FALSE(bool(absent));
+  if (!absent)
+    llvm::consumeError(absent.takeError());
+  auto truncated = ReadMinidumpX86Register(info, bytes.take_front(8), *rax);
+  EXPECT_FALSE(bool(truncated));
+  if (!truncated)
+    llvm::consumeError(truncated.takeError());
 }

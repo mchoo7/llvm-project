@@ -13,37 +13,51 @@
 #include <amd64/reg.h>
 // clang-format on
 
+#include "lldb/Register/Common/RegisterInfo_x86.h"
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
 #include "lldb/Register/Arch/lldb-x86-register-enums.h"
-#include "Register/NetBSD/RegisterInfoNetBSD_i386.h"
-#include "Register/NetBSD/RegisterInfoNetBSD_x86_64.h"
+#include "lldb/Register/Layouts/NetBSD/RegisterModelNetBSD_i386.h"
+#include "lldb/Register/Layouts/NetBSD/RegisterModelNetBSD_x86_64.h"
 
 using namespace lldb;
 using namespace lldb_private;
 
-static std::pair<size_t, size_t> GetRegParams(RegisterInfoInterface &ctx,
+static std::pair<size_t, size_t> GetRegParams(RegisterInfoProvider &ctx,
                                               uint32_t reg) {
   const RegisterInfo &info = ctx.GetRegisterInfo()[reg];
-  return {info.byte_offset, info.byte_size};
+  const auto *descriptor = ctx.GetDescription().Find(info.name);
+  const auto *location = ctx.GetLayout().Find(descriptor->id);
+  EXPECT_NE(location, nullptr);
+  if (!location || location->pieces.size() != 1)
+    return {size_t(-1), 0};
+  const auto &piece = location->pieces.front();
+  const auto *group =
+      ctx.GetRegisterSet(ctx.GetRegisterSetFromRegisterIndex(reg));
+  if (group && llvm::StringRef(group->short_name) == "gpr")
+    EXPECT_EQ(piece.bank, 0u);
+  if (group && llvm::StringRef(group->short_name) == "fpu")
+    EXPECT_EQ(piece.bank, 1u);
+  if (group && llvm::StringRef(group->short_name) == "dbr")
+    EXPECT_EQ(piece.bank, x86_layout::Debug);
+  return {piece.byte_offset, piece.byte_size};
 }
 
 #define EXPECT_OFF(regname, offset, size)                                      \
   EXPECT_THAT(GetRegParams(reg_ctx, lldb_##regname),                           \
-              ::testing::Pair(offset + base_offset, size))
+              ::testing::Pair(offset, size))
 
 #define EXPECT_GPR_X86_64(regname, regconst)                                   \
-  EXPECT_THAT(                                                                 \
-      GetRegParams(reg_ctx, lldb_##regname##_x86_64),                          \
-      ::testing::Pair(offsetof(reg, regs[regconst]),                           \
-                      sizeof(reg::regs[regconst])))
+  EXPECT_THAT(GetRegParams(reg_ctx, lldb_##regname##_x86_64),                  \
+              ::testing::Pair(offsetof(reg, regs[regconst]),                   \
+                              sizeof(reg::regs[regconst])))
 #define EXPECT_DBR_X86_64(num)                                                 \
   EXPECT_OFF(dr##num##_x86_64, offsetof(dbreg, dr[num]), sizeof(dbreg::dr[num]))
 
 TEST(RegisterInfoNetBSDTest, x86_64) {
   ArchSpec arch{"x86_64-unknown-netbsd"};
-  RegisterInfoNetBSD_x86_64 reg_ctx{arch};
+  RegisterInfo_x86 reg_ctx{arch, CreateNetBSDX86_64RegisterModel(arch)};
 
   EXPECT_GPR_X86_64(rdi, _REG_RDI);
   EXPECT_GPR_X86_64(rsi, _REG_RSI);
@@ -70,14 +84,9 @@ TEST(RegisterInfoNetBSDTest, x86_64) {
   EXPECT_GPR_X86_64(rsp, _REG_RSP);
   EXPECT_GPR_X86_64(ss, _REG_SS);
 
-  // fctrl is the first FPR field, it is used to determine offset of the whole
-  // FPR struct
-  size_t base_offset = reg_ctx.GetRegisterInfo()[lldb_fctrl_x86_64].byte_offset;
-
   // assert against FXSAVE struct
   EXPECT_OFF(fctrl_x86_64, 0x00, 2);
   EXPECT_OFF(fstat_x86_64, 0x02, 2);
-  // TODO: This is a known bug, abridged ftag should is 8 bits in length.
   EXPECT_OFF(ftag_x86_64, 0x04, 2);
   EXPECT_OFF(fop_x86_64, 0x06, 2);
   // NB: Technically fiseg/foseg are 16-bit long and the higher 16 bits
@@ -125,7 +134,6 @@ TEST(RegisterInfoNetBSDTest, x86_64) {
   EXPECT_OFF(xmm14_x86_64, 0x180, 16);
   EXPECT_OFF(xmm15_x86_64, 0x190, 16);
 
-  base_offset = reg_ctx.GetRegisterInfo()[lldb_dr0_x86_64].byte_offset;
   EXPECT_DBR_X86_64(0);
   EXPECT_DBR_X86_64(1);
   EXPECT_DBR_X86_64(2);

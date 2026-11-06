@@ -16,7 +16,7 @@ class RegisterContextFreeBSDKernelCore_i386 : public RegisterContextCore_x86 {
 public:
   RegisterContextFreeBSDKernelCore_i386(
       lldb_private::Thread &thread,
-      lldb_private::RegisterInfoInterface *register_info,
+      lldb_private::RegisterInfoProvider *register_info,
       lldb::addr_t pcb_addr);
 
   bool ReadRegister(const lldb_private::RegisterInfo *reg_info,
