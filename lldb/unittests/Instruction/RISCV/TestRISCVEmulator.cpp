@@ -17,16 +17,21 @@
 
 #include "Plugins/Instruction/RISCV/EmulateInstructionRISCV.h"
 #include "Register/Common/RegisterInfo_riscv32.h"
-#include "Register/Common/RegisterInfo_riscv64.h"
 #include "lldb/Register/Arch/lldb-riscv-register-enums.h"
+#include "lldb/Register/Common/RegisterInfo_riscv64.h"
 
 using namespace llvm;
 using namespace lldb;
 using namespace lldb_private;
 
 struct RISCVEmulatorTester : public EmulateInstructionRISCV, testing::Test {
-  RegisterInfo_riscv64::GPR gpr;
-  RegisterInfo_riscv64::FPR fpr;
+  struct {
+    uint64_t gpr[32];
+  } gpr;
+  struct {
+    uint64_t fpr[32];
+    uint32_t fcsr;
+  } fpr;
   uint8_t memory[1024] = {0};
 
   RISCVEmulatorTester(std::string triple = "riscv64-unknown-linux-gnu")

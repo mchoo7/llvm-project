@@ -7,12 +7,12 @@
 //===----------------------------------------------------------------------===//
 
 #include "EmulateInstructionRISCV.h"
-#include "lldb/Register/RegisterInfoInterface.h"
-#include "Register/Common/RegisterInfo_riscv32.h"
-#include "Register/Common/RegisterInfo_riscv64.h"
-#include "lldb/Register/Arch/lldb-riscv-register-enums.h"
 #include "RISCVCInstructions.h"
 #include "RISCVInstructions.h"
+#include "lldb/Register/Arch/lldb-riscv-register-enums.h"
+#include "Register/Common/RegisterInfo_riscv32.h"
+#include "lldb/Register/Common/RegisterInfo_riscv64.h"
+#include "lldb/Register/RegisterInfoInterface.h"
 
 #include "lldb/Core/Address.h"
 #include "lldb/Core/PluginManager.h"
@@ -1840,19 +1840,22 @@ EmulateInstructionRISCV::GetRegisterInfo(RegisterKind reg_kind,
     }
   }
 
-  std::unique_ptr<RegisterInfoInterface> reg_info;
-  switch (m_arch.GetTriple().getArch()) {
-  case llvm::Triple::riscv32:
-    reg_info = std::make_unique<RegisterInfo_riscv32>(
-        m_arch, RegisterInfo_riscv32::eRegsetMaskAll);
-    break;
-  case llvm::Triple::riscv64:
-    reg_info = std::make_unique<RegisterInfo_riscv64>(
-        m_arch, RegisterInfo_riscv64::eRegsetMaskAll);
-    break;
-  default:
-    assert(false && "unsupported triple");
-    return {};
+  auto &reg_info = m_register_info;
+  if (!reg_info) {
+    switch (m_arch.GetTriple().getArch()) {
+    case llvm::Triple::riscv32:
+      reg_info = std::make_unique<RegisterInfo_riscv32>(
+          m_arch, RegisterInfo_riscv32::eRegsetMaskAll);
+      break;
+    case llvm::Triple::riscv64:
+      reg_info = std::make_unique<RegisterInfo_riscv64>(
+          m_arch, RegisterInfo_riscv64::eRegsetMaskAll,
+          RegisterLayout(m_arch.GetByteOrder()));
+      break;
+    default:
+      assert(false && "unsupported triple");
+      return {};
+    }
   }
 
   const RegisterInfo *array = reg_info->GetRegisterInfo();

@@ -8,6 +8,8 @@
 
 #include "RegisterContextPOSIXCore_riscv64.h"
 
+#include "lldb/Register/Layouts/Linux/RegisterModelLinux_riscv64.h"
+#include "lldb/Register/RegisterCodec.h"
 #include "lldb/Utility/DataBufferHeap.h"
 
 using namespace lldb_private;
@@ -26,7 +28,9 @@ RegisterContextCorePOSIX_riscv64::Create(Thread &thread, const ArchSpec &arch,
   return std::unique_ptr<RegisterContextCorePOSIX_riscv64>(
       new RegisterContextCorePOSIX_riscv64(
           thread,
-          std::make_unique<RegisterInfo_riscv64>(arch, opt_regsets),
+          std::make_unique<RegisterInfo_riscv64>(
+              arch, opt_regsets,
+              CreateLinuxRISCV64RegisterModel(arch, opt_regsets)),
           gpregset, notes));
 }
 
@@ -63,22 +67,22 @@ bool RegisterContextCorePOSIX_riscv64::WriteFPR() {
 
 bool RegisterContextCorePOSIX_riscv64::ReadRegister(
     const RegisterInfo *reg_info, RegisterValue &value) {
-  const uint8_t *src = nullptr;
-  lldb::offset_t offset = reg_info->byte_offset;
-
-  if (IsGPR(reg_info->kinds[lldb::eRegisterKindLLDB])) {
-    src = m_gpr.GetDataStart();
-  } else if (IsFPR(reg_info->kinds[lldb::eRegisterKindLLDB])) {
-    src = m_fpr.GetDataStart();
-    offset -= GetGPRSize();
-  } else {
+  const auto &description = m_register_info_up->GetDescription();
+  const auto *reg = description.Find(reg_info->name);
+  if (!reg)
+    return false;
+  std::vector<RegisterData> banks;
+  banks.push_back({0, {m_gpr.GetDataStart(), m_gpr.GetByteSize()}});
+  if (m_register_info_up->IsFPPresent())
+    banks.push_back({1, {m_fpr.GetDataStart(), m_fpr.GetByteSize()}});
+  auto result = RegisterCodec::Read(
+      description, m_register_info_up->GetLayout(), reg->id, banks);
+  if (!result) {
+    llvm::consumeError(result.takeError());
     return false;
   }
-
-  Status error;
-  value.SetFromMemoryData(*reg_info, src + offset, reg_info->byte_size,
-                          lldb::eByteOrderLittle, error);
-  return error.Success();
+  value = std::move(*result);
+  return true;
 }
 
 bool RegisterContextCorePOSIX_riscv64::WriteRegister(

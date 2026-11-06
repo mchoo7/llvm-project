@@ -6,31 +6,26 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "RegisterInfo_riscv64.h"
-
-#include "lldb/Register/Arch/lldb-riscv-register-enums.h"
+#include "lldb/Register/Common/RegisterInfo_riscv64.h"
 #include "lldb/Register/Arch/lldb-riscv-dwarf-eframe-register-enums.h"
-#include "lldb/lldb-enumerations.h"
+#include "lldb/Register/Arch/lldb-riscv-register-enums.h"
 #include "lldb/lldb-private-types.h"
-#include "lldb/lldb-private.h"
-#include <cstddef>
-#include <cstdint>
-
-#include "lldb/Utility/Flags.h"
-#include "lldb/lldb-defines.h"
+#include "llvm/ADT/STLExtras.h"
 #include "llvm/Support/Compiler.h"
-
 #include <cassert>
-#include <stddef.h>
-
-#define GPR_OFFSET(idx) ((idx)*8 + 0)
-#define FPR_OFFSET(idx) ((idx)*8 + sizeof(RegisterInfo_riscv64::GPR))
+#include <cstddef>
+#include <iterator>
 
 using namespace lldb_private;
 
+// These tables describe values, not positions in an operating-system buffer.
+#define GPR_OFFSET(idx) 0
+#define FPR_OFFSET(idx) 0
 #define DECLARE_REGISTER_INFOS_RISCV64_STRUCT
-#include "Register/Arch/RegisterInfos_riscv64.h"
+#include "Register/Arch/RegisterDescriptions_riscv64.inc"
 #undef DECLARE_REGISTER_INFOS_RISCV64_STRUCT
+#undef GPR_OFFSET
+#undef FPR_OFFSET
 
 // Number of register sets provided by this context.
 enum {
@@ -63,98 +58,47 @@ static const lldb_private::RegisterSet g_reg_set_gpr_riscv64 = {
 static const lldb_private::RegisterSet g_reg_set_fpr_riscv64 = {
     "Floating Point Registers", "fpr", k_num_fpr_registers, nullptr};
 
-RegisterInfo_riscv64::RegisterInfo_riscv64(
-    const lldb_private::ArchSpec &target_arch, lldb_private::Flags opt_regsets)
-    : lldb_private::RegisterInfoAndSetInterface(target_arch),
-      m_opt_regsets(opt_regsets) {
-  switch (target_arch.GetMachine()) {
-  case llvm::Triple::riscv64: {
-    // By-default considering RISC-V has only GPR.
-    // Other register sets could be enabled optionally by opt_regsets.
-    AddRegSetGP();
-
-    if (m_opt_regsets.AnySet(eRegsetMaskFP))
-      AddRegSetFP();
-
-    break;
-  }
-  default:
-    assert(false && "Unhandled target architecture.");
-  }
+std::shared_ptr<const RegisterDescription>
+RegisterInfo_riscv64::CreateDescription(Flags features) {
+  auto build = [](bool has_fp) {
+    std::vector<RegisterInfo> registers(
+        std::begin(g_register_infos_riscv64_gpr),
+        std::end(g_register_infos_riscv64_gpr));
+    std::vector<RegisterSet> groups{g_reg_set_gpr_riscv64};
+    std::vector<uint32_t> fp_indices;
+    if (has_fp) {
+      for (size_t i = 0; i != std::size(g_register_infos_riscv64_fpr); ++i)
+        fp_indices.push_back(registers.size() + i);
+      registers.insert(registers.end(),
+                       std::begin(g_register_infos_riscv64_fpr),
+                       std::end(g_register_infos_riscv64_fpr));
+      groups.push_back(g_reg_set_fpr_riscv64);
+      groups.back().registers = fp_indices.data();
+    }
+    auto imported =
+        llvm::cantFail(RegisterDescription::FromLegacy(registers, groups));
+    std::vector<RegisterDescriptor> values(imported.GetRegisters().begin(),
+                                           imported.GetRegisters().end());
+    for (auto &reg : values)
+      if (reg.id == gpr_x0_riscv)
+        reg.constant_value.resize(reg.byte_size, 0);
+    return std::make_shared<RegisterDescription>(
+        llvm::cantFail(RegisterDescription::Create(
+            std::move(values),
+            std::vector<RegisterGroup>(imported.GetGroups().begin(),
+                                       imported.GetGroups().end()))));
+  };
+  // Emulators can return compatibility records by value; their names retain
+  // this shared architecture lifetime after a temporary provider is destroyed.
+  static const auto gp = build(false);
+  static const auto gp_fp = build(true);
+  return features.AnySet(eRegsetMaskFP) ? gp_fp : gp;
 }
 
-void RegisterInfo_riscv64::AddRegSetGP() {
-  m_register_infos.resize(k_num_gpr_registers);
-  memcpy(&m_register_infos[0], g_register_infos_riscv64_gpr,
-         sizeof(g_register_infos_riscv64_gpr));
-  m_register_sets.push_back(g_reg_set_gpr_riscv64);
-
-  m_per_regset_regnum_range[GPRegSet] =
-      std::make_pair(gpr_first_riscv, m_register_infos.size());
-}
-
-void RegisterInfo_riscv64::AddRegSetFP() {
-  const uint32_t register_info_count = m_register_infos.size();
-  const uint32_t register_set_count = m_register_sets.size();
-
-  // Filling m_register_infos.
-  // For FPR case we do not need to correct register offsets and kinds
-  // while for other further cases (like VPR), register offset/kind
-  // should be started counting from the last one in previously added
-  // regset. This is needed for the case e.g. when architecture has GPR + VPR
-  // sets only.
-  m_register_infos.resize(register_info_count + k_num_fpr_registers);
-  memcpy(&m_register_infos[register_info_count], g_register_infos_riscv64_fpr,
-         sizeof(g_register_infos_riscv64_fpr));
-
-  // Filling m_register_sets with enabled register set
-  for (uint32_t i = 0; i < k_num_fpr_registers; i++)
-    m_fp_regnum_collection.push_back(register_info_count + i);
-  m_register_sets.push_back(g_reg_set_fpr_riscv64);
-  m_register_sets.back().registers = m_fp_regnum_collection.data();
-
-  m_per_regset_regnum_range[register_set_count] =
-      std::make_pair(register_info_count, m_register_infos.size());
-}
-
-uint32_t RegisterInfo_riscv64::GetRegisterCount() const {
-  return m_register_infos.size();
-}
-
-size_t RegisterInfo_riscv64::GetGPRSize() const {
-  return sizeof(struct RegisterInfo_riscv64::GPR);
-}
-
-size_t RegisterInfo_riscv64::GetFPRSize() const {
-  return sizeof(struct RegisterInfo_riscv64::FPR);
-}
-
-const lldb_private::RegisterInfo *
-RegisterInfo_riscv64::GetRegisterInfo() const {
-  return m_register_infos.data();
-}
-
-size_t RegisterInfo_riscv64::GetRegisterSetCount() const {
-  return m_register_sets.size();
-}
-
-size_t RegisterInfo_riscv64::GetRegisterSetFromRegisterIndex(
-    uint32_t reg_index) const {
-  for (const auto &regset_range : m_per_regset_regnum_range) {
-    if (reg_index >= regset_range.second.first &&
-        reg_index < regset_range.second.second)
-      return regset_range.first;
-  }
-  return LLDB_INVALID_REGNUM;
-}
-
-bool RegisterInfo_riscv64::IsFPReg(unsigned reg) const {
-  return llvm::is_contained(m_fp_regnum_collection, reg);
-}
-
-const lldb_private::RegisterSet *
-RegisterInfo_riscv64::GetRegisterSet(size_t set_index) const {
-  if (set_index < GetRegisterSetCount())
-    return &m_register_sets[set_index];
-  return nullptr;
+RegisterInfo_riscv64::RegisterInfo_riscv64(const ArchSpec &arch, Flags features,
+                                           RegisterLayout layout)
+    : RegisterInfoProvider(arch, CreateDescription(features),
+                           std::move(layout)),
+      m_features(features) {
+  assert(arch.GetMachine() == llvm::Triple::riscv64);
 }

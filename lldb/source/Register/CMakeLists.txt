@@ -12,6 +12,7 @@ add_lldb_library(lldbRegister NO_PLUGIN_DEPENDENCIES
   FreeBSD/RegisterInfoFreeBSD_i386.cpp
   FreeBSD/RegisterInfoFreeBSD_powerpc.cpp
   FreeBSD/RegisterInfoFreeBSD_x86_64.cpp
+  Layouts/Linux/RegisterModelLinux_riscv64.cpp
   Linux/RegisterInfoLinux_i386.cpp
   Linux/RegisterInfoLinux_s390x.cpp
   Linux/RegisterInfoLinux_x86_64.cpp

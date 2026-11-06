@@ -45,10 +45,6 @@ unsigned RegisterContextCore_riscv64::GetRegisterSize(unsigned int reg) {
   return m_register_info_up->GetRegisterInfo()[reg].byte_size;
 }
 
-unsigned RegisterContextCore_riscv64::GetRegisterOffset(unsigned int reg) {
-  return m_register_info_up->GetRegisterInfo()[reg].byte_offset;
-}
-
 const lldb_private::RegisterInfo *
 RegisterContextCore_riscv64::GetRegisterInfoAtIndex(size_t reg) {
   if (reg < GetRegisterCount())
@@ -72,7 +68,7 @@ RegisterContextCore_riscv64::GetRegisterInfo() {
 }
 
 bool RegisterContextCore_riscv64::IsGPR(unsigned int reg) {
-  return m_register_info_up->GetRegisterSetFromRegisterIndex(reg) ==
+  return m_register_info_up->GetRegisterSetFromRegisterNumber(reg) ==
          RegisterInfo_riscv64::GPRegSet;
 }
 

@@ -15,8 +15,7 @@ namespace lldb_private {
 
 // Internal codes for all riscv registers.
 enum {
-  // The same order as user_regs_struct in <asm/ptrace.h>
-  // note: these enum values are used as byte_offset
+  // Stable logical identities; native layouts map these to storage explicitly.
   gpr_first_riscv = 0,
   gpr_pc_riscv = gpr_first_riscv,
   gpr_x1_riscv,

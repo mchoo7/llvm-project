@@ -12,7 +12,8 @@
 #define lldb_NativeRegisterContextLinux_riscv64_h
 
 #include "Plugins/Process/Linux/NativeRegisterContextLinux.h"
-#include "Register/Common/RegisterInfo_riscv64.h"
+#include "lldb/Register/Common/RegisterInfo_riscv64.h"
+#include "lldb/Register/Layouts/Linux/RegisterModelLinux_riscv64.h"
 
 #include <asm/ptrace.h>
 
@@ -71,17 +72,15 @@ private:
   bool m_gpr_is_valid;
   bool m_fpu_is_valid;
 
-  RegisterInfo_riscv64::GPR m_gpr;
+  linux_riscv64::GPR m_gpr;
 
-  RegisterInfo_riscv64::FPR m_fpr;
+  linux_riscv64::FPR m_fpr;
 
   size_t GetRegContextSize();
 
   bool IsGPR(unsigned reg) const;
 
   bool IsFPR(unsigned reg) const;
-
-  uint32_t CalculateFprOffset(const RegisterInfo *reg_info) const;
 
   const RegisterInfo_riscv64 &GetRegisterInfo() const;
 };
