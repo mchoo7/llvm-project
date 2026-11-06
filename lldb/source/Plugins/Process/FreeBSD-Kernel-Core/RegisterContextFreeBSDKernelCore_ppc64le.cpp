@@ -22,7 +22,7 @@ using namespace lldb_private;
 
 RegisterContextFreeBSDKernelCore_ppc64le::
     RegisterContextFreeBSDKernelCore_ppc64le(
-        Thread &thread, lldb_private::RegisterInfoInterface *register_info,
+        Thread &thread, lldb_private::RegisterInfoProvider *register_info,
         lldb::addr_t pcb_addr)
     : RegisterContextCore_ppc64le(thread, 0, register_info),
       m_pcb_addr(pcb_addr) {}

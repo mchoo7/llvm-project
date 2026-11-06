@@ -10,11 +10,12 @@
 
 #include "NativeRegisterContextAIX_ppc64.h"
 #include "NativeThreadAIX.h"
-#include "Register/Common/RegisterInfo_ppc64.h"
+#include "lldb/Register/Common/RegisterInfo_ppc64.h"
 #include "lldb/Utility/RegisterValue.h"
 
 using namespace lldb;
 using namespace lldb_private;
+using namespace lldb_private::aix_ppc64;
 using namespace lldb_private::process_aix;
 
 static const uint32_t g_gpr_regnums_ppc64[] = {
@@ -106,7 +107,9 @@ NativeRegisterContextAIX::CreateHostNativeRegisterContextAIX(
 NativeRegisterContextAIX_ppc64::NativeRegisterContextAIX_ppc64(
     const ArchSpec &target_arch, NativeThreadProtocol &native_thread)
     : NativeRegisterContextRegisterInfo(
-          native_thread, new RegisterInfo_ppc64(target_arch)),
+          native_thread,
+          new RegisterInfo_ppc64(target_arch,
+                                 CreateAIXPPC64RegisterModel(target_arch))),
       NativeRegisterContextAIX(native_thread) {
   switch (target_arch.GetMachine()) {
   case llvm::Triple::ppc:
@@ -114,7 +117,7 @@ NativeRegisterContextAIX_ppc64::NativeRegisterContextAIX_ppc64(
     m_gpr = &m_gpr_storage.gpr32;
     break;
   case llvm::Triple::ppc64:
-    new (&m_gpr_storage.gpr32) GPR_PPC64{};
+    new (&m_gpr_storage.gpr64) GPR_PPC64{};
     m_gpr = &m_gpr_storage.gpr64;
     break;
   default:
@@ -144,56 +147,71 @@ uint32_t NativeRegisterContextAIX_ppc64::GetUserRegisterCount() const {
 Status
 NativeRegisterContextAIX_ppc64::ReadRegister(const RegisterInfo *reg_info,
                                              RegisterValue &reg_value) {
-  Status error;
   if (!reg_info)
-    return Status::FromErrorString("reg_info NULL");
-
-  const uint32_t reg = reg_info->kinds[lldb::eRegisterKindLLDB];
-
-  if (IsGPR(reg)) {
-    error = ReadGPR();
-    if (error.Fail())
-      return error;
-
-    const uint8_t *src = reinterpret_cast<const uint8_t *>(GetGPRBuffer()) +
-                         reg_info->byte_offset;
-    reg_value.SetFromMemoryData(*reg_info, src, reg_info->byte_size,
-                                eByteOrderBig, error);
-
-    return error;
-  } else if (IsFPR(reg) || IsVSX(reg) || IsVMX(reg)) {
-    return Status::FromErrorString("unimplemented");
+    return Status::FromErrorString("missing register description");
+  const auto &provider = GetRegisterInfoProvider();
+  auto required = provider.GetRegisterBanks(*reg_info, false);
+  if (!required)
+    return Status::FromError(required.takeError());
+  for (RegisterBankID bank : *required) {
+    Status status;
+    switch (bank) {
+    case 0:
+      status = ReadGPR();
+      break;
+    default:
+      return Status::FromErrorString("unsupported register bank");
+    }
+    if (status.Fail())
+      return status;
   }
-
-  return Status::FromErrorString("failed - register wasn't recognized to be a "
-                                 "GPR, FPR, VSX or VMX, read strategy unknown");
+  auto value = provider.ReadRegister(
+      *reg_info,
+      {{0, {reinterpret_cast<const uint8_t *>(GetGPRBuffer()), GetGPRSize()}}});
+  if (!value)
+    return Status::FromError(value.takeError());
+  reg_value = std::move(*value);
+  return Status();
 }
 
 Status
 NativeRegisterContextAIX_ppc64::WriteRegister(const RegisterInfo *reg_info,
                                               const RegisterValue &reg_value) {
-  Status error;
   if (!reg_info)
-    return Status::FromErrorString("reg_info NULL");
-
-  const uint32_t reg = reg_info->kinds[lldb::eRegisterKindLLDB];
-
-  if (IsGPR(reg)) {
-    error = ReadGPR();
-    if (error.Fail())
-      return error;
-
-    uint8_t *dst =
-        reinterpret_cast<uint8_t *>(GetGPRBuffer()) + reg_info->byte_offset;
-    ::memcpy(dst, reg_value.GetBytes(), reg_value.GetByteSize());
-
-    return (WriteGPR());
-  } else if (IsFPR(reg) || IsVMX(reg) || IsVSX(reg)) {
-    return Status::FromErrorString("unimplemented");
+    return Status::FromErrorString("missing register description");
+  const auto &provider = GetRegisterInfoProvider();
+  auto required = provider.GetRegisterBanks(*reg_info, true);
+  if (!required)
+    return Status::FromError(required.takeError());
+  for (RegisterBankID bank : *required) {
+    Status status;
+    switch (bank) {
+    case 0:
+      status = ReadGPR();
+      break;
+    default:
+      return Status::FromErrorString("unsupported register bank");
+    }
+    if (status.Fail())
+      return status;
   }
-
-  return Status::FromErrorString("failed - register wasn't recognized to be a "
-                                 "GPR, FPR, VSX or VMX, read strategy unknown");
+  if (auto error = provider.WriteRegister(
+          *reg_info, reg_value,
+          {{0, {reinterpret_cast<uint8_t *>(GetGPRBuffer()), GetGPRSize()}}}))
+    return Status::FromError(std::move(error));
+  for (RegisterBankID bank : *required) {
+    Status status;
+    switch (bank) {
+    case 0:
+      status = WriteGPR();
+      break;
+    default:
+      return Status::FromErrorString("unsupported register bank");
+    }
+    if (status.Fail())
+      return status;
+  }
+  return Status();
 }
 
 Status NativeRegisterContextAIX_ppc64::ReadAllRegisterValues(

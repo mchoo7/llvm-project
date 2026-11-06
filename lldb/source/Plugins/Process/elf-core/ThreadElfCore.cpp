@@ -28,7 +28,8 @@
 #include "RegisterModelOpenBSD_x86_64.h"
 #include "Register/Common/RegisterInfo_arm.h"
 #include "Register/Common/RegisterInfo_arm64.h"
-#include "Register/Common/RegisterInfo_ppc64le.h"
+#include "lldb/Register/Common/RegisterInfo_ppc64le.h"
+#include "lldb/Register/Layouts/Linux/RegisterModelLinux_ppc64le.h"
 #include "ProcessElfCore.h"
 #include "RegisterContextLinuxCore_x86.h"
 #include "RegisterContextPOSIXCore_arm.h"
@@ -135,7 +136,9 @@ ThreadElfCore::CreateRegisterContextForFrame(StackFrame *frame) {
       case llvm::Triple::aarch64:
         break;
       case llvm::Triple::ppc64le:
-        reg_interface = new RegisterInfo_ppc64le(arch);
+        reg_interface = std::make_unique<RegisterInfo_ppc64le>(
+                            arch, CreateLinuxPPC64LERegisterModel(arch))
+                            .release();
         break;
       case llvm::Triple::systemz:
         reg_interface = new RegisterInfoLinux_s390x(arch);
@@ -215,7 +218,7 @@ ThreadElfCore::CreateRegisterContextForFrame(StackFrame *frame) {
       break;
     case llvm::Triple::ppc64le:
       m_thread_reg_ctx_sp = std::make_shared<RegisterContextCorePOSIX_ppc64le>(
-          *this, reg_interface, m_gpregset_data, m_notes);
+          *this, static_cast<RegisterInfoProvider *>(reg_interface), m_gpregset_data, m_notes);
       break;
     case llvm::Triple::systemz:
       m_thread_reg_ctx_sp = std::make_shared<RegisterContextCorePOSIX_s390x>(

@@ -23,11 +23,9 @@
 
 #include "lldb/Register/Arch/lldb-ppc64-register-enums.h"
 
-namespace lldb_private {
+#include "Plugins/Process/AIX/RegisterModelAIX_ppc64.h"
 
-#define DECLARE_REGISTER_INFOS_PPC64_STRUCT
-#include "Register/Arch/RegisterInfos_ppc64.h"
-#undef DECLARE_REGISTER_INFOS_PPC64_STRUCT
+namespace lldb_private {
 
 namespace process_aix {
 
@@ -77,8 +75,8 @@ private:
   uint32_t CalculateVsxOffset(const RegisterInfo *reg_info) const;
 
   union GPRStorage {
-    GPR_PPC gpr32;   // 32-bit general purpose registers.
-    GPR_PPC64 gpr64; // 64-bit general purpose registers.
+    aix_ppc64::GPR_PPC gpr32;   // 32-bit general purpose registers.
+    aix_ppc64::GPR_PPC64 gpr64; // 64-bit general purpose registers.
   } m_gpr_storage;
 
   void *m_gpr = nullptr;

@@ -17,7 +17,7 @@ class RegisterContextCorePOSIX_ppc64le : public RegisterContextCore_ppc64le {
 public:
   RegisterContextCorePOSIX_ppc64le(
       lldb_private::Thread &thread,
-      lldb_private::RegisterInfoInterface *register_info,
+      lldb_private::RegisterInfoProvider *register_info,
       const lldb_private::DataExtractor &gpregset,
       llvm::ArrayRef<lldb_private::CoreNote> notes);
 

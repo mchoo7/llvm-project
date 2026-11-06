@@ -15,7 +15,7 @@
 #include "ProcessFreeBSDKernelCore.h"
 #include "Register/Common/RegisterInfo_arm.h"
 #include "Register/Common/RegisterInfo_arm64.h"
-#include "Register/Common/RegisterInfo_ppc64le.h"
+#include "lldb/Register/Common/RegisterInfo_ppc64le.h"
 #include "lldb/Register/Layouts/FreeBSD/RegisterModelFreeBSD_i386.h"
 #include "lldb/Register/Layouts/FreeBSD/RegisterModelFreeBSD_x86_64.h"
 #include "RegisterContextFreeBSDKernelCore_arm.h"
@@ -76,7 +76,7 @@ ThreadFreeBSDKernelCore::CreateRegisterContextForFrame(StackFrame *frame) {
     case llvm::Triple::ppc64le:
       m_thread_reg_ctx_sp =
           std::make_shared<RegisterContextFreeBSDKernelCore_ppc64le>(
-              *this, new RegisterInfo_ppc64le(arch), m_pcb_addr);
+              *this, new RegisterInfo_ppc64le(arch, RegisterLayout(arch.GetByteOrder())), m_pcb_addr);
       break;
     case llvm::Triple::riscv64:
       m_thread_reg_ctx_sp =

@@ -48,13 +48,8 @@
 
 using namespace lldb_private;
 
-#define DECLARE_REGISTER_INFOS_PPC64_STRUCT
-#include "Register/Arch/RegisterInfos_ppc64.h"
-#undef DECLARE_REGISTER_INFOS_PPC64_STRUCT
-
-#define DECLARE_REGISTER_INFOS_PPC64LE_STRUCT
-#include "Register/Arch/RegisterInfos_ppc64le.h"
-#undef DECLARE_REGISTER_INFOS_PPC64LE_STRUCT
+#include "lldb/Register/Common/RegisterInfo_ppc64.h"
+#include "lldb/Register/Common/RegisterInfo_ppc64le.h"
 #include <optional>
 
 using namespace lldb;
@@ -63,13 +58,15 @@ LLDB_PLUGIN_DEFINE(ABISysV_ppc64)
 
 const lldb_private::RegisterInfo *
 ABISysV_ppc64::GetRegisterInfoArray(uint32_t &count) {
-  if (GetByteOrder() == lldb::eByteOrderLittle) {
-    count = std::size(g_register_infos_ppc64le);
-    return g_register_infos_ppc64le;
-  } else {
-    count = std::size(g_register_infos_ppc64);
-    return g_register_infos_ppc64;
-  }
+  static RegisterInfo_ppc64 big(ArchSpec("powerpc64-unknown-unknown"),
+                                RegisterLayout(lldb::eByteOrderBig));
+  static RegisterInfo_ppc64le little(ArchSpec("powerpc64le-unknown-unknown"),
+                                     RegisterLayout(lldb::eByteOrderLittle));
+  const RegisterInfoProvider &provider = GetByteOrder() == lldb::eByteOrderLittle
+                                          ? static_cast<const RegisterInfoProvider &>(little)
+                                          : static_cast<const RegisterInfoProvider &>(big);
+  count = provider.GetRegisterCount();
+  return provider.GetRegisterInfo();
 }
 
 size_t ABISysV_ppc64::GetRedZoneSize() const { return 224; }

@@ -1,0 +1,96 @@
+//===----------------------------------------------------------------------===//
+//
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+//
+//===----------------------------------------------------------------------===//
+
+#include "lldb/Register/Arch/lldb-ppc64le-register-enums.h"
+#include "lldb/Register/Common/RegisterInfo_ppc64.h"
+#include "lldb/Register/Common/RegisterInfo_ppc64le.h"
+#include "lldb/Register/Layouts/Linux/RegisterModelLinux_ppc64le.h"
+#include "lldb/Register/RegisterCodec.h"
+#include "llvm/Testing/Support/Error.h"
+#include "gtest/gtest.h"
+#include <array>
+using namespace lldb_private;
+using namespace llvm;
+
+TEST(RegisterInfoPowerPCTest, IdentityDoesNotDependOnEndiannessOrLinuxState) {
+  ArchSpec big_arch("powerpc64-unknown-freebsd");
+  ArchSpec little_arch("powerpc64le-unknown-freebsd");
+  auto big = RegisterInfo_ppc64::CreateDescription(big_arch);
+  auto little = RegisterInfo_ppc64le::CreateDescription(little_arch);
+  EXPECT_EQ(big->Find("pc")->id, little->Find("pc")->id);
+  EXPECT_EQ(big->Find("cr")->id, little->Find("cr")->id);
+  EXPECT_EQ(big->Find("vs0")->id, little->Find("vs0")->id);
+  for (unsigned i = 0; i != 64; ++i) {
+    std::string name = "vs" + std::to_string(i);
+    ASSERT_NE(big->Find(name), nullptr);
+    ASSERT_NE(little->Find(name), nullptr);
+    EXPECT_EQ(big->Find(name)->id, little->Find(name)->id);
+  }
+  EXPECT_EQ(little->Find("origr3"), nullptr);
+  EXPECT_EQ(little->Find("softe"), nullptr);
+  EXPECT_EQ(little->Find("trap"), nullptr);
+  auto native = std::make_unique<RegisterInfo_ppc64le>(
+      little_arch, CreateLinuxPPC64LERegisterModel(little_arch));
+  EXPECT_NE(native->GetDescription().Find("origr3"), nullptr);
+  EXPECT_NE(native->GetDescription().Find("trap"), nullptr);
+  EXPECT_EQ(native->GetGPRSize(), 352u);
+  EXPECT_EQ(native->GetFPRSize(), 264u);
+  EXPECT_STREQ(native->GetRegisterInfo()[gpr_pc_ppc64le].name, "pc");
+  EXPECT_EQ(native->GetLayout()
+                .Find(native->GetDescription().Find("pc")->id)
+                ->pieces[0]
+                .byte_offset,
+            256u);
+  EXPECT_EQ(native->GetDescription().Find("pc")->id, big->Find("pc")->id);
+}
+
+TEST(RegisterInfoPowerPCTest, BigEndianDescriptionUsesExplicitStorage) {
+  auto description = RegisterInfo_ppc64::CreateDescription(
+      ArchSpec("powerpc64-unknown-freebsd"));
+  RegisterID pc = description->Find("pc")->id;
+  RegisterLayout layout(lldb::eByteOrderBig);
+  ASSERT_THAT_ERROR(layout.AddBank(4, 16), Succeeded());
+  RegisterLocation saved;
+  saved.kind = RegisterLocation::Stored;
+  saved.pieces = {{4, 8, 8, 0}};
+  ASSERT_THAT_ERROR(layout.Add(pc, saved), Succeeded());
+  std::array<uint8_t, 16> bytes{};
+  MutableRegisterData bank{4, bytes};
+  ASSERT_THAT_ERROR(RegisterCodec::Write(*description, layout, pc,
+                                         RegisterValue(uint64_t(0x01020304)),
+                                         bank),
+                    Succeeded());
+  EXPECT_EQ(bytes[12], 1);
+  EXPECT_EQ(bytes[15], 4);
+  RegisterData data{4, bytes};
+  auto value = RegisterCodec::Read(*description, layout, pc, data);
+  ASSERT_THAT_EXPECTED(value, Succeeded());
+  EXPECT_EQ(value->GetAsUInt64(), 0x01020304u);
+}
+
+TEST(RegisterInfoPowerPCTest, LinuxVSXUsesTheActualSplitBanks) {
+  auto info = std::make_unique<RegisterInfo_ppc64le>(
+      ArchSpec("powerpc64le-unknown-linux"),
+      CreateLinuxPPC64LERegisterModel(ArchSpec("powerpc64le-unknown-linux")));
+  const auto *descriptor = info->GetDescription().Find("vs0");
+  const auto *location = info->GetLayout().Find(descriptor->id);
+  ASSERT_NE(location, nullptr);
+  ASSERT_EQ(location->pieces.size(), 2u);
+  EXPECT_EQ(location->pieces[0].bank, 3u);
+  EXPECT_EQ(location->pieces[1].bank, 1u);
+  std::array<uint8_t, 256> upper{}, floating{};
+  upper[0] = 1;
+  floating[0] = 2;
+  const auto *reg = info->GetRegisterInfoByNumber(
+      descriptor->numbers[lldb::eRegisterKindLLDB]);
+  auto value = info->ReadRegister(*reg, {{3, upper}, {1, floating}});
+  ASSERT_THAT_EXPECTED(value, Succeeded());
+  const auto *bytes = static_cast<const uint8_t *>(value->GetBytes());
+  EXPECT_EQ(bytes[0], 1);
+  EXPECT_EQ(bytes[8], 2);
+}

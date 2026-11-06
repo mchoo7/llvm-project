@@ -28,8 +28,7 @@
 
 using namespace lldb_private;
 
-#define DECLARE_REGISTER_INFOS_PPC64LE_STRUCT
-#include "Register/Arch/RegisterInfos_ppc64le.h"
+#include "lldb/Register/Common/RegisterInfo_ppc64le.h"
 
 #include "Plugins/Process/Utility/InstructionUtils.h"
 
@@ -69,9 +68,13 @@ bool EmulateInstructionPPC64::SetTargetTriple(const ArchSpec &arch) {
 }
 
 static std::optional<RegisterInfo> LLDBTableGetRegisterInfo(uint32_t reg_num) {
-  if (reg_num >= std::size(g_register_infos_ppc64le))
-    return {};
-  return g_register_infos_ppc64le[reg_num];
+  static RegisterInfo_ppc64le provider(
+      ArchSpec("powerpc64le-unknown-unknown"), RegisterLayout(lldb::eByteOrderLittle));
+  for (uint32_t i = 0; i != provider.GetRegisterCount(); ++i) {
+    const auto &reg = provider.GetRegisterInfo()[i];
+    if (reg.kinds[lldb::eRegisterKindLLDB] == reg_num) return reg;
+  }
+  return {};
 }
 
 std::optional<RegisterInfo>

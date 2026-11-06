@@ -1,4 +1,4 @@
-//===-- RegisterInfos_ppc64.h -----------------------------------*- C++ -*-===//
+//===----------------------------------------------------------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -6,28 +6,12 @@
 //
 //===----------------------------------------------------------------------===//
 
-// Textual register-table fragment; intentionally has no include guard.
-// Include its ordinary dependencies at file scope before defining layout macros.
-// See README.md for the inclusion contract.
-
-#if !defined(DECLARE_REGISTER_INFOS_PPC64_STRUCT)
-#error Select a register-table generation mode before including this fragment
-#endif
-
-#ifdef DECLARE_REGISTER_INFOS_PPC64_STRUCT
-
-// Computes the offset of the given GPR_PPC64 in the user data area.
-#define GPR_PPC64_OFFSET(regname) (offsetof(GPR_PPC64, regname))
-#define FPR_PPC64_OFFSET(regname)                                              \
-  (offsetof(FPR_PPC64, regname) + sizeof(GPR_PPC64))
-#define VMX_PPC64_OFFSET(regname)                                              \
-  (offsetof(VMX_PPC64, regname) + sizeof(GPR_PPC64) + sizeof(FPR_PPC64))
-#define VSX_PPC64_OFFSET(regname)                                              \
-  (offsetof(VSX_PPC64, regname) + sizeof(GPR_PPC64) + sizeof(FPR_PPC64) +      \
-   sizeof(VMX_PPC64))
-#define GPR_PPC64_SIZE(regname) (sizeof(((GPR_PPC64 *)NULL)->regname))
-
-// Note that the size and offset will be updated by platform-specific classes.
+// Architecture metadata only. word_size selects the exposed GPR value width.
+#define GPR_PPC64_OFFSET(...) 0
+#define FPR_PPC64_OFFSET(...) 0
+#define VMX_PPC64_OFFSET(...) 0
+#define VSX_PPC64_OFFSET(...) 0
+#define GPR_PPC64_SIZE(...) word_size
 #define DEFINE_GPR_PPC64(reg, alt, lldb_kind)                                  \
   {                                                                            \
       #reg,                                                                    \
@@ -295,256 +279,17 @@
       DEFINE_VSX_PPC64(vs62, LLDB_INVALID_REGNUM),                             \
       DEFINE_VSX_PPC64(vs63, LLDB_INVALID_REGNUM), /* */
 
-typedef struct _GPR_PPC64 {
-  uint64_t r0;
-  uint64_t r1;
-  uint64_t r2;
-  uint64_t r3;
-  uint64_t r4;
-  uint64_t r5;
-  uint64_t r6;
-  uint64_t r7;
-  uint64_t r8;
-  uint64_t r9;
-  uint64_t r10;
-  uint64_t r11;
-  uint64_t r12;
-  uint64_t r13;
-  uint64_t r14;
-  uint64_t r15;
-  uint64_t r16;
-  uint64_t r17;
-  uint64_t r18;
-  uint64_t r19;
-  uint64_t r20;
-  uint64_t r21;
-  uint64_t r22;
-  uint64_t r23;
-  uint64_t r24;
-  uint64_t r25;
-  uint64_t r26;
-  uint64_t r27;
-  uint64_t r28;
-  uint64_t r29;
-  uint64_t r30;
-  uint64_t r31;
-  uint64_t cr;
-  uint64_t msr;
-  uint64_t xer;
-  uint64_t lr;
-  uint64_t ctr;
-  uint64_t pc;
-  uint64_t pad[3];
-} GPR_PPC64;
 
-typedef struct _GPR_PPC {
-  uint32_t r0;
-  uint32_t r1;
-  uint32_t r2;
-  uint32_t r3;
-  uint32_t r4;
-  uint32_t r5;
-  uint32_t r6;
-  uint32_t r7;
-  uint32_t r8;
-  uint32_t r9;
-  uint32_t r10;
-  uint32_t r11;
-  uint32_t r12;
-  uint32_t r13;
-  uint32_t r14;
-  uint32_t r15;
-  uint32_t r16;
-  uint32_t r17;
-  uint32_t r18;
-  uint32_t r19;
-  uint32_t r20;
-  uint32_t r21;
-  uint32_t r22;
-  uint32_t r23;
-  uint32_t r24;
-  uint32_t r25;
-  uint32_t r26;
-  uint32_t r27;
-  uint32_t r28;
-  uint32_t r29;
-  uint32_t r30;
-  uint32_t r31;
-  uint32_t cr;
-  uint32_t msr;
-  uint32_t xer;
-  uint32_t lr;
-  uint32_t ctr;
-  uint32_t pc;
-  uint32_t pad[3];
-} GPR_PPC;
 
-typedef struct _FPR_PPC64 {
-  uint64_t f0;
-  uint64_t f1;
-  uint64_t f2;
-  uint64_t f3;
-  uint64_t f4;
-  uint64_t f5;
-  uint64_t f6;
-  uint64_t f7;
-  uint64_t f8;
-  uint64_t f9;
-  uint64_t f10;
-  uint64_t f11;
-  uint64_t f12;
-  uint64_t f13;
-  uint64_t f14;
-  uint64_t f15;
-  uint64_t f16;
-  uint64_t f17;
-  uint64_t f18;
-  uint64_t f19;
-  uint64_t f20;
-  uint64_t f21;
-  uint64_t f22;
-  uint64_t f23;
-  uint64_t f24;
-  uint64_t f25;
-  uint64_t f26;
-  uint64_t f27;
-  uint64_t f28;
-  uint64_t f29;
-  uint64_t f30;
-  uint64_t f31;
-  uint64_t fpscr;
-} FPR_PPC64;
 
-typedef struct _VMX_PPC64 {
-  uint32_t vr0[4];
-  uint32_t vr1[4];
-  uint32_t vr2[4];
-  uint32_t vr3[4];
-  uint32_t vr4[4];
-  uint32_t vr5[4];
-  uint32_t vr6[4];
-  uint32_t vr7[4];
-  uint32_t vr8[4];
-  uint32_t vr9[4];
-  uint32_t vr10[4];
-  uint32_t vr11[4];
-  uint32_t vr12[4];
-  uint32_t vr13[4];
-  uint32_t vr14[4];
-  uint32_t vr15[4];
-  uint32_t vr16[4];
-  uint32_t vr17[4];
-  uint32_t vr18[4];
-  uint32_t vr19[4];
-  uint32_t vr20[4];
-  uint32_t vr21[4];
-  uint32_t vr22[4];
-  uint32_t vr23[4];
-  uint32_t vr24[4];
-  uint32_t vr25[4];
-  uint32_t vr26[4];
-  uint32_t vr27[4];
-  uint32_t vr28[4];
-  uint32_t vr29[4];
-  uint32_t vr30[4];
-  uint32_t vr31[4];
-  uint32_t pad[2];
-  uint32_t vscr[2];
-  uint32_t vrsave;
-} VMX_PPC64;
-
-typedef struct _VSX_PPC64 {
-  uint32_t vs0[4];
-  uint32_t vs1[4];
-  uint32_t vs2[4];
-  uint32_t vs3[4];
-  uint32_t vs4[4];
-  uint32_t vs5[4];
-  uint32_t vs6[4];
-  uint32_t vs7[4];
-  uint32_t vs8[4];
-  uint32_t vs9[4];
-  uint32_t vs10[4];
-  uint32_t vs11[4];
-  uint32_t vs12[4];
-  uint32_t vs13[4];
-  uint32_t vs14[4];
-  uint32_t vs15[4];
-  uint32_t vs16[4];
-  uint32_t vs17[4];
-  uint32_t vs18[4];
-  uint32_t vs19[4];
-  uint32_t vs20[4];
-  uint32_t vs21[4];
-  uint32_t vs22[4];
-  uint32_t vs23[4];
-  uint32_t vs24[4];
-  uint32_t vs25[4];
-  uint32_t vs26[4];
-  uint32_t vs27[4];
-  uint32_t vs28[4];
-  uint32_t vs29[4];
-  uint32_t vs30[4];
-  uint32_t vs31[4];
-  uint32_t vs32[4];
-  uint32_t vs33[4];
-  uint32_t vs34[4];
-  uint32_t vs35[4];
-  uint32_t vs36[4];
-  uint32_t vs37[4];
-  uint32_t vs38[4];
-  uint32_t vs39[4];
-  uint32_t vs40[4];
-  uint32_t vs41[4];
-  uint32_t vs42[4];
-  uint32_t vs43[4];
-  uint32_t vs44[4];
-  uint32_t vs45[4];
-  uint32_t vs46[4];
-  uint32_t vs47[4];
-  uint32_t vs48[4];
-  uint32_t vs49[4];
-  uint32_t vs50[4];
-  uint32_t vs51[4];
-  uint32_t vs52[4];
-  uint32_t vs53[4];
-  uint32_t vs54[4];
-  uint32_t vs55[4];
-  uint32_t vs56[4];
-  uint32_t vs57[4];
-  uint32_t vs58[4];
-  uint32_t vs59[4];
-  uint32_t vs60[4];
-  uint32_t vs61[4];
-  uint32_t vs62[4];
-  uint32_t vs63[4];
-} VSX_PPC64;
-
-static RegisterInfo g_register_infos_ppc64[] = {PPC64_REGS};
-
-static_assert((sizeof(g_register_infos_ppc64) /
-               sizeof(g_register_infos_ppc64[0])) == k_num_registers_ppc64,
-              "g_register_infos_powerpc64 has wrong number of register infos");
-
-static RegisterInfo g_register_infos_ppc[] = {
-#define GPR_PPC64 GPR_PPC
-    PPC64_REGS
-#undef GPR_PPC64
-};
-
-static_assert((sizeof(g_register_infos_ppc) /
-               sizeof(g_register_infos_ppc[0])) == k_num_registers_ppc64,
-              "g_register_infos_powerpc has wrong number of register infos");
-
-#endif // DECLARE_REGISTER_INFOS_PPC64_STRUCT
-
-#undef GPR_PPC64_OFFSET
-#undef FPR_PPC64_OFFSET
-#undef VMX_PPC64_OFFSET
-#undef VSX_PPC64_OFFSET
-#undef GPR_PPC64_SIZE
-#undef DEFINE_GPR_PPC64
+static RegisterInfo values[] = {PPC64_REGS};
 #undef DEFINE_FPR_PPC64
+#undef DEFINE_GPR_PPC64
 #undef DEFINE_VMX_PPC64
 #undef DEFINE_VSX_PPC64
+#undef FPR_PPC64_OFFSET
+#undef GPR_PPC64_OFFSET
+#undef GPR_PPC64_SIZE
 #undef PPC64_REGS
+#undef VMX_PPC64_OFFSET
+#undef VSX_PPC64_OFFSET

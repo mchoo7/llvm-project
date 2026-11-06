@@ -16,7 +16,7 @@
 #include "Plugins/Process/Linux/NativeProcessLinux.h"
 #include "Plugins/Process/Linux/Procfs.h"
 #include "Plugins/Process/POSIX/ProcessPOSIXLog.h"
-#include "Register/Common/RegisterInfo_ppc64le.h"
+#include "lldb/Register/Common/RegisterInfo_ppc64le.h"
 #include "lldb/Host/HostInfo.h"
 #include "lldb/Host/common/NativeProcessProtocol.h"
 #include "lldb/Utility/DataBufferHeap.h"
@@ -34,6 +34,7 @@
   (GetGPRSize() + GetFPRSize() + sizeof(m_vmx_ppc64le) + sizeof(m_vsx_ppc64le))
 using namespace lldb;
 using namespace lldb_private;
+using namespace lldb_private::linux_ppc64le;
 using namespace lldb_private::process_linux;
 
 static const uint32_t g_gpr_regnums_ppc64le[] = {
@@ -131,7 +132,10 @@ NativeRegisterContextLinux::DetermineArchitecture(lldb::tid_t tid) {
 NativeRegisterContextLinux_ppc64le::NativeRegisterContextLinux_ppc64le(
     const ArchSpec &target_arch, NativeThreadProtocol &native_thread)
     : NativeRegisterContextRegisterInfo(
-          native_thread, new RegisterInfo_ppc64le(target_arch)),
+          native_thread,
+          std::make_unique<RegisterInfo_ppc64le>(
+              target_arch, CreateLinuxPPC64LERegisterModel(target_arch))
+              .release()),
       NativeRegisterContextLinux(native_thread) {
   if (target_arch.GetMachine() != llvm::Triple::ppc64le) {
     llvm_unreachable("Unhandled target architecture.");
@@ -162,196 +166,121 @@ uint32_t NativeRegisterContextLinux_ppc64le::GetUserRegisterCount() const {
   return count;
 }
 
-Status NativeRegisterContextLinux_ppc64le::ReadRegister(
-    const RegisterInfo *reg_info, RegisterValue &reg_value) {
-  Status error;
-
-  if (!reg_info) {
-    error = Status::FromErrorString("reg_info NULL");
-    return error;
-  }
-
-  const uint32_t reg = reg_info->kinds[lldb::eRegisterKindLLDB];
-
-  if (IsFPR(reg)) {
-    error = ReadFPR();
-    if (error.Fail())
-      return error;
-
-    // Get pointer to m_fpr_ppc64le variable and set the data from it.
-    uint32_t fpr_offset = CalculateFprOffset(reg_info);
-    assert(fpr_offset < sizeof m_fpr_ppc64le);
-    uint8_t *src = (uint8_t *)&m_fpr_ppc64le + fpr_offset;
-    reg_value.SetFromMemoryData(*reg_info, src, reg_info->byte_size,
-                                eByteOrderLittle, error);
-  } else if (IsVSX(reg)) {
-    uint32_t vsx_offset = CalculateVsxOffset(reg_info);
-    assert(vsx_offset < sizeof(m_vsx_ppc64le));
-
-    if (vsx_offset < sizeof(m_vsx_ppc64le) / 2) {
-      error = ReadVSX();
-      if (error.Fail())
-        return error;
-
-      error = ReadFPR();
-      if (error.Fail())
-        return error;
-
-      uint64_t value[2];
-      uint8_t *dst, *src;
-      dst = (uint8_t *)&value;
-      src = (uint8_t *)&m_vsx_ppc64le + vsx_offset / 2;
-      ::memcpy(dst, src, 8);
-      dst += 8;
-      src = (uint8_t *)&m_fpr_ppc64le + vsx_offset / 2;
-      ::memcpy(dst, src, 8);
-      reg_value.SetFromMemoryData(*reg_info, &value, reg_info->byte_size,
-                                  eByteOrderLittle, error);
-    } else {
-      error = ReadVMX();
-      if (error.Fail())
-        return error;
-
-      // Get pointer to m_vmx_ppc64le variable and set the data from it.
-      uint32_t vmx_offset = vsx_offset - sizeof(m_vsx_ppc64le) / 2;
-      uint8_t *src = (uint8_t *)&m_vmx_ppc64le + vmx_offset;
-      reg_value.SetFromMemoryData(*reg_info, src, reg_info->byte_size,
-                                  eByteOrderLittle, error);
+Status
+NativeRegisterContextLinux_ppc64le::ReadRegister(const RegisterInfo *reg_info,
+                                                 RegisterValue &reg_value) {
+  if (!reg_info)
+    return Status::FromErrorString("missing register description");
+  const auto &provider = GetRegisterInfoProvider();
+  auto required = provider.GetRegisterBanks(*reg_info, false);
+  if (!required)
+    return Status::FromError(required.takeError());
+  for (RegisterBankID bank : *required) {
+    Status status;
+    switch (bank) {
+    case 0:
+      status = ReadGPR();
+      break;
+    case 1:
+      status = ReadFPR();
+      break;
+    case 2:
+      status = ReadVMX();
+      break;
+    case 3:
+      status = ReadVSX();
+      break;
+    default:
+      return Status::FromErrorString("unsupported register bank");
     }
-  } else if (IsVMX(reg)) {
-    error = ReadVMX();
-    if (error.Fail())
-      return error;
-
-    // Get pointer to m_vmx_ppc64le variable and set the data from it.
-    uint32_t vmx_offset = CalculateVmxOffset(reg_info);
-    assert(vmx_offset < sizeof m_vmx_ppc64le);
-    uint8_t *src = (uint8_t *)&m_vmx_ppc64le + vmx_offset;
-    reg_value.SetFromMemoryData(*reg_info, src, reg_info->byte_size,
-                                eByteOrderLittle, error);
-  } else if (IsGPR(reg)) {
-    error = ReadGPR();
-    if (error.Fail())
-      return error;
-
-    uint8_t *src = (uint8_t *) &m_gpr_ppc64le + reg_info->byte_offset;
-    reg_value.SetFromMemoryData(*reg_info, src, reg_info->byte_size,
-                                eByteOrderLittle, error);
-  } else {
-    return Status::FromErrorString(
-        "failed - register wasn't recognized to be a GPR, FPR, VSX "
-        "or VMX, read strategy unknown");
+    if (status.Fail())
+      return status;
   }
-
-  return error;
+  auto value = provider.ReadRegister(
+      *reg_info, {{0,
+                   {reinterpret_cast<const uint8_t *>(&m_gpr_ppc64le),
+                    sizeof(m_gpr_ppc64le)}},
+                  {1,
+                   {reinterpret_cast<const uint8_t *>(&m_fpr_ppc64le),
+                    sizeof(m_fpr_ppc64le)}},
+                  {2,
+                   {reinterpret_cast<const uint8_t *>(&m_vmx_ppc64le),
+                    sizeof(m_vmx_ppc64le)}},
+                  {3,
+                   {reinterpret_cast<const uint8_t *>(&m_vsx_ppc64le),
+                    sizeof(m_vsx_ppc64le)}}});
+  if (!value)
+    return Status::FromError(value.takeError());
+  reg_value = std::move(*value);
+  return Status();
 }
 
 Status NativeRegisterContextLinux_ppc64le::WriteRegister(
     const RegisterInfo *reg_info, const RegisterValue &reg_value) {
-  Status error;
   if (!reg_info)
-    return Status::FromErrorString("reg_info NULL");
-
-  const uint32_t reg_index = reg_info->kinds[lldb::eRegisterKindLLDB];
-  if (reg_index == LLDB_INVALID_REGNUM)
-    return Status::FromErrorStringWithFormat(
-        "no lldb regnum for %s",
-        reg_info && reg_info->name ? reg_info->name : "<unknown register>");
-
-  if (IsGPR(reg_index)) {
-    error = ReadGPR();
-    if (error.Fail())
-      return error;
-
-    uint8_t *dst = (uint8_t *)&m_gpr_ppc64le + reg_info->byte_offset;
-    ::memcpy(dst, reg_value.GetBytes(), reg_value.GetByteSize());
-
-    error = WriteGPR();
-    if (error.Fail())
-      return error;
-
-    return Status();
-  }
-
-  if (IsFPR(reg_index)) {
-    error = ReadFPR();
-    if (error.Fail())
-      return error;
-
-    // Get pointer to m_fpr_ppc64le variable and set the data to it.
-    uint32_t fpr_offset = CalculateFprOffset(reg_info);
-    assert(fpr_offset < GetFPRSize());
-    uint8_t *dst = (uint8_t *)&m_fpr_ppc64le + fpr_offset;
-    ::memcpy(dst, reg_value.GetBytes(), reg_value.GetByteSize());
-
-    error = WriteFPR();
-    if (error.Fail())
-      return error;
-
-    return Status();
-  }
-
-  if (IsVMX(reg_index)) {
-    error = ReadVMX();
-    if (error.Fail())
-      return error;
-
-    // Get pointer to m_vmx_ppc64le variable and set the data to it.
-    uint32_t vmx_offset = CalculateVmxOffset(reg_info);
-    assert(vmx_offset < sizeof(m_vmx_ppc64le));
-    uint8_t *dst = (uint8_t *)&m_vmx_ppc64le + vmx_offset;
-    ::memcpy(dst, reg_value.GetBytes(), reg_value.GetByteSize());
-
-    error = WriteVMX();
-    if (error.Fail())
-      return error;
-
-    return Status();
-  }
-
-  if (IsVSX(reg_index)) {
-    uint32_t vsx_offset = CalculateVsxOffset(reg_info);
-    assert(vsx_offset < sizeof(m_vsx_ppc64le));
-
-    if (vsx_offset < sizeof(m_vsx_ppc64le) / 2) {
-      error = ReadVSX();
-      if (error.Fail())
-        return error;
-
-      error = ReadFPR();
-      if (error.Fail())
-        return error;
-
-      uint64_t value[2];
-      ::memcpy(value, reg_value.GetBytes(), 16);
-      uint8_t *dst, *src;
-      src = (uint8_t *)value;
-      dst = (uint8_t *)&m_vsx_ppc64le + vsx_offset / 2;
-      ::memcpy(dst, src, 8);
-      src += 8;
-      dst = (uint8_t *)&m_fpr_ppc64le + vsx_offset / 2;
-      ::memcpy(dst, src, 8);
-
-      WriteVSX();
-      WriteFPR();
-    } else {
-      error = ReadVMX();
-      if (error.Fail())
-        return error;
-
-      // Get pointer to m_vmx_ppc64le variable and set the data from it.
-      uint32_t vmx_offset = vsx_offset - sizeof(m_vsx_ppc64le) / 2;
-      uint8_t *dst = (uint8_t *)&m_vmx_ppc64le + vmx_offset;
-      ::memcpy(dst, reg_value.GetBytes(), reg_value.GetByteSize());
-      WriteVMX();
+    return Status::FromErrorString("missing register description");
+  const auto &provider = GetRegisterInfoProvider();
+  auto required = provider.GetRegisterBanks(*reg_info, true);
+  if (!required)
+    return Status::FromError(required.takeError());
+  for (RegisterBankID bank : *required) {
+    Status status;
+    switch (bank) {
+    case 0:
+      status = ReadGPR();
+      break;
+    case 1:
+      status = ReadFPR();
+      break;
+    case 2:
+      status = ReadVMX();
+      break;
+    case 3:
+      status = ReadVSX();
+      break;
+    default:
+      return Status::FromErrorString("unsupported register bank");
     }
-
-    return Status();
+    if (status.Fail())
+      return status;
   }
-
-  return Status::FromErrorString(
-      "failed - register wasn't recognized to be a GPR, FPR, VSX "
-      "or VMX, write strategy unknown");
+  if (auto error =
+          provider.WriteRegister(*reg_info, reg_value,
+                                 {{0,
+                                   {reinterpret_cast<uint8_t *>(&m_gpr_ppc64le),
+                                    sizeof(m_gpr_ppc64le)}},
+                                  {1,
+                                   {reinterpret_cast<uint8_t *>(&m_fpr_ppc64le),
+                                    sizeof(m_fpr_ppc64le)}},
+                                  {2,
+                                   {reinterpret_cast<uint8_t *>(&m_vmx_ppc64le),
+                                    sizeof(m_vmx_ppc64le)}},
+                                  {3,
+                                   {reinterpret_cast<uint8_t *>(&m_vsx_ppc64le),
+                                    sizeof(m_vsx_ppc64le)}}}))
+    return Status::FromError(std::move(error));
+  for (RegisterBankID bank : *required) {
+    Status status;
+    switch (bank) {
+    case 0:
+      status = WriteGPR();
+      break;
+    case 1:
+      status = WriteFPR();
+      break;
+    case 2:
+      status = WriteVMX();
+      break;
+    case 3:
+      status = WriteVSX();
+      break;
+    default:
+      return Status::FromErrorString("unsupported register bank");
+    }
+    if (status.Fail())
+      return status;
+  }
+  return Status();
 }
 
 Status NativeRegisterContextLinux_ppc64le::ReadAllRegisterValues(
@@ -449,24 +378,6 @@ bool NativeRegisterContextLinux_ppc64le::IsGPR(unsigned reg) const {
 
 bool NativeRegisterContextLinux_ppc64le::IsFPR(unsigned reg) const {
   return (k_first_fpr_ppc64le <= reg && reg <= k_last_fpr_ppc64le);
-}
-
-uint32_t NativeRegisterContextLinux_ppc64le::CalculateFprOffset(
-    const RegisterInfo *reg_info) const {
-  return reg_info->byte_offset -
-         GetRegisterInfoAtIndex(k_first_fpr_ppc64le)->byte_offset;
-}
-
-uint32_t NativeRegisterContextLinux_ppc64le::CalculateVmxOffset(
-    const RegisterInfo *reg_info) const {
-  return reg_info->byte_offset -
-         GetRegisterInfoAtIndex(k_first_vmx_ppc64le)->byte_offset;
-}
-
-uint32_t NativeRegisterContextLinux_ppc64le::CalculateVsxOffset(
-    const RegisterInfo *reg_info) const {
-  return reg_info->byte_offset -
-         GetRegisterInfoAtIndex(k_first_vsx_ppc64le)->byte_offset;
 }
 
 Status NativeRegisterContextLinux_ppc64le::ReadVMX() {

@@ -9,9 +9,9 @@
 #ifndef LLDB_SOURCE_PLUGINS_REGISTER_CORE_REGISTERCONTEXTCORE_PPC64LE_H
 #define LLDB_SOURCE_PLUGINS_REGISTER_CORE_REGISTERCONTEXTCORE_PPC64LE_H
 
-#include "lldb/Register/Arch/lldb-ppc64le-register-enums.h"
-#include "lldb/Register/RegisterInfoInterface.h"
 #include "lldb/Register/Arch/lldb-ppc64le-dwarf-eframe-register-enums.h"
+#include "lldb/Register/Arch/lldb-ppc64le-register-enums.h"
+#include "lldb/Register/RegisterInfoProvider.h"
 #include "lldb/Target/RegisterContext.h"
 #include "lldb/Utility/Log.h"
 
@@ -19,7 +19,7 @@ class RegisterContextCore_ppc64le : public lldb_private::RegisterContext {
 public:
   RegisterContextCore_ppc64le(
       lldb_private::Thread &thread, uint32_t concrete_frame_idx,
-      lldb_private::RegisterInfoInterface *register_info);
+      lldb_private::RegisterInfoProvider *register_info);
 
   void InvalidateAllRegisters() override;
 
@@ -28,8 +28,6 @@ public:
   virtual size_t GetGPRSize();
 
   virtual unsigned GetRegisterSize(unsigned reg);
-
-  virtual unsigned GetRegisterOffset(unsigned reg);
 
   const lldb_private::RegisterInfo *GetRegisterInfoAtIndex(size_t reg) override;
 
@@ -40,19 +38,7 @@ public:
   const char *GetRegisterName(unsigned reg);
 
 protected:
-  // 64-bit general purpose registers.
-  uint64_t m_gpr_ppc64le[lldb_private::k_num_gpr_registers_ppc64le];
-
-  // floating-point registers including extended register.
-  uint64_t m_fpr_ppc64le[lldb_private::k_num_fpr_registers_ppc64le];
-
-  // VMX registers.
-  uint64_t m_vmx_ppc64le[lldb_private::k_num_vmx_registers_ppc64le * 2];
-
-  // VSX registers.
-  uint64_t m_vsx_ppc64le[lldb_private::k_num_vsx_registers_ppc64le * 2];
-
-  std::unique_ptr<lldb_private::RegisterInfoInterface> m_register_info_up;
+  std::unique_ptr<lldb_private::RegisterInfoProvider> m_register_info_up;
 
   // Determines if an extended register set is supported on the processor
   // running the inferior process.
@@ -67,7 +53,6 @@ protected:
   bool IsVMX(unsigned reg);
 
   bool IsVSX(unsigned reg);
-
 };
 
 #endif // LLDB_SOURCE_PLUGINS_REGISTER_CORE_REGISTERCONTEXTCORE_PPC64LE_H
