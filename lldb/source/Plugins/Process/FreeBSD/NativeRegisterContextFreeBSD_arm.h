@@ -18,7 +18,7 @@
 // clang-format on
 
 #include "Plugins/Process/FreeBSD/NativeRegisterContextFreeBSD.h"
-#include "Register/Common/RegisterInfo_arm.h"
+#include "lldb/Register/Common/RegisterInfo_arm.h"
 
 #include <array>
 
@@ -52,7 +52,8 @@ public:
   CopyHardwareWatchpointsFrom(NativeRegisterContextFreeBSD &source) override;
 
 private:
-  std::array<uint8_t, sizeof(reg) + sizeof(vfp_state)> m_reg_data;
+  reg m_gpr{};
+  vfp_state m_fpr{};
 
   Status ReadRegisterSet(uint32_t set);
   Status WriteRegisterSet(uint32_t set);

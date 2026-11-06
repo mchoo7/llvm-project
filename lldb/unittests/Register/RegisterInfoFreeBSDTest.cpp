@@ -21,7 +21,8 @@
 #include "lldb/Register/Layouts/FreeBSD/RegisterModelFreeBSD_i386.h"
 #include "lldb/Register/Layouts/FreeBSD/RegisterModelFreeBSD_powerpc.h"
 #include "lldb/Register/Layouts/FreeBSD/RegisterModelFreeBSD_x86_64.h"
-#include "Register/Common/RegisterInfo_arm.h"
+#include "lldb/Register/Common/RegisterInfo_arm.h"
+#include "lldb/Register/Layouts/FreeBSD/RegisterModelFreeBSD_arm.h"
 #include "Register/Common/RegisterInfo_arm64.h"
 #include "lldb/Register/Arch/lldb-arm-register-enums.h"
 #include "lldb/Register/Arch/lldb-arm64-register-enums.h"
@@ -257,12 +258,12 @@ TEST(RegisterInfoFreeBSDTest, i386) {
               ::testing::Pair(offsetof(reg, fbsd_reg), sizeof(reg::fbsd_reg)))
 #define EXPECT_FPU_ARM(lldb_reg, fbsd_reg)                                     \
   EXPECT_THAT(GetRegParams(reg_ctx, fpu_##lldb_reg##_arm),                     \
-              ::testing::Pair(offsetof(vfp_state, fbsd_reg) + base_offset,     \
+              ::testing::Pair(offsetof(vfp_state, fbsd_reg),     \
                               sizeof(vfp_state::fbsd_reg)))
 
 TEST(RegisterInfoFreeBSDTest, arm) {
   ArchSpec arch{"arm-unknown-freebsd"};
-  RegisterInfo_arm reg_ctx{arch};
+  RegisterInfo_arm reg_ctx{arch, CreateFreeBSDArmRegisterModel(arch)};
 
   EXPECT_GPR_ARM(r0, r[0]);
   EXPECT_GPR_ARM(r1, r[1]);
@@ -281,8 +282,6 @@ TEST(RegisterInfoFreeBSDTest, arm) {
   EXPECT_GPR_ARM(lr, r_lr);
   EXPECT_GPR_ARM(pc, r_pc);
   EXPECT_GPR_ARM(cpsr, r_cpsr);
-
-  size_t base_offset = reg_ctx.GetRegisterInfo()[fpu_d0_arm].byte_offset;
 
   EXPECT_FPU_ARM(d0, reg[0]);
   EXPECT_FPU_ARM(d1, reg[1]);

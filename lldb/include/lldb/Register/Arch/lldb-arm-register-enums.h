@@ -268,6 +268,6 @@ enum {
   dbg_wcr15_arm_with_tls,
   k_num_registers_arm_with_tls,
 };
-}
+} // namespace lldb_private
 
 #endif // LLDB_REGISTER_ARCH_LLDB_ARM_REGISTER_ENUMS_H

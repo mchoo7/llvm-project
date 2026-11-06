@@ -9,8 +9,8 @@
 #ifndef LLDB_SOURCE_PLUGINS_REGISTER_CORE_REGISTERCONTEXTCORE_ARM_H
 #define LLDB_SOURCE_PLUGINS_REGISTER_CORE_REGISTERCONTEXTCORE_ARM_H
 
-#include "lldb/Register/RegisterInfoInterface.h"
-#include "Register/Common/RegisterInfo_arm.h"
+#include "lldb/Register/RegisterInfoProvider.h"
+#include "lldb/Register/Common/RegisterInfo_arm.h"
 #include "lldb/Target/RegisterContext.h"
 #include "lldb/Utility/Log.h"
 
@@ -32,8 +32,6 @@ public:
 
   virtual unsigned GetRegisterSize(unsigned reg);
 
-  virtual unsigned GetRegisterOffset(unsigned reg);
-
   const lldb_private::RegisterInfo *GetRegisterInfoAtIndex(size_t reg) override;
 
   size_t GetRegisterSetCount() override;
@@ -51,7 +49,7 @@ protected:
 
   bool IsFPR(unsigned reg);
 
-  size_t GetFPUSize() { return sizeof(RegisterInfo_arm::FPU); }
+  size_t GetFPUSize() { return m_register_info_up->GetFPRSize(); }
 
   virtual bool ReadGPR() = 0;
   virtual bool ReadFPR() = 0;

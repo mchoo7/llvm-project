@@ -6,6 +6,8 @@
 //
 //===----------------------------------------------------------------------===//
 
+#include "lldb/Register/Layouts/Linux/RegisterModelLinux_arm.h"
+#include "lldb/Register/Layouts/FreeBSD/RegisterModelFreeBSD_arm.h"
 #include "lldb/Target/RegisterContext.h"
 #include "lldb/Target/StopInfo.h"
 #include "lldb/Target/Target.h"
@@ -26,7 +28,7 @@
 #include "lldb/Register/Layouts/NetBSD/RegisterModelNetBSD_i386.h"
 #include "lldb/Register/Layouts/NetBSD/RegisterModelNetBSD_x86_64.h"
 #include "ProcessElfCore.h"
-#include "Register/Common/RegisterInfo_arm.h"
+#include "lldb/Register/Common/RegisterInfo_arm.h"
 #include "Register/Common/RegisterInfo_arm64.h"
 #include "RegisterContextLinuxCore_x86.h"
 #include "RegisterContextPOSIXCore_arm.h"
@@ -199,8 +201,12 @@ ThreadElfCore::CreateRegisterContextForFrame(StackFrame *frame) {
       break;
     case llvm::Triple::arm:
       m_thread_reg_ctx_sp = std::make_shared<RegisterContextCorePOSIX_arm>(
-          *this, std::make_unique<RegisterInfo_arm>(arch), m_gpregset_data,
-          m_notes);
+          *this,
+          std::make_unique<RegisterInfo_arm>(
+              arch, (arch.GetTriple().isOSFreeBSD()
+                         ? CreateFreeBSDArmRegisterModel(arch)
+                         : CreateLinuxArmRegisterModel(arch))),
+          m_gpregset_data, m_notes);
       break;
     case llvm::Triple::loongarch64:
       m_thread_reg_ctx_sp = RegisterContextCorePOSIX_loongarch64::Create(

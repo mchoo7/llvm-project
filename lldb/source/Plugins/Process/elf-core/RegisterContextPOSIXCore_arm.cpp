@@ -47,26 +47,17 @@ bool RegisterContextCorePOSIX_arm::WriteFPR() {
 
 bool RegisterContextCorePOSIX_arm::ReadRegister(const RegisterInfo *reg_info,
                                                 RegisterValue &value) {
-  const uint32_t reg = reg_info->kinds[lldb::eRegisterKindLLDB];
-  if (reg == LLDB_INVALID_REGNUM)
+  if (!reg_info)
     return false;
-
-  if (IsGPR(reg)) {
-    lldb::offset_t offset = reg_info->byte_offset;
-    if (m_gpr.ValidOffsetForDataOfSize(offset, reg_info->byte_size)) {
-      value = m_gpr.GetMaxU64(&offset, reg_info->byte_size);
-      return offset == reg_info->byte_offset + reg_info->byte_size;
-    }
-  } else if (IsFPR(reg)) {
-    assert(reg_info->byte_offset >= GetGPRSize());
-    lldb::offset_t offset = reg_info->byte_offset - GetGPRSize();
-    if (m_fpr.ValidOffsetForDataOfSize(offset, reg_info->byte_size))
-      return value
-          .SetValueFromData(*reg_info, m_fpr, offset, /*partial_data_ok=*/false)
-          .Success();
+  auto result = m_register_info_up->ReadRegister(
+      *reg_info, {{0, {m_gpr.GetDataStart(), m_gpr.GetByteSize()}},
+                  {1, {m_fpr.GetDataStart(), m_fpr.GetByteSize()}}});
+  if (!result) {
+    llvm::consumeError(result.takeError());
+    return false;
   }
-
-  return false;
+  value = std::move(*result);
+  return true;
 }
 
 bool RegisterContextCorePOSIX_arm::ReadAllRegisterValues(

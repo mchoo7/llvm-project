@@ -10,7 +10,7 @@
 
 #include "NativeRegisterContextWindows_arm.h"
 #include "NativeThreadWindows.h"
-#include "Register/Common/RegisterInfo_arm.h"
+#include "lldb/Register/Common/RegisterInfo_arm.h"
 #include "ProcessWindowsLog.h"
 #include "lldb/Host/HostInfo.h"
 #include "lldb/Host/HostThread.h"
@@ -78,11 +78,11 @@ enum { k_num_register_sets = 2 };
 
 } // namespace
 
-static RegisterInfoInterface *
+static RegisterInfoProvider *
 CreateRegisterInfoInterface(const ArchSpec &target_arch) {
   assert((HostInfo::GetArchitecture().GetAddressByteSize() == 4) &&
          "Register setting path assumes this is a 32-bit host");
-  return new RegisterInfo_arm(target_arch);
+  return new RegisterInfo_arm(target_arch, RegisterLayout(target_arch.GetByteOrder()));
 }
 
 static Status GetThreadContextHelper(lldb::thread_t thread_handle,

@@ -1,4 +1,4 @@
-//===-- RegisterInfos_arm.h -------------------------------------*- C++ -*-===//
+//===----------------------------------------------------------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -6,41 +6,10 @@
 //
 //===----------------------------------------------------------------------===//
 
-// Textual register-table fragment; intentionally has no include guard.
-// Include its ordinary dependencies at file scope before defining layout macros.
-// See README.md for the inclusion contract.
-
-#if !defined(DECLARE_REGISTER_INFOS_ARM_STRUCT)
-#error Select a register-table generation mode before including this fragment
-#endif
-
-#ifdef DECLARE_REGISTER_INFOS_ARM_STRUCT
-
-
-#ifndef GPR_OFFSET
-#error GPR_OFFSET must be defined before including this header file
-#endif
-
-#ifndef FPU_OFFSET
-#error FPU_OFFSET must be defined before including this header file
-#endif
-
-#ifndef FPSCR_OFFSET
-#error FPSCR_OFFSET must be defined before including this header file
-#endif
-
-#ifndef TLS_OFFSET
-#error TLS_OFFSET must be defined before including this header file
-#endif
-
-#ifndef EXC_OFFSET
-#error EXC_OFFSET must be defined before including this header file
-#endif
-
-#ifndef DEFINE_DBG
-#error DEFINE_DBG must be defined before including this header file
-#endif
-
+#define GPR_OFFSET(...) 0
+#define FPU_OFFSET(...) 0
+#define FPSCR_OFFSET 0
+#define TLS_OFFSET 0
 static uint32_t g_s0_invalidates[] = {fpu_d0_arm, fpu_q0_arm, LLDB_INVALID_REGNUM};
 static uint32_t g_s1_invalidates[] = {fpu_d0_arm, fpu_q0_arm, LLDB_INVALID_REGNUM};
 static uint32_t g_s2_invalidates[] = {fpu_d1_arm, fpu_q0_arm, LLDB_INVALID_REGNUM};
@@ -516,116 +485,10 @@ static RegisterInfo g_register_infos_arm[] = {
         nullptr,
     },
 
-    {
-        "exception",
-        nullptr,
-        4,
-        EXC_OFFSET(0),
-        lldb::eEncodingUint,
-        lldb::eFormatHex,
-        {LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM,
-         LLDB_INVALID_REGNUM, exc_exception_arm_with_tls},
-        nullptr,
-        nullptr,
-        nullptr,
-    },
-    {
-        "fsr",
-        nullptr,
-        4,
-        EXC_OFFSET(1),
-        lldb::eEncodingUint,
-        lldb::eFormatHex,
-        {LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM,
-         LLDB_INVALID_REGNUM, exc_fsr_arm_with_tls},
-        nullptr,
-        nullptr,
-        nullptr,
-    },
-    {
-        "far",
-        nullptr,
-        4,
-        EXC_OFFSET(2),
-        lldb::eEncodingUint,
-        lldb::eFormatHex,
-        {LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM,
-         LLDB_INVALID_REGNUM, exc_far_arm_with_tls},
-        nullptr,
-        nullptr,
-        nullptr,
-    },
-
-    {DEFINE_DBG(bvr, 0)},
-    {DEFINE_DBG(bvr, 1)},
-    {DEFINE_DBG(bvr, 2)},
-    {DEFINE_DBG(bvr, 3)},
-    {DEFINE_DBG(bvr, 4)},
-    {DEFINE_DBG(bvr, 5)},
-    {DEFINE_DBG(bvr, 6)},
-    {DEFINE_DBG(bvr, 7)},
-    {DEFINE_DBG(bvr, 8)},
-    {DEFINE_DBG(bvr, 9)},
-    {DEFINE_DBG(bvr, 10)},
-    {DEFINE_DBG(bvr, 11)},
-    {DEFINE_DBG(bvr, 12)},
-    {DEFINE_DBG(bvr, 13)},
-    {DEFINE_DBG(bvr, 14)},
-    {DEFINE_DBG(bvr, 15)},
-
-    {DEFINE_DBG(bcr, 0)},
-    {DEFINE_DBG(bcr, 1)},
-    {DEFINE_DBG(bcr, 2)},
-    {DEFINE_DBG(bcr, 3)},
-    {DEFINE_DBG(bcr, 4)},
-    {DEFINE_DBG(bcr, 5)},
-    {DEFINE_DBG(bcr, 6)},
-    {DEFINE_DBG(bcr, 7)},
-    {DEFINE_DBG(bcr, 8)},
-    {DEFINE_DBG(bcr, 9)},
-    {DEFINE_DBG(bcr, 10)},
-    {DEFINE_DBG(bcr, 11)},
-    {DEFINE_DBG(bcr, 12)},
-    {DEFINE_DBG(bcr, 13)},
-    {DEFINE_DBG(bcr, 14)},
-    {DEFINE_DBG(bcr, 15)},
-
-    {DEFINE_DBG(wvr, 0)},
-    {DEFINE_DBG(wvr, 1)},
-    {DEFINE_DBG(wvr, 2)},
-    {DEFINE_DBG(wvr, 3)},
-    {DEFINE_DBG(wvr, 4)},
-    {DEFINE_DBG(wvr, 5)},
-    {DEFINE_DBG(wvr, 6)},
-    {DEFINE_DBG(wvr, 7)},
-    {DEFINE_DBG(wvr, 8)},
-    {DEFINE_DBG(wvr, 9)},
-    {DEFINE_DBG(wvr, 10)},
-    {DEFINE_DBG(wvr, 11)},
-    {DEFINE_DBG(wvr, 12)},
-    {DEFINE_DBG(wvr, 13)},
-    {DEFINE_DBG(wvr, 14)},
-    {DEFINE_DBG(wvr, 15)},
-
-    {DEFINE_DBG(wcr, 0)},
-    {DEFINE_DBG(wcr, 1)},
-    {DEFINE_DBG(wcr, 2)},
-    {DEFINE_DBG(wcr, 3)},
-    {DEFINE_DBG(wcr, 4)},
-    {DEFINE_DBG(wcr, 5)},
-    {DEFINE_DBG(wcr, 6)},
-    {DEFINE_DBG(wcr, 7)},
-    {DEFINE_DBG(wcr, 8)},
-    {DEFINE_DBG(wcr, 9)},
-    {DEFINE_DBG(wcr, 10)},
-    {DEFINE_DBG(wcr, 11)},
-    {DEFINE_DBG(wcr, 12)},
-    {DEFINE_DBG(wcr, 13)},
-    {DEFINE_DBG(wcr, 14)},
-    {DEFINE_DBG(wcr, 15)}};
-
-
-#endif // DECLARE_REGISTER_INFOS_ARM_STRUCT
-
+};
 #undef FPU_REG
 #undef FPU_QREG
+#undef GPR_OFFSET
+#undef FPU_OFFSET
+#undef FPSCR_OFFSET
+#undef TLS_OFFSET

@@ -51,10 +51,6 @@ void RegisterContextCore_arm::Invalidate() {}
 
 void RegisterContextCore_arm::InvalidateAllRegisters() {}
 
-unsigned RegisterContextCore_arm::GetRegisterOffset(unsigned reg) {
-  return m_register_info_up->GetRegisterInfo()[reg].byte_offset;
-}
-
 unsigned RegisterContextCore_arm::GetRegisterSize(unsigned reg) {
   return m_register_info_up->GetRegisterInfo()[reg].byte_size;
 }

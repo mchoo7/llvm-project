@@ -13,8 +13,9 @@
 
 #include "Plugins/Process/Linux/NativeRegisterContextLinux.h"
 #include "Plugins/Register/Native/NativeRegisterContextDBReg_arm.h"
-#include "Register/Common/RegisterInfo_arm.h"
 #include "lldb/Register/Arch/lldb-arm-register-enums.h"
+#include "lldb/Register/Common/RegisterInfo_arm.h"
+#include "lldb/Register/Layouts/Linux/RegisterModelLinux_arm.h"
 
 namespace lldb_private {
 namespace process_linux {
@@ -44,12 +45,6 @@ public:
   Status WriteAllRegisterValues(const lldb::DataBufferSP &data_sp) override;
 
 protected:
-  Status DoReadRegisterValue(uint32_t offset, const char *reg_name,
-                             uint32_t size, RegisterValue &value) override;
-
-  Status DoWriteRegisterValue(uint32_t offset, const char *reg_name,
-                              const RegisterValue &value) override;
-
   Status ReadGPR() override;
 
   Status WriteGPR() override;
@@ -71,9 +66,9 @@ protected:
   size_t GetTLSSize() { return sizeof(m_tls); }
 
 private:
-  uint32_t m_gpr_arm[k_num_gpr_registers_arm];
-  RegisterInfo_arm::FPU m_fpr;
-  RegisterInfo_arm::TLS m_tls;
+  uint32_t m_gpr_arm[18];
+  linux_arm::FPU m_fpr;
+  linux_arm::TLS m_tls;
 
   bool m_refresh_hwdebug_info;
 
@@ -89,8 +84,6 @@ private:
 #ifdef __arm__
   llvm::Error WriteHardwareDebugReg(DREGType hwbType, int hwb_index);
 #endif
-
-  uint32_t CalculateFprOffset(const RegisterInfo *reg_info) const;
 
   RegisterInfo_arm &GetRegisterInfo() const;
 };
