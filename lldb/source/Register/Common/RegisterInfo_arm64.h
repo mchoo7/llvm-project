@@ -9,8 +9,7 @@
 #ifndef LLDB_SOURCE_REGISTER_COMMON_REGISTERINFO_ARM64_H
 #define LLDB_SOURCE_REGISTER_COMMON_REGISTERINFO_ARM64_H
 
-#include "Register/RegisterInfoAndSetInterface.h"
-#include "lldb/Target/RegisterContext.h"
+#include "lldb/Register/RegisterInfoAndSetInterface.h"
 #include "lldb/Utility/Flags.h"
 #include "lldb/lldb-private.h"
 #include <map>

@@ -11,8 +11,8 @@
 
 #include <memory>
 
-#include "Register/RegisterInfoInterface.h"
 #include "lldb/Host/common/NativeRegisterContext.h"
+#include "lldb/Register/RegisterInfoProvider.h"
 
 namespace lldb_private {
 class NativeRegisterContextRegisterInfo : public NativeRegisterContext {
@@ -24,6 +24,11 @@ public:
   NativeRegisterContextRegisterInfo(
       NativeThreadProtocol &thread,
       RegisterInfoInterface *register_info_interface);
+
+  NativeRegisterContextRegisterInfo(NativeThreadProtocol &thread,
+                                    RegisterInfoProvider *provider);
+  const RegisterInfoProvider &GetRegisterInfoProvider() const;
+  uint32_t GetRegisterValueOffset(uint32_t index) const override;
 
   uint32_t GetRegisterCount() const override;
 
@@ -38,6 +43,9 @@ public:
 
 protected:
   std::unique_ptr<RegisterInfoInterface> m_register_info_interface_up;
+
+private:
+  RegisterInfoProvider *m_provider = nullptr;
 };
-}
+} // namespace lldb_private
 #endif

@@ -9,7 +9,7 @@
 #ifndef LLDB_SOURCE_PLUGINS_REGISTER_CORE_REGISTERCONTEXTCORE_RISCV64_H
 #define LLDB_SOURCE_PLUGINS_REGISTER_CORE_REGISTERCONTEXTCORE_RISCV64_H
 
-#include "Register/RegisterInfoInterface.h"
+#include "lldb/Register/RegisterInfoInterface.h"
 #include "Register/Common/RegisterInfo_riscv64.h"
 #include "lldb/Register/Arch/lldb-riscv-register-enums.h"
 #include "lldb/Target/RegisterContext.h"

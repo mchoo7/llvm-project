@@ -9,7 +9,7 @@
 #ifndef LLDB_SOURCE_PLUGINS_REGISTER_CORE_REGISTERCONTEXTCORE_POWERPC_H
 #define LLDB_SOURCE_PLUGINS_REGISTER_CORE_REGISTERCONTEXTCORE_POWERPC_H
 
-#include "Register/RegisterInfoInterface.h"
+#include "lldb/Register/RegisterInfoInterface.h"
 #include "lldb/Register/Arch/lldb-powerpc-register-enums.h"
 #include "lldb/Target/RegisterContext.h"
 #include "lldb/Utility/Log.h"

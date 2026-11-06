@@ -9,7 +9,7 @@
 #ifndef LLDB_SOURCE_PLUGINS_REGISTER_CORE_REGISTERCONTEXTCORE_ARM64_H
 #define LLDB_SOURCE_PLUGINS_REGISTER_CORE_REGISTERCONTEXTCORE_ARM64_H
 
-#include "Register/RegisterInfoInterface.h"
+#include "lldb/Register/RegisterInfoInterface.h"
 #include "Register/Common/RegisterInfo_arm64.h"
 #include "lldb/Target/RegisterContext.h"
 #include "lldb/Utility/Log.h"

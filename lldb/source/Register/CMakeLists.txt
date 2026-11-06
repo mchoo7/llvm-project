@@ -1,6 +1,6 @@
 add_lldb_library(lldbRegister NO_PLUGIN_DEPENDENCIES
+  Arch/RegisterContext_x86.cpp
   Arch/RegisterInfos_x86_64_with_base_shared.cpp
-  Common/RegisterInfoDynamic_riscv32.cpp
   Common/RegisterInfo_arm.cpp
   Common/RegisterInfo_arm64.cpp
   Common/RegisterInfo_loongarch64.cpp
@@ -8,7 +8,6 @@ add_lldb_library(lldbRegister NO_PLUGIN_DEPENDENCIES
   Common/RegisterInfo_ppc64le.cpp
   Common/RegisterInfo_riscv32.cpp
   Common/RegisterInfo_riscv64.cpp
-  Arch/RegisterContext_x86.cpp
   Common/RegisterTypeDetector_arm64.cpp
   FreeBSD/RegisterInfoFreeBSD_i386.cpp
   FreeBSD/RegisterInfoFreeBSD_powerpc.cpp
@@ -20,6 +19,10 @@ add_lldb_library(lldbRegister NO_PLUGIN_DEPENDENCIES
   NetBSD/RegisterInfoNetBSD_x86_64.cpp
   OpenBSD/RegisterInfoOpenBSD_i386.cpp
   OpenBSD/RegisterInfoOpenBSD_x86_64.cpp
+  RegisterCodec.cpp
+  RegisterDescription.cpp
+  RegisterInfoProvider.cpp
+  RegisterLayout.cpp
   Windows/RegisterInfoWindows_i386.cpp
   Windows/RegisterInfoWindows_x86_64.cpp
 

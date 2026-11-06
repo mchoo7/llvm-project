@@ -9,7 +9,7 @@
 #ifndef LLDB_SOURCE_REGISTER_FREEBSD_REGISTERINFOFREEBSD_POWERPC_H
 #define LLDB_SOURCE_REGISTER_FREEBSD_REGISTERINFOFREEBSD_POWERPC_H
 
-#include "Register/RegisterInfoInterface.h"
+#include "lldb/Register/RegisterInfoInterface.h"
 
 class RegisterInfoFreeBSD_powerpc
     : public lldb_private::RegisterInfoInterface {

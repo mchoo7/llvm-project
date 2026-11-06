@@ -9,7 +9,7 @@
 #ifndef LLDB_SOURCE_REGISTER_OPENBSD_REGISTERINFOOPENBSD_I386_H
 #define LLDB_SOURCE_REGISTER_OPENBSD_REGISTERINFOOPENBSD_I386_H
 
-#include "Register/RegisterInfoInterface.h"
+#include "lldb/Register/RegisterInfoInterface.h"
 
 class RegisterInfoOpenBSD_i386 : public lldb_private::RegisterInfoInterface {
 public:

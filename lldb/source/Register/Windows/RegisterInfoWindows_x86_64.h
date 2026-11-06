@@ -9,7 +9,7 @@
 #ifndef LLDB_SOURCE_REGISTER_WINDOWS_REGISTERINFOWINDOWS_X86_64_H
 #define LLDB_SOURCE_REGISTER_WINDOWS_REGISTERINFOWINDOWS_X86_64_H
 
-#include "Register/RegisterInfoInterface.h"
+#include "lldb/Register/RegisterInfoInterface.h"
 
 class RegisterInfoWindows_x86_64
     : public lldb_private::RegisterInfoInterface {

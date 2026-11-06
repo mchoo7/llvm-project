@@ -9,8 +9,7 @@
 #ifndef LLDB_SOURCE_REGISTER_COMMON_REGISTERINFO_PPC64LE_H
 #define LLDB_SOURCE_REGISTER_COMMON_REGISTERINFO_PPC64LE_H
 
-#include "Register/RegisterInfoInterface.h"
-#include "lldb/Target/RegisterContext.h"
+#include "lldb/Register/RegisterInfoInterface.h"
 #include "lldb/lldb-private.h"
 
 class RegisterInfo_ppc64le : public lldb_private::RegisterInfoInterface {

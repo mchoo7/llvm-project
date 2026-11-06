@@ -9,7 +9,7 @@
 #ifndef LLDB_SOURCE_REGISTER_LINUX_REGISTERINFOLINUX_X86_H
 #define LLDB_SOURCE_REGISTER_LINUX_REGISTERINFOLINUX_X86_H
 
-#include "Register/RegisterInfoInterface.h"
+#include "lldb/Register/RegisterInfoInterface.h"
 
 namespace lldb_private {
 

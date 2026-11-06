@@ -9,7 +9,7 @@
 #ifndef LLDB_SOURCE_REGISTER_REGISTERINFOANDSETINTERFACE_H
 #define LLDB_SOURCE_REGISTER_REGISTERINFOANDSETINTERFACE_H
 
-#include "RegisterInfoInterface.h"
+#include "lldb/Register/RegisterInfoInterface.h"
 
 #include "lldb/Utility/ArchSpec.h"
 #include "lldb/lldb-private-types.h"

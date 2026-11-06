@@ -10,7 +10,7 @@
 #define LLDB_SOURCE_PLUGINS_REGISTER_CORE_REGISTERCONTEXTCORE_PPC64LE_H
 
 #include "lldb/Register/Arch/lldb-ppc64le-register-enums.h"
-#include "Register/RegisterInfoInterface.h"
+#include "lldb/Register/RegisterInfoInterface.h"
 #include "lldb/Register/Arch/lldb-ppc64le-dwarf-eframe-register-enums.h"
 #include "lldb/Target/RegisterContext.h"
 #include "lldb/Utility/Log.h"

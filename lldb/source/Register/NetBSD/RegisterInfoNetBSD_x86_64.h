@@ -9,7 +9,7 @@
 #ifndef LLDB_SOURCE_REGISTER_NETBSD_REGISTERINFONETBSD_X86_64_H
 #define LLDB_SOURCE_REGISTER_NETBSD_REGISTERINFONETBSD_X86_64_H
 
-#include "Register/RegisterInfoInterface.h"
+#include "lldb/Register/RegisterInfoInterface.h"
 
 class RegisterInfoNetBSD_x86_64
     : public lldb_private::RegisterInfoInterface {

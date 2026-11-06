@@ -9,7 +9,7 @@
 #ifndef LLDB_SOURCE_REGISTER_LINUX_REGISTERINFOLINUX_S390X_H
 #define LLDB_SOURCE_REGISTER_LINUX_REGISTERINFOLINUX_S390X_H
 
-#include "Register/RegisterInfoInterface.h"
+#include "lldb/Register/RegisterInfoInterface.h"
 
 class RegisterInfoLinux_s390x : public lldb_private::RegisterInfoInterface {
 public:

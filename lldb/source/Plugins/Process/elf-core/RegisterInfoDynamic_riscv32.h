@@ -9,7 +9,7 @@
 #ifndef LLDB_SOURCE_REGISTER_COMMON_REGISTERINFODYNAMIC_RISCV32_H
 #define LLDB_SOURCE_REGISTER_COMMON_REGISTERINFODYNAMIC_RISCV32_H
 
-#include "Register/RegisterInfoAndSetInterface.h"
+#include "lldb/Register/RegisterInfoAndSetInterface.h"
 #include "lldb/Target/DynamicRegisterInfo.h"
 #include "lldb/Target/RegisterContext.h"
 #include "lldb/lldb-private.h"
