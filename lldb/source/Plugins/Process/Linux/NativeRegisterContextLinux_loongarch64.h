@@ -13,7 +13,8 @@
 
 #include "Plugins/Process/Linux/NativeRegisterContextLinux.h"
 #include "Plugins/Register/Native/NativeRegisterContextDBReg_loongarch.h"
-#include "Register/Common/RegisterInfo_loongarch64.h"
+#include "lldb/Register/Common/RegisterInfo_loongarch64.h"
+#include "lldb/Register/Layouts/Linux/RegisterModelLinux_loongarch64.h"
 
 #include <asm/ptrace.h>
 
@@ -85,10 +86,10 @@ private:
   bool m_lasx_is_valid;
   bool m_refresh_hwdebug_info;
 
-  RegisterInfo_loongarch64::GPR m_gpr;
-  RegisterInfo_loongarch64::FPR m_fpr;
-  RegisterInfo_loongarch64::LSX m_lsx;
-  RegisterInfo_loongarch64::LASX m_lasx;
+  linux_loongarch64::GPR m_gpr;
+  linux_loongarch64::FPR m_fpr;
+  linux_loongarch64::LSX m_lsx;
+  linux_loongarch64::LASX m_lasx;
 
   bool IsGPR(unsigned reg) const;
 
@@ -97,12 +98,6 @@ private:
   bool IsLSX(unsigned reg) const;
 
   bool IsLASX(unsigned reg) const;
-
-  uint32_t CalculateFprOffset(const RegisterInfo *reg_info) const;
-
-  uint32_t CalculateLsxOffset(const RegisterInfo *reg_info) const;
-
-  uint32_t CalculateLasxOffset(const RegisterInfo *reg_info) const;
 
   const RegisterInfo_loongarch64 &GetRegisterInfo() const;
 

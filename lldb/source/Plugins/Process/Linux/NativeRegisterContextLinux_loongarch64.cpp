@@ -12,7 +12,7 @@
 
 #include "Plugins/Process/Linux/NativeProcessLinux.h"
 #include "Plugins/Process/Linux/Procfs.h"
-#include "Register/Common/RegisterInfo_loongarch64.h"
+#include "lldb/Register/Common/RegisterInfo_loongarch64.h"
 #include "lldb/Register/Arch/lldb-loongarch-register-enums.h"
 #include "lldb/Host/HostInfo.h"
 #include "lldb/Utility/DataBufferHeap.h"
@@ -83,9 +83,8 @@ NativeRegisterContextLinux::CreateHostNativeRegisterContextLinux(
     const ArchSpec &target_arch, NativeThreadLinux &native_thread) {
   switch (target_arch.GetMachine()) {
   case llvm::Triple::loongarch64: {
-    Flags opt_regsets;
     auto register_info_up = std::make_unique<RegisterInfo_loongarch64>(
-        target_arch, opt_regsets);
+        target_arch, CreateLinuxLoongArch64RegisterModel(target_arch));
     return std::make_unique<NativeRegisterContextLinux_loongarch64>(
         target_arch, native_thread, std::move(register_info_up));
   }
@@ -126,7 +125,7 @@ NativeRegisterContextLinux_loongarch64::NativeRegisterContextLinux_loongarch64(
 const RegisterInfo_loongarch64 &
 NativeRegisterContextLinux_loongarch64::GetRegisterInfo() const {
   return static_cast<const RegisterInfo_loongarch64 &>(
-      NativeRegisterContextRegisterInfo::GetRegisterInfoInterface());
+      NativeRegisterContextRegisterInfo::GetRegisterInfoProvider());
 }
 
 uint32_t NativeRegisterContextLinux_loongarch64::GetRegisterSetCount() const {
@@ -147,130 +146,105 @@ uint32_t NativeRegisterContextLinux_loongarch64::GetUserRegisterCount() const {
 
 Status NativeRegisterContextLinux_loongarch64::ReadRegister(
     const RegisterInfo *reg_info, RegisterValue &reg_value) {
-  Status error;
-
-  if (!reg_info) {
-    error = Status::FromErrorString("reg_info NULL");
-    return error;
+  if (!reg_info)
+    return Status::FromErrorString("missing register description");
+  const auto &provider = GetRegisterInfoProvider();
+  auto required = provider.GetRegisterBanks(*reg_info, false);
+  if (!required)
+    return Status::FromError(required.takeError());
+  for (RegisterBankID bank : *required) {
+    Status status;
+    switch (bank) {
+    case 0:
+      status = ReadGPR();
+      break;
+    case 1:
+      status = ReadFPR();
+      break;
+    case 2:
+      status = ReadLSX();
+      break;
+    case 3:
+      status = ReadLASX();
+      break;
+    default:
+      return Status::FromErrorString("unsupported register bank");
+    }
+    if (status.Fail())
+      return status;
   }
-
-  const uint32_t reg = reg_info->kinds[lldb::eRegisterKindLLDB];
-
-  if (reg == LLDB_INVALID_REGNUM)
-    return Status::FromErrorStringWithFormat(
-        "no lldb regnum for %s",
-        reg_info && reg_info->name ? reg_info->name : "<unknown register>");
-
-  uint8_t *src = nullptr;
-  uint32_t offset = LLDB_INVALID_INDEX32;
-
-  if (IsGPR(reg)) {
-    error = ReadGPR();
-    if (error.Fail())
-      return error;
-
-    offset = reg_info->byte_offset;
-    assert(offset < GetGPRSize());
-    src = (uint8_t *)GetGPRBuffer() + offset;
-
-  } else if (IsFPR(reg)) {
-    error = ReadFPR();
-    if (error.Fail())
-      return error;
-
-    offset = CalculateFprOffset(reg_info);
-    assert(offset < GetFPRSize());
-    src = (uint8_t *)GetFPRBuffer() + offset;
-  } else if (IsLSX(reg)) {
-    error = ReadLSX();
-    if (error.Fail())
-      return error;
-
-    offset = CalculateLsxOffset(reg_info);
-    assert(offset < sizeof(m_lsx));
-    src = (uint8_t *)&m_lsx + offset;
-  } else if (IsLASX(reg)) {
-    error = ReadLASX();
-    if (error.Fail())
-      return error;
-
-    offset = CalculateLasxOffset(reg_info);
-    assert(offset < sizeof(m_lasx));
-    src = (uint8_t *)&m_lasx + offset;
-  } else
-    return Status::FromErrorString(
-        "failed - register wasn't recognized to be a GPR or an FPR, "
-        "write strategy unknown");
-
-  reg_value.SetFromMemoryData(*reg_info, src, reg_info->byte_size,
-                              eByteOrderLittle, error);
-
-  return error;
+  auto value = provider.ReadRegister(
+      *reg_info,
+      {{0, {reinterpret_cast<const uint8_t *>(GetGPRBuffer()), GetGPRSize()}},
+       {1, {reinterpret_cast<const uint8_t *>(GetFPRBuffer()), GetFPRSize()}},
+       {2, {reinterpret_cast<const uint8_t *>(&m_lsx), sizeof(m_lsx)}},
+       {3, {reinterpret_cast<const uint8_t *>(&m_lasx), sizeof(m_lasx)}}});
+  if (!value)
+    return Status::FromError(value.takeError());
+  reg_value = std::move(*value);
+  return Status();
 }
 
 Status NativeRegisterContextLinux_loongarch64::WriteRegister(
     const RegisterInfo *reg_info, const RegisterValue &reg_value) {
-  Status error;
-
   if (!reg_info)
-    return Status::FromErrorString("reg_info NULL");
-
-  const uint32_t reg = reg_info->kinds[lldb::eRegisterKindLLDB];
-
-  if (reg == LLDB_INVALID_REGNUM)
-    return Status::FromErrorStringWithFormat(
-        "no lldb regnum for %s",
-        reg_info->name != nullptr ? reg_info->name : "<unknown register>");
-
-  uint8_t *dst = nullptr;
-  uint32_t offset = LLDB_INVALID_INDEX32;
-
-  if (IsGPR(reg)) {
-    error = ReadGPR();
-    if (error.Fail())
-      return error;
-
-    assert(reg_info->byte_offset < GetGPRSize());
-    dst = (uint8_t *)GetGPRBuffer() + reg_info->byte_offset;
-    ::memcpy(dst, reg_value.GetBytes(), reg_info->byte_size);
-
-    return WriteGPR();
-  } else if (IsFPR(reg)) {
-    error = ReadFPR();
-    if (error.Fail())
-      return error;
-
-    offset = CalculateFprOffset(reg_info);
-    assert(offset < GetFPRSize());
-    dst = (uint8_t *)GetFPRBuffer() + offset;
-    ::memcpy(dst, reg_value.GetBytes(), reg_info->byte_size);
-
-    return WriteFPR();
-  } else if (IsLSX(reg)) {
-    error = ReadLSX();
-    if (error.Fail())
-      return error;
-
-    offset = CalculateLsxOffset(reg_info);
-    assert(offset < sizeof(m_lsx));
-    dst = (uint8_t *)&m_lsx + offset;
-    ::memcpy(dst, reg_value.GetBytes(), reg_info->byte_size);
-
-    return WriteLSX();
-  } else if (IsLASX(reg)) {
-    error = ReadLASX();
-    if (error.Fail())
-      return error;
-
-    offset = CalculateLasxOffset(reg_info);
-    assert(offset < sizeof(m_lasx));
-    dst = (uint8_t *)&m_lasx + offset;
-    ::memcpy(dst, reg_value.GetBytes(), reg_info->byte_size);
-
-    return WriteLASX();
+    return Status::FromErrorString("missing register description");
+  if (reg_info->kinds[lldb::eRegisterKindLLDB] == gpr_r0_loongarch)
+    return Status();
+  const auto &provider = GetRegisterInfoProvider();
+  auto required = provider.GetRegisterBanks(*reg_info, true);
+  if (!required)
+    return Status::FromError(required.takeError());
+  for (RegisterBankID bank : *required) {
+    Status status;
+    switch (bank) {
+    case 0:
+      status = ReadGPR();
+      break;
+    case 1:
+      status = ReadFPR();
+      break;
+    case 2:
+      status = ReadLSX();
+      break;
+    case 3:
+      status = ReadLASX();
+      break;
+    default:
+      return Status::FromErrorString("unsupported register bank");
+    }
+    if (status.Fail())
+      return status;
   }
-
-  return Status::FromErrorString("Failed to write register value");
+  if (auto error = provider.WriteRegister(
+          *reg_info, reg_value,
+          {{0, {reinterpret_cast<uint8_t *>(GetGPRBuffer()), GetGPRSize()}},
+           {1, {reinterpret_cast<uint8_t *>(GetFPRBuffer()), GetFPRSize()}},
+           {2, {reinterpret_cast<uint8_t *>(&m_lsx), sizeof(m_lsx)}},
+           {3, {reinterpret_cast<uint8_t *>(&m_lasx), sizeof(m_lasx)}}}))
+    return Status::FromError(std::move(error));
+  for (RegisterBankID bank : *required) {
+    Status status;
+    switch (bank) {
+    case 0:
+      status = WriteGPR();
+      break;
+    case 1:
+      status = WriteFPR();
+      break;
+    case 2:
+      status = WriteLSX();
+      break;
+    case 3:
+      status = WriteLASX();
+      break;
+    default:
+      return Status::FromErrorString("unsupported register bank");
+    }
+    if (status.Fail())
+      return status;
+  }
+  return Status();
 }
 
 Status NativeRegisterContextLinux_loongarch64::ReadAllRegisterValues(
@@ -335,13 +309,13 @@ Status NativeRegisterContextLinux_loongarch64::WriteAllRegisterValues(
         __FUNCTION__);
     return error;
   }
-  ::memcpy(GetGPRBuffer(), src, GetRegisterInfoInterface().GetGPRSize());
+  ::memcpy(GetGPRBuffer(), src, GetRegisterInfoProvider().GetGPRSize());
 
   error = WriteGPR();
   if (error.Fail())
     return error;
 
-  src += GetRegisterInfoInterface().GetGPRSize();
+  src += GetRegisterInfoProvider().GetGPRSize();
   ::memcpy(GetFPRBuffer(), src, GetFPRSize());
   m_fpu_is_valid = true;
   error = WriteFPR();
@@ -368,22 +342,22 @@ Status NativeRegisterContextLinux_loongarch64::WriteAllRegisterValues(
 }
 
 bool NativeRegisterContextLinux_loongarch64::IsGPR(unsigned reg) const {
-  return GetRegisterInfo().GetRegisterSetFromRegisterIndex(reg) ==
+  return GetRegisterInfo().GetRegisterSetFromRegisterNumber(reg) ==
          RegisterInfo_loongarch64::GPRegSet;
 }
 
 bool NativeRegisterContextLinux_loongarch64::IsFPR(unsigned reg) const {
-  return GetRegisterInfo().GetRegisterSetFromRegisterIndex(reg) ==
+  return GetRegisterInfo().GetRegisterSetFromRegisterNumber(reg) ==
          RegisterInfo_loongarch64::FPRegSet;
 }
 
 bool NativeRegisterContextLinux_loongarch64::IsLSX(unsigned reg) const {
-  return GetRegisterInfo().GetRegisterSetFromRegisterIndex(reg) ==
+  return GetRegisterInfo().GetRegisterSetFromRegisterNumber(reg) ==
          RegisterInfo_loongarch64::LSXRegSet;
 }
 
 bool NativeRegisterContextLinux_loongarch64::IsLASX(unsigned reg) const {
-  return GetRegisterInfo().GetRegisterSetFromRegisterIndex(reg) ==
+  return GetRegisterInfo().GetRegisterSetFromRegisterNumber(reg) ==
          RegisterInfo_loongarch64::LASXRegSet;
 }
 
@@ -526,21 +500,6 @@ void NativeRegisterContextLinux_loongarch64::InvalidateAllRegisters() {
   m_fpu_is_valid = false;
   m_lsx_is_valid = false;
   m_lasx_is_valid = false;
-}
-
-uint32_t NativeRegisterContextLinux_loongarch64::CalculateFprOffset(
-    const RegisterInfo *reg_info) const {
-  return reg_info->byte_offset - GetGPRSize();
-}
-
-uint32_t NativeRegisterContextLinux_loongarch64::CalculateLsxOffset(
-    const RegisterInfo *reg_info) const {
-  return reg_info->byte_offset - GetGPRSize() - sizeof(m_fpr);
-}
-
-uint32_t NativeRegisterContextLinux_loongarch64::CalculateLasxOffset(
-    const RegisterInfo *reg_info) const {
-  return reg_info->byte_offset - GetGPRSize() - sizeof(m_fpr) - sizeof(m_lsx);
 }
 
 std::vector<uint32_t>

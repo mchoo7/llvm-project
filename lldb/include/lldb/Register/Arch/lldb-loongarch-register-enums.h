@@ -16,7 +16,7 @@ namespace lldb_private {
 // Internal codes for all loongarch registers.
 enum {
   // The same order as user_regs_struct in <asm/ptrace.h>
-  // note: these enum values are used as byte_offset
+  // Internal numbering is independent of saved-register byte offsets.
   gpr_first_loongarch = 0,
   gpr_r0_loongarch = gpr_first_loongarch,
   gpr_r1_loongarch,

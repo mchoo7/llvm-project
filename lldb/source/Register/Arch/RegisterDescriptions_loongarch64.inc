@@ -1,4 +1,4 @@
-//===-- RegisterInfos_loongarch64.h -----------------------------*- C++ -*-===//
+//===----------------------------------------------------------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -129,20 +129,8 @@ static RegisterInfo g_register_infos_loongarch64[] = {
     DEFINE_GPR64_ALT(r29, s6, LLDB_INVALID_REGNUM),
     DEFINE_GPR64_ALT(r30, s7, LLDB_INVALID_REGNUM),
     DEFINE_GPR64_ALT(r31, s8, LLDB_INVALID_REGNUM),
-
-    DEFINE_GPR64(orig_a0, LLDB_INVALID_REGNUM),
     DEFINE_GPR64(pc, LLDB_REGNUM_GENERIC_PC),
     DEFINE_GPR64(badv, LLDB_INVALID_REGNUM),
-    DEFINE_GPR64(reserved0, LLDB_INVALID_REGNUM),
-    DEFINE_GPR64(reserved1, LLDB_INVALID_REGNUM),
-    DEFINE_GPR64(reserved2, LLDB_INVALID_REGNUM),
-    DEFINE_GPR64(reserved3, LLDB_INVALID_REGNUM),
-    DEFINE_GPR64(reserved4, LLDB_INVALID_REGNUM),
-    DEFINE_GPR64(reserved5, LLDB_INVALID_REGNUM),
-    DEFINE_GPR64(reserved6, LLDB_INVALID_REGNUM),
-    DEFINE_GPR64(reserved7, LLDB_INVALID_REGNUM),
-    DEFINE_GPR64(reserved8, LLDB_INVALID_REGNUM),
-    DEFINE_GPR64(reserved9, LLDB_INVALID_REGNUM),
 
     DEFINE_FPR64_ALT(f0, fa0, LLDB_INVALID_REGNUM),
     DEFINE_FPR64_ALT(f1, fa1, LLDB_INVALID_REGNUM),

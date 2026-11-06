@@ -11,7 +11,7 @@
 
 #include "EmulateInstructionLoongArch.h"
 #include "Plugins/Process/Utility/InstructionUtils.h"
-#include "Register/Common/RegisterInfo_loongarch64.h"
+#include "lldb/Register/Common/RegisterInfo_loongarch64.h"
 #include "lldb/Register/Arch/lldb-loongarch-register-enums.h"
 #include "lldb/Core/Address.h"
 #include "lldb/Core/PluginManager.h"
@@ -161,14 +161,17 @@ EmulateInstructionLoongArch::GetRegisterInfo(lldb::RegisterKind reg_kind,
     }
   }
 
-  const RegisterInfo *array =
-      RegisterInfo_loongarch64::GetRegisterInfoPtr(m_arch);
-  const uint32_t length =
-      RegisterInfo_loongarch64::GetRegisterInfoCount(m_arch);
-
-  if (reg_index >= length || reg_kind != eRegisterKindLLDB)
-    return {};
-  return array[reg_index];
+  // Architecture IDs need not be dense indices in the exposed table.
+  static RegisterInfo_loongarch64 registers(
+      ArchSpec("loongarch64-unknown-unknown"),
+      RegisterInfo_loongarch64::CreateDescription(),
+      RegisterLayout(eByteOrderLittle));
+  for (uint32_t i = 0; i != registers.GetRegisterCount(); ++i) {
+    const auto &reg = registers.GetRegisterInfo()[i];
+    if (reg.kinds[reg_kind] == reg_index)
+      return reg;
+  }
+  return {};
 }
 
 bool EmulateInstructionLoongArch::SetTargetTriple(const ArchSpec &arch) {

@@ -10,7 +10,7 @@
 #define LLDB_SOURCE_PLUGINS_PROCESS_ELF_CORE_REGISTERCONTEXTPOSIXCORE_LOONGARCH64_H
 
 #include "Plugins/Register/Core/RegisterContextCore_loongarch64.h"
-#include "Register/Common/RegisterInfo_loongarch64.h"
+#include "lldb/Register/Common/RegisterInfo_loongarch64.h"
 
 #include "Plugins/Process/elf-core/RegisterUtilities.h"
 #include "lldb/Target/Thread.h"

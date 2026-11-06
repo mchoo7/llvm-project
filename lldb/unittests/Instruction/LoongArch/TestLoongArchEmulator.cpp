@@ -15,7 +15,7 @@
 #include "gtest/gtest.h"
 
 #include "Plugins/Instruction/LoongArch/EmulateInstructionLoongArch.h"
-#include "Register/Common/RegisterInfo_loongarch64.h"
+#include "lldb/Register/Common/RegisterInfo_loongarch64.h"
 #include "lldb/Register/Arch/lldb-loongarch-register-enums.h"
 
 using namespace llvm;
@@ -48,8 +48,8 @@ using namespace lldb_private;
 
 struct LoongArch64EmulatorTester : public EmulateInstructionLoongArch,
                                    testing::Test {
-  RegisterInfo_loongarch64::GPR gpr;
-  RegisterInfo_loongarch64::FPR fpr;
+  struct { uint64_t gpr[32]; uint64_t csr_era; uint64_t csr_badv; } gpr{};
+  struct { uint64_t fpr[32]; uint64_t fcc; uint32_t fcsr; } fpr{};
 
   LoongArch64EmulatorTester(
       std::string triple = "loongarch64-unknown-linux-gnu")
@@ -66,8 +66,6 @@ struct LoongArch64EmulatorTester : public EmulateInstructionLoongArch,
     uint32_t reg = reg_info->kinds[eRegisterKindLLDB];
     if (reg >= gpr_r0_loongarch && reg <= gpr_r31_loongarch)
       reg_value.SetUInt(tester->gpr.gpr[reg], reg_info->byte_size);
-    else if (reg == gpr_orig_a0_loongarch)
-      reg_value.SetUInt(tester->gpr.orig_a0, reg_info->byte_size);
     else if (reg == gpr_pc_loongarch)
       reg_value.SetUInt(tester->gpr.csr_era, reg_info->byte_size);
     else if (reg == gpr_badv_loongarch)
@@ -87,8 +85,6 @@ struct LoongArch64EmulatorTester : public EmulateInstructionLoongArch,
     uint32_t reg = reg_info->kinds[eRegisterKindLLDB];
     if (reg >= gpr_r0_loongarch && reg <= gpr_r31_loongarch)
       tester->gpr.gpr[reg] = reg_value.GetAsUInt64();
-    else if (reg == gpr_orig_a0_loongarch)
-      tester->gpr.orig_a0 = reg_value.GetAsUInt64();
     else if (reg == gpr_pc_loongarch)
       tester->gpr.csr_era = reg_value.GetAsUInt64();
     else if (reg == gpr_badv_loongarch)

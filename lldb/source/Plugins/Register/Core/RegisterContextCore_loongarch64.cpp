@@ -45,10 +45,6 @@ unsigned RegisterContextCore_loongarch64::GetRegisterSize(unsigned int reg) {
   return m_register_info_up->GetRegisterInfo()[reg].byte_size;
 }
 
-unsigned RegisterContextCore_loongarch64::GetRegisterOffset(unsigned int reg) {
-  return m_register_info_up->GetRegisterInfo()[reg].byte_offset;
-}
-
 const lldb_private::RegisterInfo *
 RegisterContextCore_loongarch64::GetRegisterInfoAtIndex(size_t reg) {
   if (reg < GetRegisterCount())
@@ -72,21 +68,21 @@ RegisterContextCore_loongarch64::GetRegisterInfo() {
 }
 
 bool RegisterContextCore_loongarch64::IsGPR(unsigned int reg) {
-  return m_register_info_up->GetRegisterSetFromRegisterIndex(reg) ==
+  return m_register_info_up->GetRegisterSetFromRegisterNumber(reg) ==
          RegisterInfo_loongarch64::GPRegSet;
 }
 
 bool RegisterContextCore_loongarch64::IsFPR(unsigned int reg) {
-  return m_register_info_up->GetRegisterSetFromRegisterIndex(reg) ==
+  return m_register_info_up->GetRegisterSetFromRegisterNumber(reg) ==
          RegisterInfo_loongarch64::FPRegSet;
 }
 
 bool RegisterContextCore_loongarch64::IsLSX(unsigned int reg) {
-  return m_register_info_up->GetRegisterSetFromRegisterIndex(reg) ==
+  return m_register_info_up->GetRegisterSetFromRegisterNumber(reg) ==
          RegisterInfo_loongarch64::LSXRegSet;
 }
 
 bool RegisterContextCore_loongarch64::IsLASX(unsigned int reg) {
-  return m_register_info_up->GetRegisterSetFromRegisterIndex(reg) ==
+  return m_register_info_up->GetRegisterSetFromRegisterNumber(reg) ==
          RegisterInfo_loongarch64::LASXRegSet;
 }
