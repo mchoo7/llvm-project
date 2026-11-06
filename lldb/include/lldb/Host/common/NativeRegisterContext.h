@@ -38,6 +38,9 @@ public:
 
   virtual uint32_t GetUserRegisterCount() const = 0;
 
+  /// Byte position of an alias within its parent value, in target byte order.
+  virtual uint32_t GetRegisterValueOffset(uint32_t index) const;
+
   virtual const RegisterInfo *GetRegisterInfoAtIndex(uint32_t reg) const = 0;
 
   const char *GetRegisterSetNameForRegisterAtIndex(uint32_t reg_index) const;

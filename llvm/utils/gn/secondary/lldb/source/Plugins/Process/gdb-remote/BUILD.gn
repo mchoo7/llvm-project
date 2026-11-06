@@ -46,6 +46,7 @@ static_library("gdb-remote") {
     "LLDBServerAcceleratorPlugin.cpp",
     "ProcessGDBRemote.cpp",
     "ProcessGDBRemoteLog.cpp",
+    "RegisterPacketLayout.cpp",
     "ThreadGDBRemote.cpp",
   ]
 }

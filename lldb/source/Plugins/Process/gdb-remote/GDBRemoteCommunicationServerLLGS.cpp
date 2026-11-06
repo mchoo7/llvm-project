@@ -18,6 +18,7 @@
 #include <variant>
 
 #include "GDBRemoteCommunicationServerLLGS.h"
+#include "RegisterPacketLayout.h"
 #include "lldb/Host/ConnectionFileDescriptor.h"
 #include "lldb/Host/Debug.h"
 #include "lldb/Host/File.h"
@@ -71,6 +72,21 @@ enum GDBRemoteServerError {
   eErrorResume,
   eErrorExitStatus
 };
+}
+
+static llvm::Expected<RegisterPacketLayout>
+BuildRegisterPacketLayout(NativeRegisterContext &context) {
+  std::vector<RegisterInfo> registers;
+  std::vector<uint32_t> offsets;
+  for (uint32_t i = 0; i < context.GetUserRegisterCount(); ++i) {
+    const auto *reg = context.GetRegisterInfoAtIndex(i);
+    if (!reg)
+      return llvm::createStringError(llvm::inconvertibleErrorCode(),
+                                     "missing native register description");
+    registers.push_back(*reg);
+    offsets.push_back(context.GetRegisterValueOffset(i));
+  }
+  return RegisterPacketLayout::Create(registers, offsets);
 }
 
 // GDBRemoteCommunicationServerLLGS constructor
@@ -2169,7 +2185,12 @@ GDBRemoteCommunicationServerLLGS::Handle_qRegisterInfo(
   if (reg_index >= reg_context.GetUserRegisterCount())
     return SendErrorResponse(69);
 
-  const RegisterInfo *reg_info = reg_context.GetRegisterInfoAtIndex(reg_index);
+  auto packet_layout = BuildRegisterPacketLayout(reg_context);
+  if (!packet_layout) {
+    llvm::consumeError(packet_layout.takeError());
+    return SendErrorResponse(69);
+  }
+  const RegisterInfo *reg_info = &packet_layout->GetRegisters()[reg_index];
   if (!reg_info)
     return SendErrorResponse(69);
 
@@ -2294,7 +2315,12 @@ GDBRemoteCommunicationServerLLGS::Handle_g(StringExtractorGDBRemote &packet) {
   // Get the thread's register context.
   NativeRegisterContext &reg_ctx = thread->GetRegisterContext();
 
-  std::vector<uint8_t> regs_buffer;
+  auto packet_layout = BuildRegisterPacketLayout(reg_ctx);
+  if (!packet_layout) {
+    llvm::consumeError(packet_layout.takeError());
+    return SendErrorResponse(0x15);
+  }
+  std::vector<uint8_t> regs_buffer(packet_layout->GetByteSize());
   for (uint32_t reg_num = 0; reg_num < reg_ctx.GetUserRegisterCount();
        ++reg_num) {
     const RegisterInfo *reg_info = reg_ctx.GetRegisterInfoAtIndex(reg_num);
@@ -2305,7 +2331,7 @@ GDBRemoteCommunicationServerLLGS::Handle_g(StringExtractorGDBRemote &packet) {
       return SendErrorResponse(0x15);
     }
 
-    if (reg_info->value_regs != nullptr)
+    if (!packet_layout->IsPrimary(reg_num))
       continue; // skip registers that are contained in other registers
 
     RegisterValue reg_value;
@@ -2315,14 +2341,11 @@ GDBRemoteCommunicationServerLLGS::Handle_g(StringExtractorGDBRemote &packet) {
       return SendErrorResponse(0x15);
     }
 
-    if (reg_info->byte_offset + reg_info->byte_size >= regs_buffer.size())
-      // Resize the buffer to guarantee it can store the register offsetted
-      // data.
-      regs_buffer.resize(reg_info->byte_offset + reg_info->byte_size);
-
-    // Copy the register offsetted data to the buffer.
-    memcpy(regs_buffer.data() + reg_info->byte_offset, reg_value.GetBytes(),
-           reg_info->byte_size);
+    const auto &wire = packet_layout->GetRegisters()[reg_num];
+    if (reg_value.GetAsMemoryData(
+            wire, regs_buffer.data() + wire.byte_offset, wire.byte_size,
+            thread->GetProcess().GetByteOrder(), error) != wire.byte_size)
+      return SendErrorResponse(0x15);
   }
 
   // Write the response.
@@ -3366,14 +3389,16 @@ GDBRemoteCommunicationServerLLGS::BuildTargetXml() {
   response.Format("<architecture>{}</architecture>\n", new_arch_name);
   response.Indent("<feature>\n");
 
+  auto packet_layout = BuildRegisterPacketLayout(reg_context);
+  if (!packet_layout)
+    return packet_layout.takeError();
   const int registers_count = reg_context.GetUserRegisterCount();
   if (registers_count)
     response.IndentMore();
 
   std::unordered_set<std::string> register_types_emitted;
   for (int reg_index = 0; reg_index < registers_count; reg_index++) {
-    const RegisterInfo *reg_info =
-        reg_context.GetRegisterInfoAtIndex(reg_index);
+    const RegisterInfo *reg_info = &packet_layout->GetRegisters()[reg_index];
 
     if (!reg_info) {
       LLDB_LOGF(log,

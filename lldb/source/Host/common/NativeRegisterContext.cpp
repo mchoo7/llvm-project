@@ -456,3 +456,15 @@ NativeRegisterContext::GetExpeditedRegisters(ExpeditedRegs expType) const {
 
   return std::vector<uint32_t>();
 }
+
+uint32_t NativeRegisterContext::GetRegisterValueOffset(uint32_t index) const {
+  const auto *reg = GetRegisterInfoAtIndex(index);
+  if (!reg || !reg->value_regs || reg->value_regs[0] == LLDB_INVALID_REGNUM)
+    return 0;
+  auto parent_index = ConvertRegisterKindToRegisterNumber(
+      lldb::eRegisterKindLLDB, reg->value_regs[0]);
+  const auto *parent = GetRegisterInfoAtIndex(parent_index);
+  return parent && reg->byte_offset >= parent->byte_offset
+             ? reg->byte_offset - parent->byte_offset
+             : 0;
+}
