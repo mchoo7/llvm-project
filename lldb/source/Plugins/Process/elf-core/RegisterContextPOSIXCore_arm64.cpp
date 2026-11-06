@@ -7,15 +7,18 @@
 //===----------------------------------------------------------------------===//
 
 #include "RegisterContextPOSIXCore_arm64.h"
-#include "Register/Common/RegisterInfo_arm64.h"
+#include "lldb/Register/Common/RegisterInfo_arm64.h"
+#include "lldb/Register/Layouts/FreeBSD/RegisterModelFreeBSD_arm64.h"
+#include "lldb/Register/Layouts/Linux/RegisterModelLinux_arm64.h"
+#include "llvm/Support/Endian.h"
 
 #include "Plugins/Process/Utility/AuxVector.h"
-#include "Register/Common/RegisterTypeDetector_arm64.h"
 #include "Plugins/Process/elf-core/ProcessElfCore.h"
 #include "Plugins/Process/elf-core/RegisterUtilities.h"
 #include "lldb/Target/Thread.h"
 #include "lldb/Utility/RegisterValue.h"
 
+#include <algorithm>
 #include <memory>
 
 using namespace lldb_private;
@@ -85,40 +88,43 @@ RegisterContextCorePOSIX_arm64::Create(Thread &thread, const ArchSpec &arch,
   if (poe_data.GetByteSize() >= sizeof(poe_regs))
     opt_regsets.Set(RegisterInfo_arm64::eRegsetMaskPOE);
 
-  auto register_info_up =
-      std::make_unique<RegisterInfo_arm64>(arch, opt_regsets);
+  auto &process = static_cast<ProcessElfCore &>(*thread.GetProcess());
+  AuxVector auxv(process.GetAuxvData());
+  const bool is_freebsd = arch.GetTriple().isOSFreeBSD();
+  const uint64_t hwcap =
+      auxv.GetAuxValue(is_freebsd ? AuxVector::AUXV_FREEBSD_AT_HWCAP
+                                  : AuxVector::AUXV_AT_HWCAP)
+          .value_or(0);
+  const uint64_t hwcap2 =
+      auxv.GetAuxValue(AuxVector::AUXV_AT_HWCAP2).value_or(0);
+  const uint64_t hwcap3 =
+      is_freebsd ? 0 : auxv.GetAuxValue(AuxVector::AUXV_AT_HWCAP3).value_or(0);
+  std::unique_ptr<RegisterInfo_arm64> register_info_up;
+  std::optional<linux_arm64::RegisterConfig> config;
+  if (arch.GetTriple().isOSFreeBSD())
+    register_info_up = std::make_unique<RegisterInfo_arm64>(
+        arch, 0, CreateFreeBSDArm64RegisterModel(arch, hwcap, hwcap2));
+  else {
+    config.emplace();
+    config->features = opt_regsets;
+    config->hwcap = hwcap;
+    config->hwcap2 = hwcap2;
+    config->hwcap3 = hwcap3;
+    register_info_up = std::make_unique<RegisterInfo_arm64>(
+        arch, opt_regsets, CreateLinuxArm64RegisterModel(arch, *config));
+  }
   return std::unique_ptr<RegisterContextCorePOSIX_arm64>(
       new RegisterContextCorePOSIX_arm64(thread, std::move(register_info_up),
-                                         gpregset, notes));
+                                         gpregset, notes, std::move(config)));
 }
 
 RegisterContextCorePOSIX_arm64::RegisterContextCorePOSIX_arm64(
     Thread &thread, std::unique_ptr<RegisterInfo_arm64> register_info,
-    const DataExtractor &gpregset, llvm::ArrayRef<CoreNote> notes)
-    : RegisterContextCore_arm64(thread, std::move(register_info)) {
+    const DataExtractor &gpregset, llvm::ArrayRef<CoreNote> notes,
+    std::optional<linux_arm64::RegisterConfig> config)
+    : RegisterContextCore_arm64(thread, std::move(register_info)),
+      m_register_config(std::move(config)) {
   ::memset(&m_sme_pseudo_regs, 0, sizeof(m_sme_pseudo_regs));
-
-  ProcessElfCore *process =
-      static_cast<ProcessElfCore *>(thread.GetProcess().get());
-  llvm::Triple::OSType os = process->GetArchitecture().GetTriple().getOS();
-  if ((os == llvm::Triple::Linux) || (os == llvm::Triple::FreeBSD)) {
-    AuxVector aux_vec(process->GetAuxvData());
-    bool is_freebsd = os == llvm::Triple::FreeBSD;
-    std::optional<uint64_t> auxv_at_hwcap =
-        aux_vec.GetAuxValue(is_freebsd ? AuxVector::AUXV_FREEBSD_AT_HWCAP
-                                       : AuxVector::AUXV_AT_HWCAP);
-    std::optional<uint64_t> auxv_at_hwcap2 =
-        aux_vec.GetAuxValue(AuxVector::AUXV_AT_HWCAP2);
-    std::optional<uint64_t> auxv_at_hwcap3 =
-        is_freebsd ? std::nullopt
-                   : aux_vec.GetAuxValue(AuxVector::AUXV_AT_HWCAP3);
-
-    m_register_type_detector.DetectTypes(auxv_at_hwcap.value_or(0),
-                                         auxv_at_hwcap2.value_or(0),
-                                         auxv_at_hwcap3.value_or(0));
-    m_register_type_detector.UpdateRegisterInfo(GetRegisterInfo(),
-                                                GetRegisterCount());
-  }
 
   m_gpr_data.SetData(std::make_shared<DataBufferHeap>(gpregset.GetDataStart(),
                                                       gpregset.GetByteSize()));
@@ -182,10 +188,6 @@ bool RegisterContextCorePOSIX_arm64::WriteFPR() {
   return false;
 }
 
-const uint8_t *RegisterContextCorePOSIX_arm64::GetSVEBuffer(uint64_t offset) {
-  return m_sve_data.GetDataStart() + offset;
-}
-
 void RegisterContextCorePOSIX_arm64::ConfigureRegisterContext() {
   if (m_sve_data.GetByteSize() > sizeof(sve::user_sve_header)) {
     uint64_t sve_header_field_offset = 8;
@@ -210,9 +212,11 @@ void RegisterContextCorePOSIX_arm64::ConfigureRegisterContext() {
   } else
     m_sve_state = SVEState::Disabled;
 
-  if (m_sve_state != SVEState::Disabled)
-    m_register_info_up->ConfigureVectorLengthSVE(
-        sve::vq_from_vl(m_sve_vector_length));
+  if (m_register_config && m_sve_state != SVEState::Disabled) {
+    const uint32_t vq = sve::vq_from_vl(m_sve_vector_length);
+    if (RegisterInfo_arm64::VectorSizeIsValid(vq))
+      m_register_config->sve_vq = std::max(1u, vq);
+  }
 
   if (m_sve_state == SVEState::Streaming)
     m_sme_pseudo_regs.ctrl_reg |= 1;
@@ -221,7 +225,9 @@ void RegisterContextCorePOSIX_arm64::ConfigureRegisterContext() {
     lldb::offset_t vlen_offset = 8;
     uint16_t svl = m_za_data.GetU16(&vlen_offset);
     m_sme_pseudo_regs.svg_reg = svl / 8;
-    m_register_info_up->ConfigureVectorLengthZA(svl / 16);
+    if (m_register_config && m_register_info_up->IsSSVEPresent() &&
+        RegisterInfo_arm64::VectorSizeIsValid(svl / 16))
+      m_register_config->za_vq = svl / 16;
 
     // If there is register data then ZA is active. The size of the note may be
     // misleading here so we use the size field of the embedded header.
@@ -230,200 +236,66 @@ void RegisterContextCorePOSIX_arm64::ConfigureRegisterContext() {
     if (size > sizeof(sve::user_za_header))
       m_sme_pseudo_regs.ctrl_reg |= 1 << 1;
   }
-}
-
-uint32_t RegisterContextCorePOSIX_arm64::CalculateSVEOffset(
-    const RegisterInfo *reg_info) {
-  // Start of Z0 data is after GPRs plus 8 bytes of vg register
-  uint32_t sve_reg_offset = LLDB_INVALID_INDEX32;
-  if (m_sve_state == SVEState::FPSIMD) {
-    const uint32_t reg = reg_info->kinds[lldb::eRegisterKindLLDB];
-    sve_reg_offset = sve::ptrace_fpsimd_offset + (reg - GetRegNumSVEZ0()) * 16;
-  } else if (m_sve_state == SVEState::Full ||
-             m_sve_state == SVEState::Streaming) {
-    uint32_t sve_z0_offset = GetGPRSize() + 16;
-    sve_reg_offset =
-        sve::SigRegsOffset() + reg_info->byte_offset - sve_z0_offset;
+  if (m_register_config) {
+    m_register_config->sve_state = m_sve_state;
+    m_register_info_up->SetRegisterModel(CreateLinuxArm64RegisterModel(
+        m_register_info_up->GetTargetArchitecture(), *m_register_config,
+        &m_register_info_up->GetDescription()));
   }
-
-  return sve_reg_offset;
 }
 
 bool RegisterContextCorePOSIX_arm64::ReadRegister(const RegisterInfo *reg_info,
                                                   RegisterValue &value) {
-  Status error;
-  lldb::offset_t offset;
-
-  offset = reg_info->byte_offset;
-  if (offset + reg_info->byte_size <= GetGPRSize()) {
-    value.SetFromMemoryData(*reg_info, m_gpr_data.GetDataStart() + offset,
-                            reg_info->byte_size, lldb::eByteOrderLittle, error);
-    return error.Success();
-  }
-
-  const uint32_t reg = reg_info->kinds[lldb::eRegisterKindLLDB];
-  if (reg == LLDB_INVALID_REGNUM)
+  if (!reg_info)
     return false;
-
-  if (IsFPR(reg)) {
-    if (m_sve_state == SVEState::Disabled) {
-      // SVE is disabled take legacy route for FPU register access
-      offset -= GetGPRSize();
-      if (offset < m_fpr_data.GetByteSize()) {
-        value.SetFromMemoryData(*reg_info, m_fpr_data.GetDataStart() + offset,
-                                reg_info->byte_size, lldb::eByteOrderLittle,
-                                error);
-        return error.Success();
-      }
-    } else {
-      // FPSR and FPCR will be located right after Z registers in
-      // SVEState::FPSIMD while in SVEState::Full/SVEState::Streaming they will
-      // be located at the end of register data after an alignment correction
-      // based on currently selected vector length.
-      uint32_t sve_reg_num = LLDB_INVALID_REGNUM;
-      if (reg == GetRegNumFPSR()) {
-        sve_reg_num = reg;
-        if (m_sve_state == SVEState::Full || m_sve_state == SVEState::Streaming)
-          offset = sve::PTraceFPSROffset(sve::vq_from_vl(m_sve_vector_length));
-        else if (m_sve_state == SVEState::FPSIMD)
-          offset = sve::ptrace_fpsimd_offset + (32 * 16);
-      } else if (reg == GetRegNumFPCR()) {
-        sve_reg_num = reg;
-        if (m_sve_state == SVEState::Full || m_sve_state == SVEState::Streaming)
-          offset = sve::PTraceFPCROffset(sve::vq_from_vl(m_sve_vector_length));
-        else if (m_sve_state == SVEState::FPSIMD)
-          offset = sve::ptrace_fpsimd_offset + (32 * 16) + 4;
-      } else {
-        // Extract SVE Z register value register number for this reg_info
-        if (reg_info->value_regs &&
-            reg_info->value_regs[0] != LLDB_INVALID_REGNUM)
-          sve_reg_num = reg_info->value_regs[0];
-        offset = CalculateSVEOffset(GetRegisterInfoAtIndex(sve_reg_num));
-      }
-
-      assert(sve_reg_num != LLDB_INVALID_REGNUM);
-      assert(offset < m_sve_data.GetByteSize());
-      value.SetFromMemoryData(*reg_info, GetSVEBuffer(offset),
-                              reg_info->byte_size, lldb::eByteOrderLittle,
-                              error);
-    }
-  } else if (IsSVE(reg)) {
-    if (IsSVEVG(reg)) {
-      value = GetSVERegVG();
-      return true;
-    }
-
-    switch (m_sve_state) {
-    case SVEState::FPSIMD: {
-      // In FPSIMD state SVE payload mirrors legacy fpsimd struct and so just
-      // copy 16 bytes of v register to the start of z register. All other
-      // SVE register will be set to zero.
-      uint64_t byte_size = 1;
-      uint8_t zeros = 0;
-      const uint8_t *src = &zeros;
-      if (IsSVEZ(reg)) {
-        byte_size = 16;
-        offset = CalculateSVEOffset(reg_info);
-        assert(offset < m_sve_data.GetByteSize());
-        src = GetSVEBuffer(offset);
-      }
-      value.SetFromMemoryData(*reg_info, src, byte_size, lldb::eByteOrderLittle,
-                              error);
-    } break;
-    case SVEState::Full:
-    case SVEState::Streaming:
-      offset = CalculateSVEOffset(reg_info);
-      assert(offset < m_sve_data.GetByteSize());
-      value.SetFromMemoryData(*reg_info, GetSVEBuffer(offset),
-                              reg_info->byte_size, lldb::eByteOrderLittle,
-                              error);
-      break;
-    case SVEState::Disabled:
-    default:
-      return false;
-    }
-  } else if (IsPAuth(reg)) {
-    offset = reg_info->byte_offset - m_register_info_up->GetPAuthOffset();
-    assert(offset < m_pac_data.GetByteSize());
-    value.SetFromMemoryData(*reg_info, m_pac_data.GetDataStart() + offset,
-                            reg_info->byte_size, lldb::eByteOrderLittle, error);
-  } else if (IsTLS(reg)) {
-    offset = reg_info->byte_offset - m_register_info_up->GetTLSOffset();
-    assert(offset < m_tls_data.GetByteSize());
-    value.SetFromMemoryData(*reg_info, m_tls_data.GetDataStart() + offset,
-                            reg_info->byte_size, lldb::eByteOrderLittle, error);
-  } else if (IsMTE(reg)) {
-    offset = reg_info->byte_offset - m_register_info_up->GetMTEOffset();
-    assert(offset < m_mte_data.GetByteSize());
-    value.SetFromMemoryData(*reg_info, m_mte_data.GetDataStart() + offset,
-                            reg_info->byte_size, lldb::eByteOrderLittle, error);
-  } else if (IsGCS(reg)) {
-    offset = reg_info->byte_offset - m_register_info_up->GetGCSOffset();
-    assert(offset < m_gcs_data.GetByteSize());
-    value.SetFromMemoryData(*reg_info, m_gcs_data.GetDataStart() + offset,
-                            reg_info->byte_size, lldb::eByteOrderLittle, error);
-  } else if (IsSME(reg)) {
-    // If you had SME in the process, active or otherwise, there will at least
-    // be a ZA header. No header, no SME at all.
+  std::vector<uint8_t> inactive_za;
+  llvm::ArrayRef<uint8_t> za(m_za_data.GetDataStart(), m_za_data.GetByteSize());
+  const auto *descriptor =
+      m_register_info_up->GetDescription().Find(reg_info->name);
+  if (descriptor && descriptor->name == "za") {
     if (m_za_data.GetByteSize() < sizeof(sve::user_za_header))
       return false;
-
-    if (m_register_info_up->IsSMERegZA(reg)) {
-      // Don't use the size of the note to tell whether ZA is enabled. There may
-      // be non-register padding data after the header. Use the embedded
-      // header's size field instead.
-      lldb::offset_t size_offset = 0;
-      uint32_t size = m_za_data.GetU32(&size_offset);
-      bool za_enabled = size > sizeof(sve::user_za_header);
-
-      size_t za_note_size = m_za_data.GetByteSize();
-      // For a disabled ZA we fake a value of all 0s.
-      if (!za_enabled) {
-        uint64_t svl = m_sme_pseudo_regs.svg_reg * 8;
-        za_note_size = sizeof(sve::user_za_header) + (svl * svl);
-      }
-
-      const uint8_t *src = nullptr;
-      std::vector<uint8_t> disabled_za_data;
-
-      if (za_enabled)
-        src = m_za_data.GetDataStart();
-      else {
-        disabled_za_data.resize(za_note_size);
-        std::fill(disabled_za_data.begin(), disabled_za_data.end(), 0);
-        src = disabled_za_data.data();
-      }
-
-      value.SetFromMemoryData(*reg_info, src + sizeof(sve::user_za_header),
-                              reg_info->byte_size, lldb::eByteOrderLittle,
-                              error);
-    } else if (m_register_info_up->IsSMERegZT(reg)) {
-      value.SetFromMemoryData(*reg_info, m_zt_data.GetDataStart(),
-                              reg_info->byte_size, lldb::eByteOrderLittle,
-                              error);
-    } else {
-      offset = reg_info->byte_offset - m_register_info_up->GetSMEOffset();
-      assert(offset < sizeof(m_sme_pseudo_regs));
-      // Host endian since these values are derived instead of being read from a
-      // core file note.
-      value.SetFromMemoryData(
-          *reg_info, reinterpret_cast<uint8_t *>(&m_sme_pseudo_regs) + offset,
-          reg_info->byte_size, lldb_private::endian::InlHostByteOrder(), error);
+    lldb::offset_t offset = 0;
+    if (m_za_data.GetU32(&offset) == sizeof(sve::user_za_header)) {
+      inactive_za.resize(sizeof(sve::user_za_header) + descriptor->byte_size,
+                         0);
+      za = inactive_za;
     }
-  } else if (IsFPMR(reg)) {
-    offset = reg_info->byte_offset - m_register_info_up->GetFPMROffset();
-    assert(offset < m_fpmr_data.GetByteSize());
-    value.SetFromMemoryData(*reg_info, m_fpmr_data.GetDataStart() + offset,
-                            reg_info->byte_size, lldb::eByteOrderLittle, error);
-  } else if (IsPOE(reg)) {
-    offset = reg_info->byte_offset - m_register_info_up->GetPOEOffset();
-    assert(offset < m_poe_data.GetByteSize());
-    value.SetFromMemoryData(*reg_info, m_poe_data.GetDataStart() + offset,
-                            reg_info->byte_size, lldb::eByteOrderLittle, error);
-  } else
+  }
+  uint8_t pseudo[16];
+  auto order = m_register_info_up->GetTargetArchitecture().GetByteOrder() ==
+                       lldb::eByteOrderBig
+                   ? llvm::endianness::big
+                   : llvm::endianness::little;
+  llvm::support::endian::write64(pseudo, m_sme_pseudo_regs.ctrl_reg, order);
+  llvm::support::endian::write64(pseudo + 8, m_sme_pseudo_regs.svg_reg, order);
+  auto result = m_register_info_up->ReadRegister(
+      *reg_info,
+      {{linux_arm64::GP, {m_gpr_data.GetDataStart(), m_gpr_data.GetByteSize()}},
+       {linux_arm64::FP, {m_fpr_data.GetDataStart(), m_fpr_data.GetByteSize()}},
+       {linux_arm64::SVE,
+        {m_sve_data.GetDataStart(), m_sve_data.GetByteSize()}},
+       {linux_arm64::PAC,
+        {m_pac_data.GetDataStart(), m_pac_data.GetByteSize()}},
+       {linux_arm64::MTE,
+        {m_mte_data.GetDataStart(), m_mte_data.GetByteSize()}},
+       {linux_arm64::TLS,
+        {m_tls_data.GetDataStart(), m_tls_data.GetByteSize()}},
+       {linux_arm64::ZT, {m_zt_data.GetDataStart(), m_zt_data.GetByteSize()}},
+       {linux_arm64::FPMR,
+        {m_fpmr_data.GetDataStart(), m_fpmr_data.GetByteSize()}},
+       {linux_arm64::GCS,
+        {m_gcs_data.GetDataStart(), m_gcs_data.GetByteSize()}},
+       {linux_arm64::POE,
+        {m_poe_data.GetDataStart(), m_poe_data.GetByteSize()}},
+       {linux_arm64::SMEControl, pseudo},
+       {linux_arm64::ZA, za}});
+  if (!result) {
+    llvm::consumeError(result.takeError());
     return false;
-
-  return error.Success();
+  }
+  value = std::move(*result);
+  return true;
 }
 
 bool RegisterContextCorePOSIX_arm64::ReadAllRegisterValues(

@@ -19,7 +19,7 @@
 
 #include "Plugins/Process/FreeBSD/NativeRegisterContextFreeBSD.h"
 #include "Plugins/Register/Native/NativeRegisterContextDBReg_arm64.h"
-#include "Register/Common/RegisterInfo_arm64.h"
+#include "lldb/Register/Common/RegisterInfo_arm64.h"
 
 #include <array>
 
@@ -59,7 +59,8 @@ private:
   // LLDB's GPR/FPU structs.  However, all fields have matching offsets
   // and sizes, so we do not have to worry about these (and we have
   // a unittest to assert that).
-  std::array<uint8_t, sizeof(reg) + sizeof(fpreg)> m_reg_data;
+  reg m_gpr{};
+  fpreg m_fpr{};
   dbreg m_dbreg;
   bool m_read_dbreg;
 

@@ -8,6 +8,7 @@
 
 #include "RegisterContextDarwin_arm64.h"
 
+#include "lldb/Register/Common/RegisterInfo_arm64.h"
 #include "lldb/Register/Arch/lldb-arm64-register-enums.h"
 #include "lldb/Register/Arch/lldb-arm64-dwarf-eframe-register-enums.h"
 #include "lldb/lldb-defines.h"
@@ -44,41 +45,82 @@
 using namespace lldb;
 using namespace lldb_private;
 
-#define GPR_OFFSET(idx) ((idx)*8)
-#define GPR_OFFSET_NAME(reg)                                                   \
-  (LLVM_EXTENSION offsetof(RegisterContextDarwin_arm64::GPR, reg))
+#define REG_CONTEXT_SIZE (sizeof(RegisterContextDarwin_arm64::GPR) + sizeof(RegisterContextDarwin_arm64::FPU) + sizeof(RegisterContextDarwin_arm64::EXC))
 
-#define FPU_OFFSET(idx) ((idx)*16 + sizeof(RegisterContextDarwin_arm64::GPR))
-#define FPU_OFFSET_NAME(reg)                                                   \
-  (LLVM_EXTENSION offsetof(RegisterContextDarwin_arm64::FPU, reg))
+static const RegisterInfoProvider &RegisterMetadata() {
+  static const auto info = [] {
+    auto cpu = RegisterInfo_arm64::CreateDescription(0);
+    std::vector<RegisterDescriptor> regs(cpu->GetRegisters().begin(), cpu->GetRegisters().end());
+    RegisterLayout layout(eByteOrderLittle);
+    llvm::cantFail(layout.AddBank(0, sizeof(RegisterContextDarwin_arm64::GPR)));
+    llvm::cantFail(layout.AddBank(1, sizeof(RegisterContextDarwin_arm64::FPU)));
+    llvm::cantFail(layout.AddBank(2, sizeof(RegisterContextDarwin_arm64::EXC)));
+    llvm::cantFail(layout.AddBank(3, sizeof(RegisterContextDarwin_arm64::DBG)));
+    auto location = [&](RegisterID id, RegisterBankID bank, uint32_t offset,
+                        uint32_t size) {
+      RegisterLocation loc;
+      loc.kind = RegisterLocation::Stored;
+      loc.pieces.push_back({bank, offset, size});
 
-#define EXC_OFFSET_NAME(reg)                                                   \
-  (LLVM_EXTENSION offsetof(RegisterContextDarwin_arm64::EXC, reg) +            \
-   sizeof(RegisterContextDarwin_arm64::GPR) +                                  \
-   sizeof(RegisterContextDarwin_arm64::FPU))
-#define DBG_OFFSET_NAME(reg)                                                   \
-  (LLVM_EXTENSION offsetof(RegisterContextDarwin_arm64::DBG, reg) +            \
-   sizeof(RegisterContextDarwin_arm64::GPR) +                                  \
-   sizeof(RegisterContextDarwin_arm64::FPU) +                                  \
-   sizeof(RegisterContextDarwin_arm64::EXC))
+      llvm::cantFail(layout.Add(id, std::move(loc)));
+    };
+    for (const auto &reg : regs) {
+      uint32_t offset;
+      RegisterBankID bank = reg.id <= gpr_w28_arm64 ? 0 : 1;
+      if (reg.id <= gpr_cpsr_arm64)
+        offset = 8 * reg.id;
+      else if (reg.id <= gpr_w28_arm64)
+        offset = 8 * (reg.id - gpr_w0_arm64);
+      else if (reg.id == fpu_fpsr_arm64)
+        offset = offsetof(RegisterContextDarwin_arm64::FPU, fpsr);
+      else if (reg.id == fpu_fpcr_arm64)
+        offset = offsetof(RegisterContextDarwin_arm64::FPU, fpcr);
+      else if (reg.id >= fpu_d0_arm64)
+        offset = 16 * (reg.id - fpu_d0_arm64);
+      else if (reg.id >= fpu_s0_arm64)
+        offset = 16 * (reg.id - fpu_s0_arm64);
+      else
+        offset = 16 * (reg.id - fpu_v0_arm64);
 
-#define DEFINE_DBG(reg, i)                                                     \
-  #reg, NULL,                                                                  \
-      sizeof(((RegisterContextDarwin_arm64::DBG *) NULL)->reg[i]),             \
-              DBG_OFFSET_NAME(reg[i]), eEncodingUint, eFormatHex,              \
-                              {LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM,       \
-                               LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM,       \
-                               LLDB_INVALID_REGNUM },                          \
-                               NULL, NULL, NULL
-#define REG_CONTEXT_SIZE                                                       \
-  (sizeof(RegisterContextDarwin_arm64::GPR) +                                  \
-   sizeof(RegisterContextDarwin_arm64::FPU) +                                  \
-   sizeof(RegisterContextDarwin_arm64::EXC))
+      location(reg.id, bank, offset, reg.byte_size);
+    }
+    auto extra = [&](const std::string &name, RegisterID id,
+                     RegisterBankID bank, uint32_t offset, uint32_t size) {
+      RegisterDescriptor reg;
+      reg.id = id;
+      reg.name = name;
+      reg.byte_size = size;
+      reg.numbers[eRegisterKindLLDB] = id;
+      regs.push_back(std::move(reg));
+      location(id, bank, offset, size);
+    };
 
-// Include RegisterInfos_arm64 to declare our g_register_infos_arm64 structure.
-#define DECLARE_REGISTER_INFOS_ARM64_STRUCT
-#include "Register/Arch/RegisterInfos_arm64.h"
-#undef DECLARE_REGISTER_INFOS_ARM64_STRUCT
+    extra("far", exc_far_arm64, 2,
+          offsetof(RegisterContextDarwin_arm64::EXC, far), 8);
+    extra("esr", exc_esr_arm64, 2,
+          offsetof(RegisterContextDarwin_arm64::EXC, esr), 4);
+    extra("exception", exc_exception_arm64, 2,
+          offsetof(RegisterContextDarwin_arm64::EXC, exception), 4);
+
+    for (uint32_t i = 0; i < 16; ++i)
+      extra("bvr" + std::to_string(i), dbg_bvr0_arm64 + i, 3,
+            offsetof(RegisterContextDarwin_arm64::DBG, bvr) + 8 * i, 8);
+    for (uint32_t i = 0; i < 16; ++i)
+      extra("bcr" + std::to_string(i), dbg_bcr0_arm64 + i, 3,
+            offsetof(RegisterContextDarwin_arm64::DBG, bcr) + 8 * i, 8);
+    for (uint32_t i = 0; i < 16; ++i)
+      extra("wvr" + std::to_string(i), dbg_wvr0_arm64 + i, 3,
+            offsetof(RegisterContextDarwin_arm64::DBG, wvr) + 8 * i, 8);
+    for (uint32_t i = 0; i < 16; ++i)
+      extra("wcr" + std::to_string(i), dbg_wcr0_arm64 + i, 3,
+            offsetof(RegisterContextDarwin_arm64::DBG, wcr) + 8 * i, 8);
+    auto description = std::make_shared<RegisterDescription>(
+        llvm::cantFail(RegisterDescription::Create(std::move(regs))));
+    return RegisterInfoProvider(ArchSpec("aarch64-apple-darwin"),
+                                std::move(description), std::move(layout));
+  }();
+  return info;
+}
 
 // General purpose registers
 static uint32_t g_gpr_regnums[] = {
@@ -100,7 +142,7 @@ static uint32_t g_fpu_regnums[] = {
 
 static uint32_t g_exc_regnums[] = {exc_far_arm64, exc_esr_arm64, exc_exception_arm64};
 
-static size_t k_num_register_infos = std::size(g_register_infos_arm64_le);
+
 
 RegisterContextDarwin_arm64::RegisterContextDarwin_arm64(
     Thread &thread, uint32_t concrete_frame_idx)
@@ -120,24 +162,22 @@ void RegisterContextDarwin_arm64::InvalidateAllRegisters() {
 }
 
 size_t RegisterContextDarwin_arm64::GetRegisterCount() {
-  assert(k_num_register_infos == k_num_registers_arm64);
-  return k_num_registers_arm64;
+  return RegisterMetadata().GetRegisterCount();
 }
 
 const RegisterInfo *
 RegisterContextDarwin_arm64::GetRegisterInfoAtIndex(size_t reg) {
-  assert(k_num_register_infos == k_num_registers_arm64);
-  if (reg < k_num_registers_arm64)
-    return &g_register_infos_arm64_le[reg];
+  if (reg < RegisterMetadata().GetRegisterCount())
+    return &RegisterMetadata().GetRegisterInfo()[reg];
   return nullptr;
 }
 
 size_t RegisterContextDarwin_arm64::GetRegisterInfosCount() {
-  return k_num_register_infos;
+  return RegisterMetadata().GetRegisterCount();
 }
 
 const RegisterInfo *RegisterContextDarwin_arm64::GetRegisterInfos() {
-  return g_register_infos_arm64_le;
+  return RegisterMetadata().GetRegisterInfo();
 }
 
 // Number of registers in each register set

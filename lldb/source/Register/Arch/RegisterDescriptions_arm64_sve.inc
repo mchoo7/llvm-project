@@ -1,4 +1,4 @@
-//===-- RegisterInfos_arm64_sve.h -------------------------------*- C++ -*-===//
+//===----------------------------------------------------------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -6,29 +6,7 @@
 //
 //===----------------------------------------------------------------------===//
 
-// Textual register-table fragment; intentionally has no include guard.
-// Include its ordinary dependencies at file scope before defining layout macros.
-// See README.md for the inclusion contract.
-
-#if !defined(DECLARE_REGISTER_INFOS_ARM64_STRUCT)
-#error Select a register-table generation mode before including this fragment
-#endif
-
-#ifdef DECLARE_REGISTER_INFOS_ARM64_STRUCT
-
-
-// Reuse helpers explicitly exported by the base ARM64 fragment.
-#ifndef LLDB_REGISTER_INFOS_ARM64_KEEP_MACROS
-#error Define LLDB_REGISTER_INFOS_ARM64_KEEP_MACROS before the base ARM64 fragment
-#endif
-#ifndef DEFINE_GPR64
-#error Include RegisterInfos_arm64.h before this fragment
-#endif
-
-#ifndef SVE_OFFSET_VG
-#error SVE_OFFSET_VG must be defined before including this header file
-#endif
-
+#define SVE_OFFSET_VG 0
 static uint32_t g_sve_s0_invalidates[] = {sve_z0_arm64, fpu_v0_arm64, fpu_d0_arm64,
                                           LLDB_INVALID_REGNUM};
 static uint32_t g_sve_s1_invalidates[] = {sve_z1_arm64, fpu_v1_arm64, fpu_d1_arm64,
@@ -531,12 +509,3 @@ static RegisterInfo g_register_infos_arm64_sve_le[] = {
 };
 
 
-#endif // DECLARE_REGISTER_INFOS_ARM64_STRUCT
-
-#undef VG_OFFSET_NAME
-#undef SVE_REG_KIND
-#undef MISC_VG_KIND
-#undef DEFINE_VREG_SVE
-#undef DEFINE_FPU_PSEUDO_SVE
-#undef DEFINE_ZREG
-#undef DEFINE_PREG

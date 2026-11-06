@@ -72,17 +72,6 @@ RegisterInfoProvider::GetRegisterInfoByNumber(uint32_t number) const {
 void RegisterInfoProvider::Reconfigure(
     std::shared_ptr<const RegisterDescription> description,
     RegisterLayout layout) {
-  std::vector<RegisterDescriptor> regs(description->GetRegisters().begin(),
-                                       description->GetRegisters().end());
-  for (auto &reg : regs)
-    for (const auto &old : m_view.GetRegisters())
-      if (reg.name == old.name && old.register_type)
-        reg.type = old.register_type;
-  description = std::make_shared<RegisterDescription>(
-      llvm::cantFail(RegisterDescription::Create(
-          std::move(regs),
-          std::vector<RegisterGroup>(description->GetGroups().begin(),
-                                     description->GetGroups().end()))));
   auto view =
       llvm::cantFail(RegisterInfoView::Create(std::move(description), layout));
   m_layout = std::move(layout);

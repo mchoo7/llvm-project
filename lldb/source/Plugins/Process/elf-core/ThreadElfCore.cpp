@@ -6,8 +6,8 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "lldb/Register/Layouts/Linux/RegisterModelLinux_arm.h"
 #include "lldb/Register/Layouts/FreeBSD/RegisterModelFreeBSD_arm.h"
+#include "lldb/Register/Layouts/Linux/RegisterModelLinux_arm.h"
 #include "lldb/Target/RegisterContext.h"
 #include "lldb/Target/StopInfo.h"
 #include "lldb/Target/Target.h"
@@ -18,18 +18,7 @@
 #include "lldb/Utility/Log.h"
 #include "lldb/Utility/ProcessInfo.h"
 
-#include "lldb/Register/Layouts/FreeBSD/RegisterModelFreeBSD_i386.h"
-#include "lldb/Register/Layouts/FreeBSD/RegisterModelFreeBSD_powerpc.h"
-#include "lldb/Register/Layouts/FreeBSD/RegisterModelFreeBSD_x86_64.h"
-#include "lldb/Register/Layouts/Linux/RegisterModelLinux_i386.h"
-#include "lldb/Register/Layouts/Linux/RegisterModelLinux_s390x.h"
-#include "lldb/Register/Layouts/Linux/RegisterModelLinux_x86_64.h"
-#include "lldb/Register/Layouts/Linux/RegisterModelLinux_ppc64le.h"
-#include "lldb/Register/Layouts/NetBSD/RegisterModelNetBSD_i386.h"
-#include "lldb/Register/Layouts/NetBSD/RegisterModelNetBSD_x86_64.h"
 #include "ProcessElfCore.h"
-#include "lldb/Register/Common/RegisterInfo_arm.h"
-#include "Register/Common/RegisterInfo_arm64.h"
 #include "RegisterContextLinuxCore_x86.h"
 #include "RegisterContextPOSIXCore_arm.h"
 #include "RegisterContextPOSIXCore_arm64.h"
@@ -43,7 +32,18 @@
 #include "RegisterModelOpenBSD_i386.h"
 #include "RegisterModelOpenBSD_x86_64.h"
 #include "ThreadElfCore.h"
+#include "lldb/Register/Common/RegisterInfo_arm.h"
+#include "lldb/Register/Common/RegisterInfo_arm64.h"
 #include "lldb/Register/Common/RegisterInfo_ppc64le.h"
+#include "lldb/Register/Layouts/FreeBSD/RegisterModelFreeBSD_i386.h"
+#include "lldb/Register/Layouts/FreeBSD/RegisterModelFreeBSD_powerpc.h"
+#include "lldb/Register/Layouts/FreeBSD/RegisterModelFreeBSD_x86_64.h"
+#include "lldb/Register/Layouts/Linux/RegisterModelLinux_i386.h"
+#include "lldb/Register/Layouts/Linux/RegisterModelLinux_s390x.h"
+#include "lldb/Register/Layouts/Linux/RegisterModelLinux_x86_64.h"
+#include "lldb/Register/Layouts/Linux/RegisterModelLinux_ppc64le.h"
+#include "lldb/Register/Layouts/NetBSD/RegisterModelNetBSD_i386.h"
+#include "lldb/Register/Layouts/NetBSD/RegisterModelNetBSD_x86_64.h"
 
 #include <memory>
 
@@ -223,7 +223,8 @@ ThreadElfCore::CreateRegisterContextForFrame(StackFrame *frame) {
     case llvm::Triple::ppc:
     case llvm::Triple::ppc64:
       m_thread_reg_ctx_sp = std::make_shared<RegisterContextCorePOSIX_powerpc>(
-          *this, static_cast<RegisterInfoProvider *>(reg_interface), m_gpregset_data, m_notes);
+          *this, static_cast<RegisterInfoProvider *>(reg_interface),
+          m_gpregset_data, m_notes);
       break;
     case llvm::Triple::ppc64le:
       m_thread_reg_ctx_sp = std::make_shared<RegisterContextCorePOSIX_ppc64le>(
@@ -232,16 +233,19 @@ ThreadElfCore::CreateRegisterContextForFrame(StackFrame *frame) {
       break;
     case llvm::Triple::systemz:
       m_thread_reg_ctx_sp = std::make_shared<RegisterContextCorePOSIX_s390x>(
-          *this, static_cast<RegisterInfoProvider *>(reg_interface), m_gpregset_data, m_notes);
+          *this, static_cast<RegisterInfoProvider *>(reg_interface),
+          m_gpregset_data, m_notes);
       break;
     case llvm::Triple::x86:
     case llvm::Triple::x86_64:
       if (is_linux) {
         m_thread_reg_ctx_sp = std::make_shared<RegisterContextLinuxCore_x86>(
-            *this, static_cast<RegisterInfoProvider *>(reg_interface), m_gpregset_data, m_notes);
+            *this, static_cast<RegisterInfoProvider *>(reg_interface),
+            m_gpregset_data, m_notes);
       } else {
         m_thread_reg_ctx_sp = std::make_shared<RegisterContextCorePOSIX_x86>(
-            *this, static_cast<RegisterInfoProvider *>(reg_interface), m_gpregset_data, m_notes);
+            *this, static_cast<RegisterInfoProvider *>(reg_interface),
+            m_gpregset_data, m_notes);
       }
       break;
     default:

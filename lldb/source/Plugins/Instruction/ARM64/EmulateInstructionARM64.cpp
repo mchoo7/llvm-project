@@ -34,24 +34,8 @@
 #include <cstdlib>
 #include <optional>
 
-#define GPR_OFFSET(idx) ((idx)*8)
-#define GPR_OFFSET_NAME(reg) 0
-#define FPU_OFFSET(idx) ((idx)*16)
-#define FPU_OFFSET_NAME(reg) 0
-#define EXC_OFFSET_NAME(reg) 0
-#define DBG_OFFSET_NAME(reg) 0
-#define DBG_OFFSET_NAME(reg) 0
-#define DEFINE_DBG(re, y)                                                      \
-  "na", nullptr, 8, 0, lldb::eEncodingUint, lldb::eFormatHex,                  \
-      {LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM,          \
-       LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM},                              \
-      nullptr, nullptr, nullptr
-
 using namespace lldb_private;
-
-#define DECLARE_REGISTER_INFOS_ARM64_STRUCT
-
-#include "Register/Arch/RegisterInfos_arm64.h"
+#include "lldb/Register/Common/RegisterInfo_arm64.h"
 
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/Support/MathExtras.h"
@@ -63,9 +47,10 @@ using namespace lldb;
 LLDB_PLUGIN_DEFINE_ADV(EmulateInstructionARM64, InstructionARM64)
 
 static std::optional<RegisterInfo> LLDBTableGetRegisterInfo(uint32_t reg_num) {
-  if (reg_num >= std::size(g_register_infos_arm64_le))
-    return {};
-  return g_register_infos_arm64_le[reg_num];
+  static const ArchSpec arch("aarch64-unknown-unknown");
+  static const RegisterInfo_arm64 info(arch, 0, RegisterLayout(arch.GetByteOrder()));
+  if (const auto *reg = info.GetRegisterInfoByNumber(reg_num)) return *reg;
+  return {};
 }
 
 #define No_VFP 0

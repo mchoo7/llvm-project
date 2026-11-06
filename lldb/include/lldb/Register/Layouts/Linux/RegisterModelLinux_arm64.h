@@ -1,4 +1,4 @@
-//===-- LinuxPTraceDefines_arm64sve.h ------------------------- -*- C++ -*-===//
+//===----------------------------------------------------------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -6,11 +6,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#ifndef LLDB_SOURCE_PLUGINS_PROCESS_UTILITY_LINUXPTRACEDEFINES_ARM64SVE_H
-#define LLDB_SOURCE_PLUGINS_PROCESS_UTILITY_LINUXPTRACEDEFINES_ARM64SVE_H
-
-#include <cstdint>
-
+#ifndef LLDB_REGISTER_LAYOUTS_LINUX_REGISTERMODELLINUX_ARM64_H
+#define LLDB_REGISTER_LAYOUTS_LINUX_REGISTERMODELLINUX_ARM64_H
+#include "lldb/Register/Common/RegisterInfo_arm64.h"
 namespace lldb_private {
 namespace sve {
 
@@ -287,7 +285,51 @@ inline uint32_t PTraceSize(uint16_t vq, uint16_t flags) {
              : ptrace_fpsimd_offset + PTraceFPSIMDSize(vq, flags);
 }
 
-} // namespace SVE
+} // namespace sve
 } // namespace lldb_private
 
-#endif // LLDB_SOURCE_PLUGINS_PROCESS_UTILITY_LINUXPTRACEDEFINES_ARM64SVE_H
+namespace lldb_private {
+namespace linux_arm64 {
+struct GPR {
+  uint64_t x[33];
+  uint32_t cpsr;
+  uint32_t pad;
+};
+struct FPU {
+  uint8_t v[32][16];
+  uint32_t fpsr;
+  uint32_t fpcr;
+};
+enum Bank : RegisterBankID {
+  GP,
+  FP,
+  SVE,
+  PAC,
+  MTE,
+  TLS,
+  SMEControl,
+  ZA,
+  ZT,
+  FPMR,
+  GCS,
+  POE
+};
+struct RegisterConfig {
+  Flags features;
+  uint64_t hwcap = 0;
+  uint64_t hwcap2 = 0;
+  uint64_t hwcap3 = 0;
+  uint32_t sve_vq = 0;
+  uint32_t za_vq = 0;
+  SVEState sve_state = SVEState::Full;
+};
+} // namespace linux_arm64
+Arm64RegisterFeatures DecodeLinuxArm64RegisterFeatures(uint64_t hwcap,
+                                                       uint64_t hwcap2);
+/// Supply previous only for vector-state changes to preserve scalar type IDs.
+RegisterModel
+CreateLinuxArm64RegisterModel(const ArchSpec &arch,
+                              const linux_arm64::RegisterConfig &config,
+                              const RegisterDescription *previous = nullptr);
+} // namespace lldb_private
+#endif

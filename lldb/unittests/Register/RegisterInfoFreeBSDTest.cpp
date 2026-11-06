@@ -7,6 +7,7 @@
 //===----------------------------------------------------------------------===//
 
 // clang-format off
+#include "lldb/Register/Layouts/FreeBSD/RegisterModelFreeBSD_arm64.h"
 #include <sys/types.h>
 #include <machine/reg.h>
 #if defined(__arm__)
@@ -18,16 +19,16 @@
 #include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
-#include "lldb/Register/Layouts/FreeBSD/RegisterModelFreeBSD_i386.h"
-#include "lldb/Register/Layouts/FreeBSD/RegisterModelFreeBSD_powerpc.h"
-#include "lldb/Register/Layouts/FreeBSD/RegisterModelFreeBSD_x86_64.h"
-#include "lldb/Register/Common/RegisterInfo_arm.h"
-#include "lldb/Register/Layouts/FreeBSD/RegisterModelFreeBSD_arm.h"
-#include "Register/Common/RegisterInfo_arm64.h"
 #include "lldb/Register/Arch/lldb-arm-register-enums.h"
 #include "lldb/Register/Arch/lldb-arm64-register-enums.h"
 #include "lldb/Register/Arch/lldb-powerpc-register-enums.h"
 #include "lldb/Register/Arch/lldb-x86-register-enums.h"
+#include "lldb/Register/Common/RegisterInfo_arm.h"
+#include "lldb/Register/Common/RegisterInfo_arm64.h"
+#include "lldb/Register/Layouts/FreeBSD/RegisterModelFreeBSD_i386.h"
+#include "lldb/Register/Layouts/FreeBSD/RegisterModelFreeBSD_powerpc.h"
+#include "lldb/Register/Layouts/FreeBSD/RegisterModelFreeBSD_x86_64.h"
+#include "lldb/Register/Layouts/FreeBSD/RegisterModelFreeBSD_arm.h"
 
 using namespace lldb;
 using namespace lldb_private;
@@ -258,7 +259,7 @@ TEST(RegisterInfoFreeBSDTest, i386) {
               ::testing::Pair(offsetof(reg, fbsd_reg), sizeof(reg::fbsd_reg)))
 #define EXPECT_FPU_ARM(lldb_reg, fbsd_reg)                                     \
   EXPECT_THAT(GetRegParams(reg_ctx, fpu_##lldb_reg##_arm),                     \
-              ::testing::Pair(offsetof(vfp_state, fbsd_reg),     \
+              ::testing::Pair(offsetof(vfp_state, fbsd_reg),                   \
                               sizeof(vfp_state::fbsd_reg)))
 
 TEST(RegisterInfoFreeBSDTest, arm) {
@@ -326,14 +327,15 @@ TEST(RegisterInfoFreeBSDTest, arm) {
   EXPECT_THAT(GetRegParams(reg_ctx, gpr_##lldb_reg##_arm64),                   \
               ::testing::Pair(offsetof(reg, fbsd_reg), sizeof(reg::fbsd_reg)))
 #define EXPECT_FPU_ARM64(lldb_reg, fbsd_reg)                                   \
-  EXPECT_THAT(GetRegParams(reg_ctx, fpu_##lldb_reg##_arm64),                   \
-              ::testing::Pair(offsetof(fpreg, fbsd_reg) + base_offset,         \
-                              sizeof(fpreg::fbsd_reg)))
+  EXPECT_THAT(                                                                 \
+      GetRegParams(reg_ctx, fpu_##lldb_reg##_arm64),                           \
+      ::testing::Pair(offsetof(fpreg, fbsd_reg), sizeof(fpreg::fbsd_reg)))
 
 TEST(RegisterInfoFreeBSDTest, arm64) {
   Flags opt_regsets = RegisterInfo_arm64::eRegsetMaskDefault;
   ArchSpec arch{"aarch64-unknown-freebsd"};
-  RegisterInfo_arm64 reg_ctx{arch, opt_regsets};
+  RegisterInfo_arm64 reg_ctx{arch, opt_regsets,
+                             CreateFreeBSDArm64RegisterModel(arch)};
 
   EXPECT_GPR_ARM64(x0, x[0]);
   EXPECT_GPR_ARM64(x1, x[1]);
@@ -369,8 +371,6 @@ TEST(RegisterInfoFreeBSDTest, arm64) {
   EXPECT_GPR_ARM64(sp, sp);
   EXPECT_GPR_ARM64(pc, elr);
   EXPECT_GPR_ARM64(cpsr, spsr);
-
-  size_t base_offset = reg_ctx.GetRegisterInfo()[fpu_v0_arm64].byte_offset;
 
   EXPECT_FPU_ARM64(v0, fp_q[0]);
   EXPECT_FPU_ARM64(v1, fp_q[1]);
@@ -416,9 +416,9 @@ TEST(RegisterInfoFreeBSDTest, arm64) {
   EXPECT_THAT(GetRegParams(reg_ctx, gpr_##lldb_reg##_powerpc),                 \
               ::testing::Pair(offsetof(reg, fbsd_reg), sizeof(reg::fbsd_reg)))
 #define EXPECT_FPU_PPC(lldb_reg, fbsd_reg)                                     \
-  EXPECT_THAT(GetRegParams(reg_ctx, fpr_##lldb_reg##_powerpc),                 \
-              ::testing::Pair(offsetof(fpreg, fbsd_reg),         \
-                              sizeof(fpreg::fbsd_reg)))
+  EXPECT_THAT(                                                                 \
+      GetRegParams(reg_ctx, fpr_##lldb_reg##_powerpc),                         \
+      ::testing::Pair(offsetof(fpreg, fbsd_reg), sizeof(fpreg::fbsd_reg)))
 
 TEST(RegisterInfoFreeBSDTest, powerpc32) {
   ArchSpec arch{"powerpc-unknown-freebsd"};

@@ -321,6 +321,6 @@ enum {
   sve_p15_arm64,
   sve_ffr_arm64,
 };
-}
+} // namespace lldb_private
 
 #endif // LLDB_REGISTER_ARCH_LLDB_ARM64_REGISTER_ENUMS_H

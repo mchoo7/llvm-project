@@ -10,6 +10,7 @@
 
 #include "lldb/Host/windows/HostThreadWindows.h"
 
+#include "lldb/Register/Common/RegisterInfo_arm64.h"
 #include "lldb/Register/Arch/lldb-arm64-register-enums.h"
 #include "lldb/Register/Arch/lldb-arm64-dwarf-eframe-register-enums.h"
 #include "lldb/lldb-defines.h"
@@ -32,27 +33,11 @@
 using namespace lldb;
 using namespace lldb_private;
 
-#define GPR_OFFSET(idx) 0
-#define GPR_OFFSET_NAME(reg) 0
-
-#define FPU_OFFSET(idx) 0
-#define FPU_OFFSET_NAME(reg) 0
-
-#define EXC_OFFSET_NAME(reg) 0
-#define DBG_OFFSET_NAME(reg) 0
-
-#define DEFINE_DBG(reg, i)                                                     \
-  #reg, nullptr, 0, DBG_OFFSET_NAME(reg[i]), eEncodingUint, eFormatHex,        \
-      {LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM,          \
-       LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM},                              \
-      nullptr, nullptr, nullptr
-
-// Include RegisterInfos_arm64 to declare our g_register_infos_arm64 structure.
-#define DECLARE_REGISTER_INFOS_ARM64_STRUCT
-#include "Register/Arch/RegisterInfos_arm64.h"
-#undef DECLARE_REGISTER_INFOS_ARM64_STRUCT
-
-static size_t k_num_register_infos = std::size(g_register_infos_arm64_le);
+static const RegisterInfo_arm64 &RegisterMetadata() {
+  static const ArchSpec arch("aarch64-unknown-windows");
+  static const RegisterInfo_arm64 info(arch, 0, RegisterLayout(arch.GetByteOrder()));
+  return info;
+}
 
 // Array of lldb register numbers used to define the set of all General Purpose
 // Registers
@@ -103,13 +88,13 @@ RegisterContextWindows_arm64::RegisterContextWindows_arm64(
 RegisterContextWindows_arm64::~RegisterContextWindows_arm64() {}
 
 size_t RegisterContextWindows_arm64::GetRegisterCount() {
-  return std::size(g_register_infos_arm64_le);
+  return RegisterMetadata().GetRegisterCount();
 }
 
 const RegisterInfo *
 RegisterContextWindows_arm64::GetRegisterInfoAtIndex(size_t reg) {
-  if (reg < k_num_register_infos)
-    return &g_register_infos_arm64_le[reg];
+  if (reg < RegisterMetadata().GetRegisterCount())
+    return &RegisterMetadata().GetRegisterInfo()[reg];
   return nullptr;
 }
 

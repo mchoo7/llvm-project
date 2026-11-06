@@ -93,12 +93,12 @@ enum { k_num_register_sets = 2 };
 
 } // namespace
 
-static RegisterInfoInterface *
+static RegisterInfoProvider *
 CreateRegisterInfoInterface(const ArchSpec &target_arch) {
   assert((HostInfo::GetArchitecture().GetAddressByteSize() == 8) &&
          "Register setting path assumes this is a 64-bit host");
   return new RegisterInfo_arm64(
-      target_arch, RegisterInfo_arm64::eRegsetMaskDefault);
+      target_arch, RegisterInfo_arm64::eRegsetMaskDefault, RegisterLayout(target_arch.GetByteOrder()));
 }
 
 static Status GetThreadContextLength(DWORD context_flags,

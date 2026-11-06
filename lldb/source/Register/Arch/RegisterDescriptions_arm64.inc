@@ -1,4 +1,4 @@
-//===-- RegisterInfos_arm64.h -----------------------------------*- C++ -*-===//
+//===----------------------------------------------------------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -6,50 +6,13 @@
 //
 //===----------------------------------------------------------------------===//
 
-// Textual register-table fragment; intentionally has no include guard.
-// Include its ordinary dependencies at file scope before defining layout macros.
-// See README.md for the inclusion contract.
-
-#if !defined(DECLARE_REGISTER_INFOS_ARM64_STRUCT)
-#error Select a register-table generation mode before including this fragment
-#endif
-
-#ifdef DECLARE_REGISTER_INFOS_ARM64_STRUCT
-
-
-#ifndef GPR_OFFSET
-#error GPR_OFFSET must be defined before including this header file
-#endif
-
-#ifndef GPR_OFFSET_NAME
-#error GPR_OFFSET_NAME must be defined before including this header file
-#endif
-
-#ifndef FPU_OFFSET
-#error FPU_OFFSET must be defined before including this header file
-#endif
-
-#ifndef FPU_OFFSET_NAME
-#error FPU_OFFSET_NAME must be defined before including this header file
-#endif
-
-#ifndef EXC_OFFSET_NAME
-#error EXC_OFFSET_NAME must be defined before including this header file
-#endif
-
-#ifndef DBG_OFFSET_NAME
-#error DBG_OFFSET_NAME must be defined before including this header file
-#endif
-
-#ifndef DEFINE_DBG
-#error DEFINE_DBG must be defined before including this header file
-#endif
-
-// Offsets for a little-endian layout of the register context
+#define GPR_OFFSET(...) 0
+#define GPR_OFFSET_NAME(...) 0
+#define FPU_OFFSET(...) 0
+#define FPU_OFFSET_NAME(...) 0
 #define GPR_W_PSEUDO_REG_ENDIAN_OFFSET 0
 #define FPU_S_PSEUDO_REG_ENDIAN_OFFSET 0
 #define FPU_D_PSEUDO_REG_ENDIAN_OFFSET 0
-
 static uint32_t g_contained_x0[] = {gpr_x0_arm64, LLDB_INVALID_REGNUM};
 static uint32_t g_contained_x1[] = {gpr_x1_arm64, LLDB_INVALID_REGNUM};
 static uint32_t g_contained_x2[] = {gpr_x2_arm64, LLDB_INVALID_REGNUM};
@@ -494,102 +457,4 @@ static RegisterInfo g_register_infos_arm64_le[] = {
     // DEFINE_MISC_LLDB_REGS(name, size, TYPE, lldb kind)
     DEFINE_MISC_LLDB_REGS(fpsr, 4, FPU, fpu_fpsr_arm64),
     DEFINE_MISC_LLDB_REGS(fpcr, 4, FPU, fpu_fpcr_arm64),
-    DEFINE_MISC_LLDB_REGS(far, 8, EXC, exc_far_arm64),
-    DEFINE_MISC_LLDB_REGS(esr, 4, EXC, exc_esr_arm64),
-    DEFINE_MISC_LLDB_REGS(exception, 4, EXC, exc_exception_arm64),
-
-    {DEFINE_DBG(bvr, 0)},
-    {DEFINE_DBG(bvr, 1)},
-    {DEFINE_DBG(bvr, 2)},
-    {DEFINE_DBG(bvr, 3)},
-    {DEFINE_DBG(bvr, 4)},
-    {DEFINE_DBG(bvr, 5)},
-    {DEFINE_DBG(bvr, 6)},
-    {DEFINE_DBG(bvr, 7)},
-    {DEFINE_DBG(bvr, 8)},
-    {DEFINE_DBG(bvr, 9)},
-    {DEFINE_DBG(bvr, 10)},
-    {DEFINE_DBG(bvr, 11)},
-    {DEFINE_DBG(bvr, 12)},
-    {DEFINE_DBG(bvr, 13)},
-    {DEFINE_DBG(bvr, 14)},
-    {DEFINE_DBG(bvr, 15)},
-
-    {DEFINE_DBG(bcr, 0)},
-    {DEFINE_DBG(bcr, 1)},
-    {DEFINE_DBG(bcr, 2)},
-    {DEFINE_DBG(bcr, 3)},
-    {DEFINE_DBG(bcr, 4)},
-    {DEFINE_DBG(bcr, 5)},
-    {DEFINE_DBG(bcr, 6)},
-    {DEFINE_DBG(bcr, 7)},
-    {DEFINE_DBG(bcr, 8)},
-    {DEFINE_DBG(bcr, 9)},
-    {DEFINE_DBG(bcr, 10)},
-    {DEFINE_DBG(bcr, 11)},
-    {DEFINE_DBG(bcr, 12)},
-    {DEFINE_DBG(bcr, 13)},
-    {DEFINE_DBG(bcr, 14)},
-    {DEFINE_DBG(bcr, 15)},
-
-    {DEFINE_DBG(wvr, 0)},
-    {DEFINE_DBG(wvr, 1)},
-    {DEFINE_DBG(wvr, 2)},
-    {DEFINE_DBG(wvr, 3)},
-    {DEFINE_DBG(wvr, 4)},
-    {DEFINE_DBG(wvr, 5)},
-    {DEFINE_DBG(wvr, 6)},
-    {DEFINE_DBG(wvr, 7)},
-    {DEFINE_DBG(wvr, 8)},
-    {DEFINE_DBG(wvr, 9)},
-    {DEFINE_DBG(wvr, 10)},
-    {DEFINE_DBG(wvr, 11)},
-    {DEFINE_DBG(wvr, 12)},
-    {DEFINE_DBG(wvr, 13)},
-    {DEFINE_DBG(wvr, 14)},
-    {DEFINE_DBG(wvr, 15)},
-
-    {DEFINE_DBG(wcr, 0)},
-    {DEFINE_DBG(wcr, 1)},
-    {DEFINE_DBG(wcr, 2)},
-    {DEFINE_DBG(wcr, 3)},
-    {DEFINE_DBG(wcr, 4)},
-    {DEFINE_DBG(wcr, 5)},
-    {DEFINE_DBG(wcr, 6)},
-    {DEFINE_DBG(wcr, 7)},
-    {DEFINE_DBG(wcr, 8)},
-    {DEFINE_DBG(wcr, 9)},
-    {DEFINE_DBG(wcr, 10)},
-    {DEFINE_DBG(wcr, 11)},
-    {DEFINE_DBG(wcr, 12)},
-    {DEFINE_DBG(wcr, 13)},
-    {DEFINE_DBG(wcr, 14)},
-    {DEFINE_DBG(wcr, 15)}
 };
-// clang-format on
-
-
-#endif // DECLARE_REGISTER_INFOS_ARM64_STRUCT
-
-// Export helpers only for a caller generating the SVE and extension tables.
-#ifndef LLDB_REGISTER_INFOS_ARM64_KEEP_MACROS
-#undef GPR_W_PSEUDO_REG_ENDIAN_OFFSET
-#undef FPU_S_PSEUDO_REG_ENDIAN_OFFSET
-#undef FPU_D_PSEUDO_REG_ENDIAN_OFFSET
-#undef MISC_KIND
-#undef LLDB_KIND
-#undef GENERIC_KIND
-#undef KIND_ALL_INVALID
-#undef GPR64_KIND
-#undef VREG_KIND
-#undef DEFINE_GPR64
-#undef DEFINE_GPR64_ALT
-#undef DEFINE_GPR32
-#undef DEFINE_VREG
-#undef DEFINE_FPU_PSEUDO
-#undef DEFINE_GPR_CPSR
-#undef DEFINE_MISC_REGS
-#undef DEFINE_MISC_LLDB_REGS
-#undef DEFINE_EXTENSION_REG
-#undef DEFINE_EXTENSION_REG_GENERIC
-#endif
