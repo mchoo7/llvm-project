@@ -17,7 +17,7 @@
 using namespace lldb_private;
 
 RegisterContextCorePOSIX_s390x::RegisterContextCorePOSIX_s390x(
-    Thread &thread, RegisterInfoInterface *register_info,
+    Thread &thread, RegisterInfoProvider *register_info,
     const DataExtractor &gpregset, llvm::ArrayRef<CoreNote> notes)
     : RegisterContextCore_s390x(thread, 0, register_info) {
   m_gpr_buffer = std::make_shared<DataBufferHeap>(gpregset.GetDataStart(),
@@ -51,29 +51,17 @@ bool RegisterContextCorePOSIX_s390x::WriteFPR() {
 
 bool RegisterContextCorePOSIX_s390x::ReadRegister(const RegisterInfo *reg_info,
                                                   RegisterValue &value) {
-  const uint32_t reg = reg_info->kinds[lldb::eRegisterKindLLDB];
-  if (reg == LLDB_INVALID_REGNUM)
+  if (!reg_info)
     return false;
-
-  if (IsGPR(reg)) {
-    lldb::offset_t offset = reg_info->byte_offset;
-    uint64_t v = m_gpr.GetMaxU64(&offset, reg_info->byte_size);
-    if (offset == reg_info->byte_offset + reg_info->byte_size) {
-      value.SetUInt(v, reg_info->byte_size);
-      return true;
-    }
+  auto result = m_register_info_up->ReadRegister(
+      *reg_info, {{0, {m_gpr.GetDataStart(), m_gpr.GetByteSize()}},
+                  {1, {m_fpr.GetDataStart(), m_fpr.GetByteSize()}}});
+  if (!result) {
+    llvm::consumeError(result.takeError());
+    return false;
   }
-
-  if (IsFPR(reg)) {
-    lldb::offset_t offset = reg_info->byte_offset;
-    uint64_t v = m_fpr.GetMaxU64(&offset, reg_info->byte_size);
-    if (offset == reg_info->byte_offset + reg_info->byte_size) {
-      value.SetUInt(v, reg_info->byte_size);
-      return true;
-    }
-  }
-
-  return false;
+  value = std::move(*result);
+  return true;
 }
 
 bool RegisterContextCorePOSIX_s390x::ReadAllRegisterValues(

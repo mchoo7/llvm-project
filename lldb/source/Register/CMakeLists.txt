@@ -7,6 +7,7 @@ add_lldb_library(lldbRegister NO_PLUGIN_DEPENDENCIES
   Common/RegisterInfo_ppc64le.cpp
   Common/RegisterInfo_riscv32.cpp
   Common/RegisterInfo_riscv64.cpp
+  Common/RegisterInfo_s390x.cpp
   Common/RegisterInfo_x86.cpp
   Common/RegisterTypeDetector_arm64.cpp
   Layouts/FreeBSD/RegisterModelFreeBSD_i386.cpp
@@ -16,10 +17,10 @@ add_lldb_library(lldbRegister NO_PLUGIN_DEPENDENCIES
   Layouts/Linux/RegisterModelLinux_loongarch64.cpp
   Layouts/Linux/RegisterModelLinux_ppc64le.cpp
   Layouts/Linux/RegisterModelLinux_riscv64.cpp
+  Layouts/Linux/RegisterModelLinux_s390x.cpp
   Layouts/Linux/RegisterModelLinux_x86_64.cpp
   Layouts/NetBSD/RegisterModelNetBSD_i386.cpp
   Layouts/NetBSD/RegisterModelNetBSD_x86_64.cpp
-  Linux/RegisterInfoLinux_s390x.cpp
   RegisterCodec.cpp
   RegisterDescription.cpp
   RegisterDescriptionBuilder.cpp

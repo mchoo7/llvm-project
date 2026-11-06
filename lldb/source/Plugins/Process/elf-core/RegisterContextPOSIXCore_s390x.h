@@ -17,7 +17,7 @@ class RegisterContextCorePOSIX_s390x : public RegisterContextCore_s390x {
 public:
   RegisterContextCorePOSIX_s390x(
       lldb_private::Thread &thread,
-      lldb_private::RegisterInfoInterface *register_info,
+      lldb_private::RegisterInfoProvider *register_info,
       const lldb_private::DataExtractor &gpregset,
       llvm::ArrayRef<lldb_private::CoreNote> notes);
 

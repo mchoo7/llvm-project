@@ -19,6 +19,7 @@ add_lldb_unittest(RegisterTests
   RegisterInfoLoongArchTest.cpp
   RegisterInfoPowerPCTest.cpp
   RegisterInfoRISCVTest.cpp
+  RegisterInfoS390XTest.cpp
   RegisterInfoX86LayoutTest.cpp
   RegisterInfoX86ModelTest.cpp
   RegisterInfo_x86Test.cpp

@@ -9,7 +9,7 @@
 #ifndef LLDB_SOURCE_PLUGINS_REGISTER_CORE_REGISTERCONTEXTCORE_S390X_H
 #define LLDB_SOURCE_PLUGINS_REGISTER_CORE_REGISTERCONTEXTCORE_S390X_H
 
-#include "lldb/Register/RegisterInfoInterface.h"
+#include "lldb/Register/RegisterInfoProvider.h"
 #include "lldb/Register/Arch/lldb-s390x-register-enums.h"
 #include "lldb/Target/RegisterContext.h"
 #include "lldb/Utility/Log.h"
@@ -18,7 +18,7 @@ class RegisterContextCore_s390x : public lldb_private::RegisterContext {
 public:
   RegisterContextCore_s390x(
       lldb_private::Thread &thread, uint32_t concrete_frame_idx,
-      lldb_private::RegisterInfoInterface *register_info);
+      lldb_private::RegisterInfoProvider *register_info);
 
   ~RegisterContextCore_s390x() override;
 
@@ -29,8 +29,6 @@ public:
   size_t GetRegisterCount() override;
 
   virtual unsigned GetRegisterSize(unsigned reg);
-
-  virtual unsigned GetRegisterOffset(unsigned reg);
 
   const lldb_private::RegisterInfo *GetRegisterInfoAtIndex(size_t reg) override;
 
@@ -52,7 +50,7 @@ protected:
   };
 
   RegInfo m_reg_info;
-  std::unique_ptr<lldb_private::RegisterInfoInterface> m_register_info_up;
+  std::unique_ptr<lldb_private::RegisterInfoProvider> m_register_info_up;
 
   virtual bool IsRegisterSetAvailable(size_t set_index);
 

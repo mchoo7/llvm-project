@@ -78,7 +78,7 @@ bool RegisterContextCore_s390x::IsFPR(unsigned reg) {
 
 RegisterContextCore_s390x::RegisterContextCore_s390x(
     Thread &thread, uint32_t concrete_frame_idx,
-    RegisterInfoInterface *register_info)
+    RegisterInfoProvider *register_info)
     : RegisterContext(thread, concrete_frame_idx) {
   m_register_info_up.reset(register_info);
 
@@ -117,11 +117,6 @@ RegisterContextCore_s390x::GetRegisterInfoAtIndex(size_t reg) {
 
 size_t RegisterContextCore_s390x::GetRegisterCount() {
   return m_reg_info.num_registers;
-}
-
-unsigned RegisterContextCore_s390x::GetRegisterOffset(unsigned reg) {
-  assert(reg < m_reg_info.num_registers && "Invalid register number.");
-  return GetRegisterInfo()[reg].byte_offset;
 }
 
 unsigned RegisterContextCore_s390x::GetRegisterSize(unsigned reg) {

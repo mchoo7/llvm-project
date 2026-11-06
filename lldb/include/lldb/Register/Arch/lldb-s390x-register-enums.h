@@ -82,9 +82,9 @@ enum {
   k_num_gpr_registers_s390x = k_last_gpr_s390x - k_first_gpr_s390x + 1,
   k_num_fpr_registers_s390x = k_last_fpr_s390x - k_first_fpr_s390x + 1,
   k_num_linux_registers_s390x = k_last_linux_s390x - k_first_linux_s390x + 1,
-  k_num_user_registers_s390x =
-      k_num_gpr_registers_s390x + k_num_fpr_registers_s390x,
+  k_num_user_registers_s390x = k_num_gpr_registers_s390x +
+      k_num_fpr_registers_s390x,
 };
-}
+} // namespace lldb_private
 
 #endif // LLDB_REGISTER_ARCH_LLDB_S390X_REGISTER_ENUMS_H
