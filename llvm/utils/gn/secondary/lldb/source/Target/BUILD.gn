@@ -25,6 +25,7 @@ static_library("Target") {
     "//lldb/source/Host",
     "//lldb/source/Interpreter",
     "//lldb/source/Plugins/Process/Utility",
+    "//lldb/source/Register",
     "//lldb/source/Symbol",
     "//lldb/source/Utility",
     "//lldb/source/ValueObject",

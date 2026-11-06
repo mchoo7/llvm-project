@@ -103,10 +103,11 @@ add_lldb_library(lldbTarget
     lldbExpression
     lldbHost
     lldbInterpreter
+    lldbPluginProcessUtility
+    lldbRegister
     lldbSymbol
     lldbUtility
     lldbValueObject
-    lldbPluginProcessUtility
   )
 
 add_dependencies(lldbTarget

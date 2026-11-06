@@ -15,6 +15,7 @@ set(LLVM_OPTIONAL_SOURCES
   ${NETBSD_SOURCES})
 
 add_lldb_unittest(RegisterTests
+  RegisterDescriptionBuilderTest.cpp
   RegisterInfo_x86Test.cpp
   RegisterModelTest.cpp
   ${PLATFORM_SOURCES}
