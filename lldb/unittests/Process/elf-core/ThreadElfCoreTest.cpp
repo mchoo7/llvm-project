@@ -400,3 +400,86 @@ TEST_F(ElfCoreTest, LinuxRISCV64DoesNotExposeTruncatedFPNotes) {
                          llvm::Failed());
   }
 }
+
+TEST_F(ElfCoreTest, RISCV64CoreLayoutsFollowOperatingSystem) {
+  struct TestCase {
+    const char *triple;
+    size_t gp_size;
+    size_t fp_size;
+    size_t pc_offset;
+    size_t ra_offset;
+    size_t f1_offset;
+    size_t fcsr_offset;
+  };
+  for (const auto &test : {
+           TestCase{"riscv64-unknown-linux", 256, 264, 0, 8, 8, 256},
+           TestCase{"riscv64-unknown-freebsd", 264, 520, 248, 0, 16, 512}}) {
+    SCOPED_TRACE(test.triple);
+    ArchSpec arch(test.triple);
+    auto debugger = Debugger::CreateInstance();
+    ASSERT_TRUE(debugger);
+    auto target = CreateTarget(debugger, arch);
+    ASSERT_TRUE(target);
+    lldb::ProcessSP process = std::make_shared<DummyProcess>(
+        target, Listener::MakeListener("riscv64-core-registers"));
+    auto thread = CreateThread(process);
+    ASSERT_TRUE(thread);
+
+    std::vector<uint8_t> gp(test.gp_size, 0), fp(test.fp_size, 0);
+    // FreeBSD places PC after the ABI-ordered GPR slots and reserves 16
+    // bytes per FP register. Linux puts PC first and uses 8-byte FP slots.
+    llvm::support::endian::write64le(gp.data() + test.pc_offset, 0x4000);
+    llvm::support::endian::write64le(gp.data() + test.ra_offset, 0x1234);
+    llvm::support::endian::write64le(fp.data() + test.f1_offset, 0x5678);
+    llvm::support::endian::write32le(fp.data() + test.fcsr_offset, 7);
+    DataExtractor general(gp.data(), gp.size(), lldb::eByteOrderLittle, 8);
+    CoreNote note{};
+    note.info.n_type = llvm::ELF::NT_FPREGSET;
+    note.data = DataExtractor(fp.data(), fp.size(), lldb::eByteOrderLittle, 8);
+    auto result =
+        RegisterContextELFCore_riscv64::Create(*thread, arch, general, {note});
+    ASSERT_THAT_EXPECTED(result, llvm::Succeeded());
+    auto &context = *result;
+    auto check = [&](RegisterID id, uint64_t expected) {
+      auto value = context->ReadRegister(id);
+      ASSERT_THAT_EXPECTED(value, llvm::Succeeded());
+      EXPECT_EQ(value->GetAsUInt64(), expected);
+    };
+    check(reg_ids::gpr_pc, 0x4000);
+    check(reg_ids::gpr_ra, 0x1234);
+    check(reg_ids::gpr_x0, 0);
+    check(reg_ids::fpr_f1, 0x5678);
+    check(reg_ids::fpr_fcsr, 7);
+    EXPECT_EQ(context->GetBankSize(0), gp.size());
+    EXPECT_EQ(context->GetBankSize(1), fp.size());
+  }
+}
+
+TEST_F(ElfCoreTest, FreeBSDRISCV64DoesNotExposeTruncatedFPNotes) {
+  ArchSpec arch("riscv64-unknown-freebsd");
+  auto debugger = Debugger::CreateInstance();
+  ASSERT_TRUE(debugger);
+  auto target = CreateTarget(debugger, arch);
+  ASSERT_TRUE(target);
+  lldb::ProcessSP process = std::make_shared<DummyProcess>(
+      target, Listener::MakeListener("riscv64-core-no-fp"));
+  auto thread = CreateThread(process);
+  ASSERT_TRUE(thread);
+  std::vector<uint8_t> gp(264, 0), fp(520, 0);
+  DataExtractor general(gp.data(), gp.size(), lldb::eByteOrderLittle, 8);
+  for (size_t size : {0u, 8u, 519u}) {
+    CoreNote note{};
+    note.info.n_type = llvm::ELF::NT_FPREGSET;
+    note.data = DataExtractor(fp.data(), size, lldb::eByteOrderLittle, 8);
+    auto result =
+        RegisterContextELFCore_riscv64::Create(*thread, arch, general, {note});
+    ASSERT_THAT_EXPECTED(result, llvm::Succeeded());
+    auto &context = *result;
+    EXPECT_EQ(context->GetDescription()->FindGroup("fpr"), nullptr);
+    EXPECT_THAT_EXPECTED(context->ReadRegister(reg_ids::fpr_f1),
+                         llvm::Failed());
+    auto pc = context->ReadRegister(reg_ids::gpr_pc);
+    ASSERT_THAT_EXPECTED(pc, llvm::Succeeded());
+    EXPECT_EQ(pc->GetAsUInt64(), 0u);
+  }
+}

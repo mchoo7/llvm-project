@@ -22,6 +22,8 @@
 #include "lldb/Host/posix/ProcessLauncherPosixFork.h"
 #include "lldb/Target/Process.h"
 #include "lldb/Utility/State.h"
+#include "llvm/ADT/STLExtras.h"
+#include "llvm/ADT/ScopeExit.h"
 #include "llvm/Support/Errno.h"
 
 using namespace lldb;
@@ -264,6 +266,10 @@ void NativeProcessFreeBSD::MonitorSIGTRAP(lldb::pid_t pid) {
       return;
     }
 
+    // The old address space, including its temporary breakpoints, is gone.
+    m_step_breakpoints.clear();
+    m_threads_stepping_with_breakpoint.clear();
+
     // Let our delegate know we have just exec'd.
     NotifyDidExec();
 
@@ -318,6 +324,12 @@ void NativeProcessFreeBSD::MonitorSIGTRAP(lldb::pid_t pid) {
       if (thread) {
         thread->SetStoppedByBreakpoint();
         FixupBreakpointPCAsNeeded(*thread);
+        auto stepping =
+            m_threads_stepping_with_breakpoint.find(thread->GetID());
+        if (stepping != m_threads_stepping_with_breakpoint.end() &&
+            llvm::is_contained(stepping->second,
+                               thread->GetRegisterContext().GetPC()))
+          thread->SetStoppedByTrace();
         SetCurrentThreadID(thread->GetID());
       }
       SetState(StateType::eStateStopped, true);
@@ -440,7 +452,11 @@ Status NativeProcessFreeBSD::Resume(const ResumeActionList &resume_actions) {
   Log *log = GetLog(POSIXLog::Process);
   LLDB_LOG(log, "pid {0}", GetID());
 
-  Status ret;
+  Status ret = ClearSoftwareSingleStepping();
+  if (ret.Fail())
+    return ret;
+
+  llvm::scope_exit cleanup([&] { ClearSoftwareSingleStepping(); });
 
   int signal = 0;
   for (const auto &abs_thread : m_threads) {
@@ -471,7 +487,15 @@ Status NativeProcessFreeBSD::Resume(const ResumeActionList &resume_actions) {
       ret = thread.Resume();
       break;
     case eStateStepping:
-      ret = thread.SingleStep();
+      if (GetArchitecture().GetMachine() == llvm::Triple::riscv64) {
+        ret = SetupSoftwareSingleStepping(thread);
+        if (ret.Success())
+          ret = thread.Resume();
+        if (ret.Success())
+          thread.SetStepping();
+      } else {
+        ret = thread.SingleStep();
+      }
       break;
     case eStateSuspended:
     case eStateStopped:
@@ -497,9 +521,34 @@ Status NativeProcessFreeBSD::Resume(const ResumeActionList &resume_actions) {
 
   ret =
       PtraceWrapper(PT_CONTINUE, GetID(), reinterpret_cast<void *>(1), signal);
-  if (ret.Success())
+  if (ret.Success()) {
+    cleanup.release();
     SetState(eStateRunning, true);
+  }
   return ret;
+}
+
+Status NativeProcessFreeBSD::ClearSoftwareSingleStepping() {
+  Status result;
+  for (auto it = m_step_breakpoints.begin(); it != m_step_breakpoints.end();) {
+    Status error = RemoveBreakpoint(*it);
+    if (error.Fail()) {
+      result = std::move(error);
+      ++it;
+    } else {
+      it = m_step_breakpoints.erase(it);
+    }
+  }
+  m_threads_stepping_with_breakpoint.clear();
+  return result;
+}
+
+void NativeProcessFreeBSD::DoStopIDBumped(uint32_t new_stop_id) {
+  NativeProcessProtocol::DoStopIDBumped(new_stop_id);
+  Status error = ClearSoftwareSingleStepping();
+  if (error.Fail())
+    LLDB_LOG(GetLog(POSIXLog::Process),
+             "failed to remove software stepping breakpoints: {0}", error);
 }
 
 Status NativeProcessFreeBSD::Halt() {
@@ -515,7 +564,9 @@ Status NativeProcessFreeBSD::Halt() {
 }
 
 Status NativeProcessFreeBSD::Detach() {
-  Status error;
+  Status error = ClearSoftwareSingleStepping();
+  if (error.Fail())
+    return error;
 
   // Stop monitoring the inferior.
   m_sigchld_handle.reset();
@@ -1016,8 +1067,10 @@ void NativeProcessFreeBSD::MonitorClone(::pid_t child_pid, bool is_vfork,
   std::unique_ptr<NativeProcessFreeBSD> child_process{
       new NativeProcessFreeBSD(static_cast<::pid_t>(child_pid), m_terminal_fd,
                                m_delegate, m_arch, m_main_loop)};
-  if (!is_vfork)
+  if (!is_vfork) {
     child_process->m_software_breakpoints = m_software_breakpoints;
+    child_process->m_step_breakpoints = m_step_breakpoints;
+  }
 
   Extension expected_ext = is_vfork ? Extension::vfork : Extension::fork;
   if ((m_enabled_extensions & expected_ext) == expected_ext) {

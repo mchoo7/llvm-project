@@ -28,6 +28,7 @@ add_lldb_unittest(RegisterTests
   RegisterInfoX86ModelTest.cpp
   RegisterInfo_x86Test.cpp
   RegisterLayoutBankTest.cpp
+  RegisterLayoutFreeBSDRISCVTest.cpp
   RegisterLayoutTest.cpp
   RegisterTypeTest.cpp
   RegisterValueTest.cpp
