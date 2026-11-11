@@ -497,9 +497,13 @@ TEST(RegisterLayoutFreeBSDNativeTest, PPC32BE) {
 
 #endif // defined(__powerpc__)
 
-#if defined(__powerpc64__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
-TEST(RegisterLayoutFreeBSDNativeTest, PPC64LE) {
+#if defined(__powerpc64__)
+TEST(RegisterLayoutFreeBSDNativeTest, PPC64) {
+#if __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
   ArchSpec arch("powerpc64le-unknown-freebsd");
+#else
+  ArchSpec arch("powerpc64-unknown-freebsd");
+#endif
   RegisterLayoutFreeBSD_ppc layout(arch, true);
   auto check = [&](llvm::StringRef name, size_t offset, size_t size) {
     const auto *reg = layout.GetDescription()->Find(name);

@@ -1,0 +1,22 @@
+--- !ELF
+FileHeader:
+  Class: ELFCLASS64
+  Data: ELFDATA2MSB
+  Type: ET_EXEC
+  Machine: EM_PPC64
+  OSABI: ELFOSABI_FREEBSD
+  Entry: 0x1000
+Sections:
+  - Name: .text
+    Type: SHT_PROGBITS
+    Flags: [ SHF_ALLOC, SHF_EXECINSTR ]
+    Address: 0x1000
+    AddressAlign: 0x4
+    Content: "3c4c000238429d88"
+ProgramHeaders:
+  - Type: PT_LOAD
+    Flags: [ PF_R, PF_X ]
+    VAddr: 0x1000
+    Align: 0x1000
+    FirstSec: .text
+    LastSec: .text

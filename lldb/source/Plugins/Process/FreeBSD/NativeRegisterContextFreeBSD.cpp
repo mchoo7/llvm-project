@@ -16,6 +16,7 @@
 #if defined(__powerpc__)
 #include "NativeRegisterContextFreeBSD_ppc32be.h"
 #if defined(__powerpc64__)
+#include "NativeRegisterContextFreeBSD_ppc64.h"
 #include "NativeRegisterContextFreeBSD_ppc64le.h"
 #endif
 #include <array>
@@ -45,6 +46,21 @@ NativeRegisterContextFreeBSD::CreateHostNativeRegisterContextFreeBSD(
   case llvm::Triple::ppc:
     return new NativeRegisterContextFreeBSD_ppc32be(arch, thread);
 #if defined(__powerpc64__)
+  case llvm::Triple::ppc64: {
+    vmxreg vmx{};
+
+    bool has_vmx =
+        NativeProcessFreeBSD::PtraceWrapper(PT_GETVRREGS, thread.GetID(), &vmx)
+            .Success();
+    std::array<uint64_t, 32> vsx{};
+
+    bool has_vsx = has_vmx && NativeProcessFreeBSD::PtraceWrapper(
+                                  PT_GETVSRREGS, thread.GetID(), vsx.data())
+                                  .Success();
+
+    return new NativeRegisterContextFreeBSD_ppc64(arch, thread, has_vmx,
+                                                  has_vsx);
+  }
   case llvm::Triple::ppc64le: {
     vmxreg vmx{};
 

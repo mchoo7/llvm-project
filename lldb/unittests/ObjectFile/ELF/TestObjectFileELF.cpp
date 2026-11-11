@@ -21,6 +21,7 @@
 #include "llvm/BinaryFormat/ELF.h"
 #include "llvm/Support/Compression.h"
 #include "llvm/Support/FileUtilities.h"
+#include "llvm/Support/Endian.h"
 #include "llvm/Support/FormatVariadic.h"
 #include "llvm/Support/Path.h"
 #include "llvm/Support/Program.h"
@@ -682,4 +683,38 @@ Symbols:
   const Symbol *real = module_sp->FindFirstSymbolWithNameAndType(
       ConstString("printf"), eSymbolTypeCode);
   ASSERT_NE(nullptr, real);
+}
+
+TEST_F(ObjectFileELFTest, PowerPC64ABIFlagsAreIndependentOfByteOrder) {
+  for (bool big : {false, true}) {
+    for (uint32_t abi : {1u, 2u}) {
+      auto file =
+          TestFile::fromYaml(llvm::formatv(R"(--- !ELF
+FileHeader:
+  Class: ELFCLASS64
+  Data: {0}
+  Type: ET_EXEC
+  Machine: EM_PPC64
+  OSABI: ELFOSABI_FREEBSD
+)",
+                                           big ? "ELFDATA2MSB" : "ELFDATA2LSB")
+                                 .str());
+      ASSERT_THAT_EXPECTED(file, llvm::Succeeded());
+      // yaml2obj does not name the PPC64 ABI flag values.
+      auto extractor = file->moduleSpec().GetExtractor();
+      auto data = std::make_shared<DataBufferHeap>(extractor->GetDataStart(),
+                                                   extractor->GetByteSize());
+      uint8_t *flags =
+          data->GetBytes() + offsetof(llvm::ELF::Elf64_Ehdr, e_flags);
+      if (big)
+        llvm::support::endian::write32be(flags, abi);
+      else
+        llvm::support::endian::write32le(flags, abi);
+      ModuleSpec spec(FileSpec(), UUID(),
+                      std::make_shared<DataExtractor>(data));
+      auto module = std::make_shared<Module>(spec);
+      const ArchSpec &arch = module->GetArchitecture();
+      EXPECT_EQ(arch.GetFlags() & ArchSpec::ePPC64_abi_mask, abi);
+    }
+  }
 }

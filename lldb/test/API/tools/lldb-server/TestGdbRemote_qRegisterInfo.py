@@ -64,8 +64,8 @@ class TestGdbRemote_qMemoryRegion(gdbremote_testcase.GdbRemoteTestCaseBase):
         # Ensure we have a program counter register.
         self.assertIn("pc", generic_regs)
 
-        # Ensure we have a frame pointer register. PPC64le's FP is the same as SP
-        if self.getArchitecture() != "powerpc64le":
+        # PPC64 does not provide a separate generic frame-pointer register.
+        if self.getArchitecture() not in ["powerpc64", "powerpc64le"]:
             self.assertIn("fp", generic_regs)
 
         # Ensure we have a stack pointer register.
