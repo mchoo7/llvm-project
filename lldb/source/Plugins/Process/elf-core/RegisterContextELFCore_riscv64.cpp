@@ -9,6 +9,7 @@
 #include "RegisterContextELFCore_riscv64.h"
 #include "lldb/Register/Descriptions/RegisterDescription_riscv64.h"
 
+#include "lldb/Register/Layouts/FreeBSD/RegisterLayoutFreeBSD_riscv64.h"
 #include "lldb/Register/Layouts/Linux/RegisterLayoutLinux_riscv64.h"
 #include "lldb/Register/RegisterLayout.h"
 #include "lldb/Utility/DataBufferHeap.h"
@@ -26,6 +27,11 @@ RegisterContextELFCore_riscv64::Create(Thread &thread, const ArchSpec &arch,
   std::optional<RegisterLayout> layout;
 
   switch (arch.GetTriple().getOS()) {
+  case llvm::Triple::FreeBSD:
+    layout = RegisterLayoutFreeBSD_riscv64(
+        arch,
+        fpregset.GetByteSize() >= sizeof(RegisterLayoutFreeBSD_riscv64::FPR));
+    break;
   case llvm::Triple::Linux:
     if (fpregset.GetByteSize() >= sizeof(RegisterLayoutLinux_riscv64::FPR))
       opt_regsets.Set(RegisterDescription_riscv64::eRegsetMaskFP);

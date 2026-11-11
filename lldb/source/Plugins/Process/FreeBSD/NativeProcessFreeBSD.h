@@ -10,6 +10,7 @@
 #define liblldb_NativeProcessFreeBSD_H_
 
 #include "Plugins/Process/POSIX/NativeProcessELF.h"
+#include "Plugins/Process/Utility/NativeProcessSoftwareSingleStep.h"
 
 #include "lldb/Target/MemoryRegionInfo.h"
 #include "lldb/Utility/ArchSpec.h"
@@ -26,7 +27,8 @@ namespace process_freebsd {
 /// for debugging.
 ///
 /// Changes in the inferior process state are broadcasted.
-class NativeProcessFreeBSD : public NativeProcessELF {
+class NativeProcessFreeBSD : public NativeProcessELF,
+                             private NativeProcessSoftwareSingleStep {
 public:
   class Manager : public NativeProcessProtocol::Manager {
   public:
@@ -91,6 +93,8 @@ public:
   llvm::Expected<std::string> SaveCore(llvm::StringRef path_hint) override;
 
 protected:
+  void DoStopIDBumped(uint32_t new_stop_id) override;
+
   llvm::Expected<llvm::ArrayRef<uint8_t>>
   GetSoftwareBreakpointTrapOpcode(size_t size_hint) override;
 
@@ -117,6 +121,7 @@ private:
   void MonitorClone(::pid_t child_pid, bool is_vfork,
                     NativeThreadFreeBSD &parent_thread);
 
+  Status ClearSoftwareSingleStepping();
   Status PopulateMemoryRegionCache();
   void SigchldHandler();
 
