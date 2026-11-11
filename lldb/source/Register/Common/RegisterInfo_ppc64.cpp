@@ -77,6 +77,22 @@ lldb_private::MakePowerPCDescription(llvm::ArrayRef<RegisterDescriptor> values,
     }
     groups[group].registers.push_back(reg.id);
   }
+  auto find = [&](const std::string &name) -> RegisterDescriptor * {
+    auto it =
+        llvm::find_if(registers, [&](const auto &r) { return r.name == name; });
+    return it == registers.end() ? nullptr : &*it;
+  };
+  for (unsigned i = 0; i != 64; ++i) {
+    auto *vs = find("vs" + std::to_string(i));
+    auto *alias = i < 32 ? find("f" + std::to_string(i))
+                         : find("vr" + std::to_string(i - 32));
+    if (!alias && i >= 32)
+      alias = find("v" + std::to_string(i - 32));
+    if (vs && alias) {
+      vs->invalidate_registers.push_back(alias->id);
+      alias->invalidate_registers.push_back(vs->id);
+    }
+  }
   llvm::erase_if(groups, [](const auto &g) { return g.registers.empty(); });
   return llvm::cantFail(
       RegisterDescription::Create(std::move(registers), std::move(groups)));

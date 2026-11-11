@@ -130,6 +130,14 @@ static void swap_chars() {
                :
                : "r"('0'), "r"('1'), "r"(&g_c1), "r"(&g_c2)
                : "memory");
+#elif defined(__powerpc__)
+  asm volatile("stb %1, 0(%2)\n\t"
+               "stb %0, 0(%3)\n\t"
+               "stb %0, 0(%2)\n\t"
+               "stb %1, 0(%3)\n\t"
+               :
+               : "r"('0'), "r"('1'), "b"(&g_c1), "b"(&g_c2)
+               : "memory");
 #elif defined(__riscv)
   asm volatile("sb %1, (%2)\n\t"
                "sb %0, (%3)\n\t"

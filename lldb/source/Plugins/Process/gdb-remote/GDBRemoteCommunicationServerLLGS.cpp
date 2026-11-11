@@ -81,10 +81,7 @@ BuildRegisterPacketLayout(NativeRegisterContext &context) {
       context.GetUserRegisterCount() > description->GetRegisters().size())
     return llvm::createStringError(llvm::inconvertibleErrorCode(),
                                    "missing native register description");
-  std::vector<RegisterID> order;
-  for (const auto &reg :
-       description->GetRegisters().take_front(context.GetUserRegisterCount()))
-    order.push_back(reg.id);
+  auto order = description->GetUserRegisters();
   return RegisterPacketLayout::Create(
       std::move(description), order,
       context.GetTargetArchitecture().GetByteOrder());

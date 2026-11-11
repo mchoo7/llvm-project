@@ -7,6 +7,8 @@
 //===----------------------------------------------------------------------===//
 
 #include "Plugins/Process/gdb-remote/RegisterPacketLayout.h"
+#include "lldb/Register/Layouts/FreeBSD/RegisterLayoutFreeBSD_powerpc.h"
+#include "lldb/Utility/ArchSpec.h"
 #include "llvm/Testing/Support/Error.h"
 #include "gtest/gtest.h"
 
@@ -126,4 +128,28 @@ TEST(RegisterPacketLayoutTest, ValidatesVisibilityAndPreservesEmptyProjection) {
   ASSERT_THAT_EXPECTED(empty, Succeeded());
   EXPECT_TRUE(empty->GetEntries().empty());
   EXPECT_EQ(empty->GetByteSize(), 0u);
+}
+
+TEST(RegisterPacketLayoutTest, FreeBSDPPC64SelectsAvailableNativeRegisters) {
+  auto native = CreateFreeBSDPowerPC64RegisterLayout(
+      ArchSpec("powerpc64le-unknown-freebsd"));
+  auto description = native.GetDescription();
+  // A target without VMX/VSX exposes only its GPR and FPR banks. This skips
+  // msr within the GPR table, so the presentation is not a table prefix.
+  std::vector<RegisterID> order;
+  for (const auto &reg : description->GetRegisters()) {
+    const auto *location = native.Find(reg.id);
+    if (location && location->pieces[0].bank < 2)
+      order.push_back(reg.id);
+  }
+  auto selected = std::make_shared<RegisterDescription>(
+      cantFail(description->WithUserRegisters(order)));
+  auto packet = RegisterPacketLayout::Create(
+      selected, selected->GetUserRegisters(), lldb::eByteOrderLittle);
+  ASSERT_THAT_EXPECTED(packet, Succeeded());
+  EXPECT_EQ(packet->GetEntries().size(), 70u);
+  EXPECT_EQ(packet->GetWireNumber(description->Find("msr")->id), std::nullopt);
+  EXPECT_EQ(packet->GetWireNumber(description->Find("fpscr")->id), 69u);
+  EXPECT_EQ(packet->GetWireNumber(description->Find("pc")->id), 32u);
+  EXPECT_EQ(packet->GetWireNumber(description->Find("vr0")->id), std::nullopt);
 }

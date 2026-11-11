@@ -7,6 +7,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "lldb/Register/Layouts/FreeBSD/RegisterLayoutFreeBSD_powerpc.h"
+#include "lldb/Register/Common/RegisterInfo_ppc64le.h"
 #include "lldb/Utility/ArchSpec.h"
 #include <cstddef>
 #include <cstdint>
@@ -168,14 +169,18 @@ typedef struct _VMX {
 } VMX;
 
 template <typename GP>
-RegisterLayout Layout(const ArchSpec &arch, uint32_t value_bytes) {
-  auto description = RegisterInfo_powerpc::CreateDescription(value_bytes);
+RegisterLayout Layout(const ArchSpec &arch,
+                      const RegisterDescription &description,
+                      bool has_vsx = false) {
   RegisterLayout layout(arch.GetByteOrder());
   llvm::cantFail(layout.AddBank(0, sizeof(GP)));
   llvm::cantFail(layout.AddBank(1, sizeof(FPR)));
   llvm::cantFail(layout.AddBank(2, sizeof(VMX)));
   auto add = [&](const char *name, RegisterBankID bank, uint32_t offset) {
-    const auto *reg = description->Find(name);
+    const auto *reg = description.Find(name);
+    // The 32-bit description spells vector registers vN, the 64-bit one vrN.
+    if (!reg && name[0] == 'v' && name[1] >= '0' && name[1] <= '9')
+      reg = description.Find("vr" + std::string(name + 1));
     if (!reg)
       return;
     // A 32-bit value in a saved 64-bit word occupies its low half.
@@ -293,19 +298,43 @@ RegisterLayout Layout(const ArchSpec &arch, uint32_t value_bytes) {
   add("v31", 2, offsetof(VMX, v31));
   add("vrsave", 2, offsetof(VMX, vrsave));
   add("vscr", 2, offsetof(VMX, vscr));
+  if (has_vsx) {
+    llvm::cantFail(layout.AddBank(3, sizeof(freebsd_powerpc::VSX)));
+    for (uint32_t i = 0; i != 64; ++i) {
+      const auto *reg = description.Find("vs" + std::to_string(i));
+      if (!reg)
+        continue;
+      RegisterLocation location;
+      location.kind = RegisterLocation::Stored;
+      if (i < 32) {
+        // PT_GETVSRREGS contains only doubleword 1. Doubleword 0 is in
+        // PT_GETFPREGS, and VSR32-63 are the complete VMX registers.
+        bool big = arch.GetByteOrder() == lldb::eByteOrderBig;
+        location.pieces = {{1, i * 8, 8, big ? 0u : 8u},
+                           {3, i * 8, 8, big ? 8u : 0u}};
+      } else {
+        location.pieces = {{2, (i - 32) * 16, 16, 0}};
+      }
+      llvm::cantFail(layout.Add(reg->id, std::move(location)));
+    }
+  }
   return layout;
 }
 } // namespace
 
 RegisterLayout
 lldb_private::CreateFreeBSDPowerPC32RegisterLayout(const ArchSpec &arch) {
-  return llvm::cantFail(RegisterLayout::Create(
-      RegisterInfo_powerpc::CreateDescription(4), Layout<GPR32>(arch, 4)));
+  auto description = RegisterInfo_powerpc::CreateDescription(4);
+  return llvm::cantFail(
+      RegisterLayout::Create(description, Layout<GPR32>(arch, *description)));
 }
 RegisterLayout
-lldb_private::CreateFreeBSDPowerPC64RegisterLayout(const ArchSpec &arch) {
+lldb_private::CreateFreeBSDPowerPC64RegisterLayout(const ArchSpec &arch,
+                                                   bool has_vsx) {
   const uint32_t value_bytes = arch.GetMachine() == llvm::Triple::ppc ? 4 : 8;
+  auto description = arch.GetMachine() == llvm::Triple::ppc64le
+                         ? RegisterInfo_ppc64le::CreateDescription(arch)
+                         : RegisterInfo_powerpc::CreateDescription(value_bytes);
   return llvm::cantFail(RegisterLayout::Create(
-      RegisterInfo_powerpc::CreateDescription(value_bytes),
-      Layout<GPR64>(arch, value_bytes)));
+      description, Layout<GPR64>(arch, *description, has_vsx)));
 }

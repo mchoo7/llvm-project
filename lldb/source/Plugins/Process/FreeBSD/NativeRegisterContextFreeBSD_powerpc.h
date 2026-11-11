@@ -20,7 +20,6 @@
 #include "lldb/Register/Layouts/FreeBSD/RegisterLayoutFreeBSD_powerpc.h"
 
 #include <array>
-#include <optional>
 
 namespace lldb_private {
 namespace process_freebsd {
@@ -31,7 +30,9 @@ class NativeRegisterContextFreeBSD_powerpc
     : public NativeRegisterContextFreeBSD {
 public:
   NativeRegisterContextFreeBSD_powerpc(const ArchSpec &target_arch,
-                                       NativeThreadFreeBSD &native_thread);
+                                       NativeThreadFreeBSD &native_thread,
+                                       bool has_vmx = false,
+                                       bool has_vsx = false);
 
   llvm::Expected<lldb_private::RegisterValue>
   ReadRegister(lldb_private::RegisterID id) override;
@@ -51,11 +52,18 @@ private:
   enum RegSetKind {
     GPRegSet,
     FPRegSet,
+    VMXRegSet,
+    VSXRegSet,
   };
   reg m_gpr{};
   fpreg m_fpr{};
+  vmxreg m_vmx{};
+  freebsd_powerpc::VSX m_vsx{};
+  bool m_has_vmx;
+  bool m_has_vsx;
 
-  std::optional<RegSetKind> GetSetForNativeRegNum(uint32_t reg_num) const;
+  std::array<MutableRegisterData, 4> GetRegisterBanks();
+  bool HasRegisterSet(RegSetKind set) const;
 
   Status ReadRegisterSet(RegSetKind set);
   Status WriteRegisterSet(RegSetKind set);

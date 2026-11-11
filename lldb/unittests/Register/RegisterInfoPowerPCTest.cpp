@@ -12,7 +12,9 @@
 #include "lldb/Register/Layouts/FreeBSD/RegisterLayoutFreeBSD_powerpc.h"
 #include "lldb/Register/Layouts/Linux/RegisterLayoutLinux_ppc64le.h"
 #include "lldb/Register/RegisterLayout.h"
+#include "llvm/Support/Endian.h"
 #include "llvm/Testing/Support/Error.h"
+#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 #include <array>
 
@@ -117,4 +119,70 @@ TEST(RegisterInfoPowerPCTest, LinuxVSXUsesTheActualSplitBanks) {
   const auto *bytes = static_cast<const uint8_t *>(value->GetBytes());
   EXPECT_EQ(bytes[0], 1);
   EXPECT_EQ(bytes[8], 2);
+}
+
+TEST(RegisterInfoPowerPCTest, FreeBSDPPC64LEUsesNativeWordSlots) {
+  auto layout = CreateFreeBSDPowerPC64RegisterLayout(
+      ArchSpec("powerpc64le-unknown-freebsd"));
+  auto description = layout.GetDescription();
+  EXPECT_EQ(layout.GetBankSize(0), 296u);
+  EXPECT_EQ(layout.GetBankSize(1), 264u);
+  EXPECT_EQ(layout.GetBankSize(2), 528u);
+  std::array<uint8_t, 296> bytes{};
+  for (unsigned i = 0; i != 32; ++i) {
+    auto *reg = description->Find("r" + std::to_string(i));
+    ASSERT_NE(reg, nullptr);
+    EXPECT_EQ(reg->byte_size, 8u);
+    EXPECT_EQ(layout.Find(reg->id)->pieces[0].byte_offset, i * 8u);
+    support::endian::write64le(bytes.data() + i * 8, 0x100000000ULL + i);
+    auto value = layout.Read(reg->id, RegisterData{0, bytes});
+    ASSERT_THAT_EXPECTED(value, Succeeded());
+    EXPECT_EQ(value->GetAsUInt64(), 0x100000000ULL + i);
+  }
+  const char *special[] = {"lr", "cr", "xer", "ctr", "pc"};
+  for (unsigned i = 0; i != 5; ++i)
+    EXPECT_EQ(
+        layout.Find(description->Find(special[i])->id)->pieces[0].byte_offset,
+        (32 + i) * 8u);
+  EXPECT_EQ(description->Find("lr")->numbers[lldb::eRegisterKindDWARF], 65u);
+  EXPECT_EQ(description->Find("cr")->numbers[lldb::eRegisterKindDWARF], 68u);
+  EXPECT_EQ(layout.Find(description->Find("vr31")->id)->pieces[0].byte_offset,
+            496u);
+  EXPECT_EQ(layout.Find(description->Find("vscr")->id)->pieces[0].byte_offset,
+            524u);
+  EXPECT_EQ(layout.Find(description->Find("vs0")->id), nullptr);
+}
+
+TEST(RegisterInfoPowerPCTest, FreeBSDPPC64LEVSXUsesTwoPtraceBanks) {
+  auto layout = CreateFreeBSDPowerPC64RegisterLayout(
+      ArchSpec("powerpc64le-unknown-freebsd"), true);
+  auto description = layout.GetDescription();
+  std::array<uint8_t, 264> fp{};
+  std::array<uint8_t, 256> extra{};
+  std::array<uint8_t, 528> vmx{};
+  fp[0] = 0x11;
+  extra[0] = 0x22;
+  vmx[0] = 0x33;
+  auto *vs0 = description->Find("vs0");
+  auto value = layout.Read(vs0->id, {{1, fp}, {3, extra}});
+  ASSERT_THAT_EXPECTED(value, Succeeded());
+  auto *bytes = static_cast<const uint8_t *>(value->GetBytes());
+  EXPECT_EQ(bytes[0], 0x22);
+  EXPECT_EQ(bytes[8], 0x11);
+  auto vs32 = layout.Read(description->Find("vs32")->id, RegisterData{2, vmx});
+  ASSERT_THAT_EXPECTED(vs32, Succeeded());
+  EXPECT_EQ(static_cast<const uint8_t *>(vs32->GetBytes())[0], 0x33);
+  EXPECT_THAT(description->Find("f0")->invalidate_registers,
+              ::testing::Contains(vs0->id));
+  EXPECT_THAT(description->Find("vr0")->invalidate_registers,
+              ::testing::Contains(description->Find("vs32")->id));
+  std::array<uint8_t, 16> replacement;
+  replacement.fill(0x44);
+  RegisterValue written(replacement, lldb::eByteOrderLittle);
+  ASSERT_THAT_ERROR(layout.Write(vs0->id, written, {{1, fp}, {3, extra}}),
+                    Succeeded());
+  EXPECT_EQ(fp[0], 0x44);
+  EXPECT_EQ(extra[0], 0x44);
+  EXPECT_EQ(fp[8], 0);
+  EXPECT_EQ(extra[8], 0);
 }

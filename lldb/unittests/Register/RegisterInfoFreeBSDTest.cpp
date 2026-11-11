@@ -405,7 +405,7 @@ TEST(RegisterInfoFreeBSDTest, arm64) {
 
 #endif // defined(__aarch64__)
 
-#if defined(__powerpc__)
+#if defined(__powerpc__) && !defined(__powerpc64__)
 
 #define EXPECT_GPR_PPC(lldb_reg, fbsd_reg)                                     \
   EXPECT_THAT(GetRegParams(reg_ctx, registers::powerpc::id::gpr_##lldb_reg),   \
@@ -493,3 +493,34 @@ TEST(RegisterInfoFreeBSDTest, powerpc32) {
 }
 
 #endif // defined(__powerpc__)
+
+#if defined(__powerpc64__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+TEST(RegisterInfoFreeBSDTest, powerpc64le) {
+  auto layout = CreateFreeBSDPowerPC64RegisterLayout(
+      ArchSpec("powerpc64le-unknown-freebsd"), true);
+  auto check = [&](llvm::StringRef name, size_t offset, size_t size) {
+    const auto *reg = layout.GetDescription()->Find(name);
+    ASSERT_NE(reg, nullptr);
+    const auto *location = layout.Find(reg->id);
+    ASSERT_NE(location, nullptr);
+    EXPECT_EQ(location->pieces[0].byte_offset, offset);
+    EXPECT_EQ(location->pieces[0].byte_size, size);
+  };
+  EXPECT_EQ(layout.GetBankSize(0), sizeof(reg));
+  EXPECT_EQ(layout.GetBankSize(1), sizeof(fpreg));
+  EXPECT_EQ(layout.GetBankSize(2), sizeof(vmxreg));
+  for (unsigned i = 0; i != 32; ++i) {
+    check("r" + std::to_string(i), offsetof(reg, fixreg) + i * sizeof(reg::lr),
+          sizeof(reg::lr));
+    check("f" + std::to_string(i), offsetof(fpreg, fpreg) + i * sizeof(double),
+          sizeof(double));
+    check("vr" + std::to_string(i), offsetof(vmxreg, vr) + i * 16, 16);
+  }
+  check("pc", offsetof(reg, pc), sizeof(reg::pc));
+  check("lr", offsetof(reg, lr), sizeof(reg::lr));
+  check("cr", offsetof(reg, cr), sizeof(reg::cr));
+  check("fpscr", offsetof(fpreg, fpscr), sizeof(fpreg::fpscr));
+  check("vrsave", offsetof(vmxreg, vrsave), sizeof(vmxreg::vrsave));
+  check("vscr", offsetof(vmxreg, vscr), sizeof(vmxreg::vscr));
+}
+#endif
