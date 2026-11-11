@@ -15,6 +15,10 @@
 
 #if defined(__powerpc__)
 #include "NativeRegisterContextFreeBSD_ppc32be.h"
+#if defined(__powerpc64__)
+#include "NativeRegisterContextFreeBSD_ppc64le.h"
+#endif
+#include <array>
 #endif
 
 using namespace lldb_private;
@@ -40,6 +44,23 @@ NativeRegisterContextFreeBSD::CreateHostNativeRegisterContextFreeBSD(
   switch (arch.GetMachine()) {
   case llvm::Triple::ppc:
     return new NativeRegisterContextFreeBSD_ppc32be(arch, thread);
+#if defined(__powerpc64__)
+  case llvm::Triple::ppc64le: {
+    vmxreg vmx{};
+
+    bool has_vmx =
+        NativeProcessFreeBSD::PtraceWrapper(PT_GETVRREGS, thread.GetID(), &vmx)
+            .Success();
+    std::array<uint64_t, 32> vsx{};
+
+    bool has_vsx = has_vmx && NativeProcessFreeBSD::PtraceWrapper(
+                                  PT_GETVSRREGS, thread.GetID(), vsx.data())
+                                  .Success();
+
+    return new NativeRegisterContextFreeBSD_ppc64le(arch, thread, has_vmx,
+                                                    has_vsx);
+  }
+#endif
   default:
     llvm_unreachable("unsupported native FreeBSD PowerPC architecture");
   }
