@@ -14,8 +14,11 @@ namespace lldb_private {
 
 class RegisterInfo_ppc64 {
 public:
+  // DWARF numbering is an ABI property, independent of byte order or storage.
+  enum class Numbering { AIX, ELF };
+
   static std::shared_ptr<const RegisterDescription>
-  CreateDescription(const ArchSpec &arch);
+  CreateDescription(const ArchSpec &arch, Numbering numbering = Numbering::AIX);
 };
 } // namespace lldb_private
 

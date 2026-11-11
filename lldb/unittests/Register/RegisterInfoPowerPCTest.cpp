@@ -186,3 +186,53 @@ TEST(RegisterInfoPowerPCTest, FreeBSDPPC64LEVSXUsesTwoPtraceBanks) {
   EXPECT_EQ(fp[8], 0);
   EXPECT_EQ(extra[8], 0);
 }
+
+TEST(RegisterInfoPowerPCTest, FreeBSDPPC64UsesELFNumbersAndBigEndianSlots) {
+  ArchSpec arch("powerpc64-unknown-freebsd");
+  auto layout = CreateFreeBSDPowerPC64RegisterLayout(arch, true);
+  auto description = layout.GetDescription();
+  const std::pair<const char *, uint32_t> numbers[] = {
+      {"lr", 65}, {"ctr", 66}, {"cr", 68}, {"xer", 76}};
+  for (const auto &entry : numbers) {
+    const auto *reg = description->Find(entry.first);
+    ASSERT_NE(reg, nullptr);
+    EXPECT_EQ(reg->numbers[lldb::eRegisterKindDWARF], entry.second);
+    EXPECT_EQ(reg->numbers[lldb::eRegisterKindEHFrame], entry.second);
+  }
+  auto aix =
+      RegisterInfo_ppc64::CreateDescription(ArchSpec("powerpc64-ibm-aix"));
+  EXPECT_EQ(aix->Find("lr")->numbers[lldb::eRegisterKindDWARF], 108u);
+  EXPECT_EQ(aix->Find("cr")->numbers[lldb::eRegisterKindDWARF], 64u);
+  EXPECT_EQ(description->Find("lr")->id, aix->Find("lr")->id);
+
+  std::array<uint8_t, 296> gp{};
+  auto *r31 = description->Find("r31");
+  ASSERT_THAT_ERROR(layout.Write(r31->id, RegisterValue(uint64_t(0x123456789)),
+                                 MutableRegisterData{0, gp}),
+                    Succeeded());
+  EXPECT_EQ(support::endian::read64be(gp.data() + 31 * 8), 0x123456789ULL);
+  auto read = layout.Read(r31->id, RegisterData{0, gp});
+  ASSERT_THAT_EXPECTED(read, Succeeded());
+  EXPECT_EQ(read->GetAsUInt64(), 0x123456789ULL);
+
+  std::array<uint8_t, 264> fp{};
+  std::array<uint8_t, 256> extra{};
+  fp[0] = 0x11;
+  extra[0] = 0x22;
+  auto *vs0 = description->Find("vs0");
+  auto value = layout.Read(vs0->id, {{1, fp}, {3, extra}});
+  ASSERT_THAT_EXPECTED(value, Succeeded());
+  auto *bytes = static_cast<const uint8_t *>(value->GetBytes());
+  EXPECT_EQ(bytes[0], 0x11);
+  EXPECT_EQ(bytes[8], 0x22);
+  std::array<uint8_t, 16> replacement;
+  replacement.fill(0x33);
+  ASSERT_THAT_ERROR(
+      layout.Write(vs0->id, RegisterValue(replacement, lldb::eByteOrderBig),
+                   {{1, fp}, {3, extra}}),
+      Succeeded());
+  EXPECT_EQ(fp[0], 0x33);
+  EXPECT_EQ(extra[0], 0x33);
+  EXPECT_EQ(fp[8], 0);
+  EXPECT_EQ(extra[8], 0);
+}

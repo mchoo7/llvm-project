@@ -99,6 +99,8 @@ private:
                                                         // instead.
 
   lldb::ByteOrder GetByteOrder() const;
+  bool UsesELFRegisterNumbers() const;
+  bool UsesELFv2() const;
 };
 
 #endif // LLDB_SOURCE_PLUGINS_ABI_POWERPC_ABISYSV_PPC64_H

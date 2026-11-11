@@ -809,8 +809,11 @@ addr_t DynamicLoaderPOSIXDYLD::GetEntryPoint() {
 
   const ArchSpec &arch = m_process->GetTarget().GetArchitecture();
 
-  // On ppc64, the entry point is actually a descriptor.  Dereference it.
-  if (arch.GetMachine() == llvm::Triple::ppc64)
+  // ELFv1 uses a function descriptor, but ELFv2 uses a code address even for
+  // big-endian PPC64 binaries. Preserve the ELFv1 default for unmarked binaries.
+  if (arch.GetMachine() == llvm::Triple::ppc64 &&
+      (arch.GetFlags() & ArchSpec::ePPC64_abi_mask) !=
+          ArchSpec::ePPC64_abi_elfv2)
     m_entry_point = ReadUnsignedIntWithSizeInBytes(m_entry_point, 8);
 
   return m_entry_point;

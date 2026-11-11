@@ -7,6 +7,7 @@
 //===----------------------------------------------------------------------===//
 
 #include "lldb/Register/Layouts/FreeBSD/RegisterLayoutFreeBSD_powerpc.h"
+#include "lldb/Register/Common/RegisterInfo_ppc64.h"
 #include "lldb/Register/Common/RegisterInfo_ppc64le.h"
 #include "lldb/Utility/ArchSpec.h"
 #include <cstddef>
@@ -335,6 +336,9 @@ lldb_private::CreateFreeBSDPowerPC64RegisterLayout(const ArchSpec &arch,
   auto description = arch.GetMachine() == llvm::Triple::ppc64le
                          ? RegisterInfo_ppc64le::CreateDescription(arch)
                          : RegisterInfo_powerpc::CreateDescription(value_bytes);
+  if (arch.GetMachine() == llvm::Triple::ppc64)
+    description = RegisterInfo_ppc64::CreateDescription(
+        arch, RegisterInfo_ppc64::Numbering::ELF);
   return llvm::cantFail(RegisterLayout::Create(
       description, Layout<GPR64>(arch, *description, has_vsx)));
 }

@@ -63,8 +63,12 @@ ABISysV_ppc64::GetRegisterInfoArray(uint32_t &count) {
       ArchSpec("powerpc64-unknown-unknown"));
   static const auto little = RegisterInfo_ppc64le::CreateDescription(
       ArchSpec("powerpc64le-unknown-unknown"));
-  const auto &description =
-      GetByteOrder() == lldb::eByteOrderLittle ? little : big;
+  static const auto big_elf = RegisterInfo_ppc64::CreateDescription(
+      ArchSpec("powerpc64-unknown-freebsd"),
+      RegisterInfo_ppc64::Numbering::ELF);
+  const auto &description = GetByteOrder() == lldb::eByteOrderLittle
+                                ? little
+                                : (UsesELFRegisterNumbers() ? big_elf : big);
   count = description->GetRegisters().size();
   return description->GetRegisters().data();
 }
@@ -75,15 +79,85 @@ lldb::ByteOrder ABISysV_ppc64::GetByteOrder() const {
   return GetProcessSP()->GetByteOrder();
 }
 
+bool ABISysV_ppc64::UsesELFRegisterNumbers() const {
+  const auto &triple =
+      GetProcessSP()->GetTarget().GetArchitecture().GetTriple();
+  switch (triple.getOS()) {
+  case llvm::Triple::Linux:
+  case llvm::Triple::FreeBSD:
+  case llvm::Triple::NetBSD:
+  case llvm::Triple::OpenBSD:
+    return true;
+  case llvm::Triple::AIX:
+  case llvm::Triple::Darwin:
+  case llvm::Triple::MacOSX:
+    return false;
+  default:
+    llvm_unreachable("unsupported OS rejected by CreateInstance");
+  }
+}
+
+bool ABISysV_ppc64::UsesELFv2() const {
+  const ArchSpec &arch = GetProcessSP()->GetTarget().GetArchitecture();
+  switch (arch.GetFlags() & ArchSpec::ePPC64_abi_mask) {
+  case ArchSpec::ePPC64_abi_elfv1:
+    return false;
+  case ArchSpec::ePPC64_abi_elfv2:
+    return true;
+  case ArchSpec::ePPC64_abi_unspecified:
+    switch (arch.GetTriple().getOS()) {
+    case llvm::Triple::FreeBSD:
+      // FreeBSD defaults to ELFv2 for both byte orders.
+      return true;
+    case llvm::Triple::Linux:
+    case llvm::Triple::NetBSD:
+    case llvm::Triple::OpenBSD:
+      return GetByteOrder() == lldb::eByteOrderLittle;
+    case llvm::Triple::AIX:
+    case llvm::Triple::Darwin:
+    case llvm::Triple::MacOSX:
+      return false;
+    default:
+      llvm_unreachable("unsupported OS rejected by CreateInstance");
+    }
+  default:
+    llvm_unreachable("invalid PPC64 ELF ABI flags rejected by CreateInstance");
+  }
+}
+
 // Static Functions
 
 ABISP
 ABISysV_ppc64::CreateInstance(lldb::ProcessSP process_sp,
                               const ArchSpec &arch) {
-  if (arch.GetTriple().isPPC64())
-    return ABISP(
-        new ABISysV_ppc64(std::move(process_sp), MakeMCRegisterInfo(arch)));
-  return ABISP();
+  if (!arch.GetTriple().isPPC64())
+    return ABISP();
+  switch (arch.GetTriple().getOS()) {
+  case llvm::Triple::Linux:
+  case llvm::Triple::FreeBSD:
+  case llvm::Triple::NetBSD:
+  case llvm::Triple::OpenBSD:
+  case llvm::Triple::AIX:
+  case llvm::Triple::Darwin:
+  case llvm::Triple::MacOSX:
+    break;
+  default:
+    LLDB_LOG(GetLog(LLDBLog::Process), "Unsupported OS for the PPC64 ABI: {0}",
+             arch.GetTriple().getOSName());
+    return ABISP();
+  }
+  switch (arch.GetFlags() & ArchSpec::ePPC64_abi_mask) {
+  case ArchSpec::ePPC64_abi_unspecified:
+  case ArchSpec::ePPC64_abi_elfv1:
+  case ArchSpec::ePPC64_abi_elfv2:
+    break;
+  default:
+    LLDB_LOG(GetLog(LLDBLog::Process), "Invalid PPC64 ELF ABI flags: {0}",
+             arch.GetFlags() & ArchSpec::ePPC64_abi_mask);
+    return ABISP();
+  }
+  return ABISP(
+      new ABISysV_ppc64(std::move(process_sp), MakeMCRegisterInfo(arch)));
 }
 
 bool ABISysV_ppc64::PrepareTrivialCall(Thread &thread, addr_t sp,
@@ -174,7 +248,7 @@ bool ABISysV_ppc64::PrepareTrivialCall(Thread &thread, addr_t sp,
 
   // Write TOC pointer onto the stack.
   uint64_t stack_offset;
-  if (GetByteOrder() == lldb::eByteOrderLittle)
+  if (UsesELFv2())
     stack_offset = 24;
   else
     stack_offset = 40;
@@ -260,7 +334,7 @@ bool ABISysV_ppc64::GetArgumentValues(Thread &thread, ValueList &values) const {
     return false;
 
   uint64_t stack_offset;
-  if (GetByteOrder() == lldb::eByteOrderLittle)
+  if (UsesELFv2())
     stack_offset = 32;
   else
     stack_offset = 48;
@@ -981,7 +1055,7 @@ UnwindPlanSP ABISysV_ppc64::CreateFunctionEntryUnwindPlan() {
   uint32_t sp_reg_num;
   uint32_t pc_reg_num;
 
-  if (GetByteOrder() == lldb::eByteOrderLittle) {
+  if (UsesELFRegisterNumbers()) {
     lr_reg_num = registers::ppc64le::dwarf::lr;
     sp_reg_num = registers::ppc64le::dwarf::r1;
     pc_reg_num = registers::ppc64le::dwarf::pc;
@@ -1011,7 +1085,7 @@ UnwindPlanSP ABISysV_ppc64::CreateDefaultUnwindPlan() {
   uint32_t pc_reg_num;
   uint32_t cr_reg_num;
 
-  if (GetByteOrder() == lldb::eByteOrderLittle) {
+  if (UsesELFRegisterNumbers()) {
     sp_reg_num = registers::ppc64le::dwarf::r1;
     pc_reg_num = registers::ppc64le::dwarf::lr;
     cr_reg_num = registers::ppc64le::dwarf::cr;

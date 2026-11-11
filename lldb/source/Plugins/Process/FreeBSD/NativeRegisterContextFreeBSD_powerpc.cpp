@@ -43,7 +43,8 @@ NativeRegisterContextFreeBSD *
 NativeRegisterContextFreeBSD::CreateHostNativeRegisterContextFreeBSD(
     const ArchSpec &arch, NativeThreadFreeBSD &thread) {
   bool has_vmx = false, has_vsx = false;
-  if (arch.GetMachine() == llvm::Triple::ppc64le) {
+  if (arch.GetMachine() == llvm::Triple::ppc64le ||
+      arch.GetMachine() == llvm::Triple::ppc64) {
     vmxreg vmx{};
     has_vmx =
         NativeProcessFreeBSD::PtraceWrapper(PT_GETVRREGS, thread.GetID(), &vmx)
@@ -60,7 +61,8 @@ NativeRegisterContextFreeBSD::CreateHostNativeRegisterContextFreeBSD(
 static RegisterLayout CreateRegisterLayout(const ArchSpec &arch, bool has_vmx,
                                            bool has_vsx) {
   assert((arch.GetMachine() == llvm::Triple::ppc ||
-          arch.GetMachine() == llvm::Triple::ppc64le) &&
+          arch.GetMachine() == llvm::Triple::ppc64le ||
+          arch.GetMachine() == llvm::Triple::ppc64) &&
          "unsupported FreeBSD PowerPC architecture");
   // PT_GETREGS uses the tracer's ABI, including when tracing a 32-bit inferior.
   auto layout = HostInfo::GetArchitecture().GetAddressByteSize() == 4

@@ -7,34 +7,39 @@
 //===----------------------------------------------------------------------===//
 
 // Architecture metadata only. word_size selects the exposed GPR value width.
+// PPC64_DWARF can select ELF numbering without changing logical identities.
+#ifndef PPC64_DWARF
+#define PPC64_DWARF(reg) lldb_private::registers::ppc64::dwarf::reg
+#define PPC64_EHFRAME(reg) lldb_private::registers::ppc64::ehframe::reg
+#endif
 #define GPR_PPC64_SIZE(...) word_size
 #define DEFINE_GPR_PPC64(reg, alt, lldb_kind)                                  \
   RegisterDescriptor(lldb_private::registers::ppc64::id::gpr_##reg, #reg, alt, GPR_PPC64_SIZE(reg),        \
                      lldb::eEncodingUint, lldb::eFormatHex,                    \
-                     {lldb_private::registers::ppc64::ehframe::reg,                        \
-                      lldb_private::registers::ppc64::dwarf::reg, lldb_kind,             \
+                     {PPC64_EHFRAME(reg),                                        \
+                      PPC64_DWARF(reg), lldb_kind,                             \
                       LLDB_INVALID_REGNUM, lldb_private::registers::ppc64::id::gpr_##reg},                 \
                      {}, {}, NULL)
 #define DEFINE_FPR_PPC64(reg, alt, lldb_kind)                                  \
   RegisterDescriptor(lldb_private::registers::ppc64::id::fpr_##reg, #reg, alt, 8, lldb::eEncodingIEEE754,  \
                      lldb::eFormatFloat,                                       \
-                     {lldb_private::registers::ppc64::ehframe::reg,                        \
-                      lldb_private::registers::ppc64::dwarf::reg, lldb_kind,             \
+                     {PPC64_EHFRAME(reg),                                        \
+                      PPC64_DWARF(reg), lldb_kind,                             \
                       LLDB_INVALID_REGNUM, lldb_private::registers::ppc64::id::fpr_##reg},                 \
                      {}, {}, NULL)
 #define DEFINE_VMX_PPC64(reg, lldb_kind)                                       \
   RegisterDescriptor(lldb_private::registers::ppc64::id::vmx_##reg, #reg, NULL, 16, lldb::eEncodingVector, \
                      lldb::eFormatVectorOfUInt32,                              \
-                     {lldb_private::registers::ppc64::ehframe::reg,                        \
-                      lldb_private::registers::ppc64::dwarf::reg, lldb_kind,             \
+                     {PPC64_EHFRAME(reg),                                        \
+                      PPC64_DWARF(reg), lldb_kind,                             \
                       LLDB_INVALID_REGNUM, lldb_private::registers::ppc64::id::vmx_##reg},                 \
                      {}, {}, NULL)
 
 #define DEFINE_VSX_PPC64(reg, lldb_kind)                                       \
   RegisterDescriptor(lldb_private::registers::ppc64::id::vsx_##reg, #reg, NULL, 16, lldb::eEncodingVector, \
                      lldb::eFormatVectorOfUInt32,                              \
-                     {lldb_private::registers::ppc64::ehframe::reg,                        \
-                      lldb_private::registers::ppc64::dwarf::reg, lldb_kind,             \
+                     {PPC64_EHFRAME(reg),                                        \
+                      PPC64_DWARF(reg), lldb_kind,                             \
                       LLDB_INVALID_REGNUM, lldb_private::registers::ppc64::id::vsx_##reg},                 \
                      {}, {}, NULL)
 
@@ -113,8 +118,8 @@
       DEFINE_FPR_PPC64(f31, NULL, LLDB_INVALID_REGNUM),                        \
       RegisterDescriptor(lldb_private::registers::ppc64::id::fpr_fpscr, "fpscr", NULL, 8,                    \
                          lldb::eEncodingUint, lldb::eFormatHex,                \
-                         {lldb_private::registers::ppc64::ehframe::fpscr,                      \
-                          lldb_private::registers::ppc64::dwarf::fpscr, LLDB_INVALID_REGNUM, \
+                         {PPC64_EHFRAME(fpscr),                                  \
+                          PPC64_DWARF(fpscr), LLDB_INVALID_REGNUM,             \
                           LLDB_INVALID_REGNUM, lldb_private::registers::ppc64::id::fpr_fpscr},               \
                          {}, {}, NULL),                                        \
       DEFINE_VMX_PPC64(vr0, LLDB_INVALID_REGNUM),                              \
@@ -151,15 +156,14 @@
       DEFINE_VMX_PPC64(vr31, LLDB_INVALID_REGNUM),                             \
       RegisterDescriptor(lldb_private::registers::ppc64::id::vmx_vscr, "vscr", \
                          NULL, 4, lldb::eEncodingUint, lldb::eFormatHex,       \
-                         {lldb_private::registers::ppc64::ehframe::vscr,       \
-                          lldb_private::registers::ppc64::dwarf::vscr,         \
+                         {PPC64_EHFRAME(vscr), PPC64_DWARF(vscr),              \
                           LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM,            \
                           lldb_private::registers::ppc64::id::vmx_vscr},       \
                          {}, {}, NULL),                                        \
       RegisterDescriptor(                                                      \
           lldb_private::registers::ppc64::id::vmx_vrsave, "vrsave", NULL, 4, lldb::eEncodingUint,            \
           lldb::eFormatHex,                                                    \
-          {lldb_private::registers::ppc64::ehframe::vrsave, lldb_private::registers::ppc64::dwarf::vrsave,   \
+          {PPC64_EHFRAME(vrsave), PPC64_DWARF(vrsave),                           \
            LLDB_INVALID_REGNUM, LLDB_INVALID_REGNUM, lldb_private::registers::ppc64::id::vmx_vrsave},        \
           {}, {}, NULL),                                                       \
       DEFINE_VSX_PPC64(vs0, LLDB_INVALID_REGNUM),                              \
@@ -234,3 +238,6 @@ static const RegisterDescriptor values[] = {PPC64_REGS};
 #undef DEFINE_VSX_PPC64
 #undef GPR_PPC64_SIZE
 #undef PPC64_REGS
+
+#undef PPC64_EHFRAME
+#undef PPC64_DWARF

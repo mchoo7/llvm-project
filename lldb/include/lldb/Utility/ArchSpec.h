@@ -91,6 +91,13 @@ public:
     eARM_abi_hard_float = 0x00000400
   };
 
+  enum PPC64eflags {
+    ePPC64_abi_unspecified = 0,
+    ePPC64_abi_elfv1 = 1,
+    ePPC64_abi_elfv2 = 2,
+    ePPC64_abi_mask = 3
+  };
+
   enum RISCVeflags {
     eRISCV_rvc              = 0x00000001, /// RVC, +c
     eRISCV_float_abi_soft   = 0x00000000, /// soft float

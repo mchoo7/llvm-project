@@ -1674,6 +1674,9 @@ size_t ObjectFileELF::GetSectionHeaderInfo(SectionHeaderColl &section_headers,
       arch_spec.SetFlags(ArchSpec::eARM_abi_hard_float);
   }
 
+  if (arch_spec.GetTriple().isPPC64())
+    arch_spec.SetFlags(header.e_flags & llvm::ELF::EF_PPC64_ABI);
+
   if (arch_spec.GetMachine() == llvm::Triple::riscv32 ||
       arch_spec.GetMachine() == llvm::Triple::riscv64) {
     uint32_t flags = arch_spec.GetFlags();

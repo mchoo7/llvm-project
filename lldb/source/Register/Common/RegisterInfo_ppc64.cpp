@@ -8,16 +8,21 @@
 
 #include "lldb/Register/Common/RegisterInfo_ppc64.h"
 #include "lldb/Register/Arch/lldb-ppc64-ehframe-register-enums.h"
+#include "lldb/Register/Arch/lldb-ppc64le-ehframe-register-enums.h"
 #include "RegisterInfo_powerpc_internal.h"
 #include <cassert>
 #include <cstddef>
 #include "lldb/Register/Arch/lldb-ppc64-register-enums.h"
 #include "llvm/ADT/STLExtras.h"
 #include "lldb/Register/Arch/lldb-ppc64-dwarf-register-enums.h"
+#include "lldb/Register/Arch/lldb-ppc64le-dwarf-register-enums.h"
 #include "lldb/lldb-private-types.h"
 #include "llvm/Support/Compiler.h"
 #include <iterator>
 
+
+namespace dwarf_regs = lldb_private::registers::ppc64le::dwarf;
+namespace ehframe_regs = lldb_private::registers::ppc64le::ehframe;
 using namespace lldb_private;
 
 static llvm::ArrayRef<RegisterDescriptor> Values4() {
@@ -32,8 +37,24 @@ static llvm::ArrayRef<RegisterDescriptor> Values8() {
   return values;
 }
 
+template <uint32_t word_size>
+static llvm::ArrayRef<RegisterDescriptor> ELFValues() {
+#define PPC64_DWARF(reg) dwarf_regs::reg
+#define PPC64_EHFRAME(reg) ehframe_regs::reg
+#include "Register/Arch/RegisterDescriptions_ppc64.inc"
+  return values;
+}
+
 std::shared_ptr<const RegisterDescription>
-RegisterInfo_ppc64::CreateDescription(const ArchSpec &arch) {
+RegisterInfo_ppc64::CreateDescription(const ArchSpec &arch,
+                                      Numbering numbering) {
+  if (numbering == Numbering::ELF) {
+    static const auto description4 = std::make_shared<RegisterDescription>(
+        MakePowerPCDescription(ELFValues<4>(), false));
+    static const auto description8 = std::make_shared<RegisterDescription>(
+        MakePowerPCDescription(ELFValues<8>(), false));
+    return arch.GetMachine() == llvm::Triple::ppc ? description4 : description8;
+  }
   static const auto description4 = std::make_shared<RegisterDescription>(
       MakePowerPCDescription(Values4(), false));
   static const auto description8 = std::make_shared<RegisterDescription>(
