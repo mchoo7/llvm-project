@@ -17,6 +17,7 @@
 #include "RegisterContextFreeBSDKernelCore_arm.h"
 #include "RegisterContextFreeBSDKernelCore_arm64.h"
 #include "RegisterContextFreeBSDKernelCore_i386.h"
+#include "RegisterContextFreeBSDKernelCore_ppc.h"
 #include "RegisterContextFreeBSDKernelCore_ppc64.h"
 #include "RegisterContextFreeBSDKernelCore_ppc64le.h"
 #include "RegisterContextFreeBSDKernelCore_riscv64.h"
@@ -84,6 +85,14 @@ ThreadFreeBSDKernelCore::CreateRegisterContextForFrame(StackFrame *frame) {
               *this, std::move(layout), m_pcb_addr);
       break;
     }
+    case llvm::Triple::ppc:
+      m_thread_reg_ctx_sp =
+          std::make_shared<RegisterContextFreeBSDKernelCore_ppc>(
+              *this,
+              freebsd_kernel::CreateRegisterLayoutFreeBSDKernelCore_ppc32be(
+                  arch, m_kernel_thread_addr),
+              m_pcb_addr);
+      break;
     case llvm::Triple::ppc64:
       m_thread_reg_ctx_sp =
           std::make_shared<RegisterContextFreeBSDKernelCore_ppc64>(
