@@ -332,6 +332,7 @@ bool ProcessFreeBSDKernelCore::DoUpdateThreadList(ThreadList &old_thread_list,
     switch (GetTarget().GetArchitecture().GetMachine()) {
     case llvm::Triple::arm:
     case llvm::Triple::aarch64:
+    case llvm::Triple::ppc64:
     case llvm::Triple::ppc64le:
     case llvm::Triple::riscv64:
     case llvm::Triple::x86:
@@ -574,7 +575,8 @@ bool ProcessFreeBSDKernelCore::DoUpdateThreadList(ThreadList &old_thread_list,
         }
 
         auto thread =
-            new ThreadFreeBSDKernelCore(*this, tid, pcb_addr, thread_desc);
+            new ThreadFreeBSDKernelCore(*this, tid, pcb_addr, thread_desc,
+                                       *td_or_err);
 
         if (tid == dumptid)
           thread->SetIsCrashedThread(true);

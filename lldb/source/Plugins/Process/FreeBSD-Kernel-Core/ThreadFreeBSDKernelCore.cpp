@@ -16,12 +16,11 @@
 #include "RegisterContextFreeBSDKernelCore_arm.h"
 #include "RegisterContextFreeBSDKernelCore_arm64.h"
 #include "RegisterContextFreeBSDKernelCore_i386.h"
-#include "RegisterContextFreeBSDKernelCore_ppc64le.h"
+#include "RegisterContextFreeBSDKernelCore_powerpc.h"
 #include "RegisterContextFreeBSDKernelCore_riscv64.h"
 #include "RegisterContextFreeBSDKernelCore_x86_64.h"
 #include "lldb/Register/Common/RegisterInfo_arm.h"
 #include "lldb/Register/Common/RegisterInfo_arm64.h"
-#include "lldb/Register/Common/RegisterInfo_ppc64le.h"
 #include "lldb/Register/Common/RegisterInfo_riscv64.h"
 #include "lldb/Register/Layouts/FreeBSD/RegisterLayoutFreeBSD_i386.h"
 #include "lldb/Register/Layouts/FreeBSD/RegisterLayoutFreeBSD_x86_64.h"
@@ -32,9 +31,10 @@ using namespace lldb_private;
 ThreadFreeBSDKernelCore::ThreadFreeBSDKernelCore(Process &process,
                                                  lldb::tid_t tid,
                                                  lldb::addr_t pcb_addr,
-                                                 std::string thread_name)
+                                                 std::string thread_name,
+                                                 lldb::addr_t kernel_thread_addr)
     : Thread(process, tid), m_thread_name(std::move(thread_name)),
-      m_pcb_addr(pcb_addr) {}
+      m_pcb_addr(pcb_addr), m_kernel_thread_addr(kernel_thread_addr) {}
 
 ThreadFreeBSDKernelCore::~ThreadFreeBSDKernelCore() {}
 
@@ -81,13 +81,13 @@ ThreadFreeBSDKernelCore::CreateRegisterContextForFrame(StackFrame *frame) {
                                          RegisterLayout(arch.GetByteOrder()))),
               m_pcb_addr);
       break;
+    case llvm::Triple::ppc64:
     case llvm::Triple::ppc64le:
       m_thread_reg_ctx_sp =
-          std::make_shared<RegisterContextFreeBSDKernelCore_ppc64le>(
+          std::make_shared<RegisterContextFreeBSDKernelCore_powerpc>(
               *this,
-              llvm::cantFail(RegisterLayout::Create(
-                  RegisterInfo_ppc64le::CreateDescription(arch),
-                  RegisterLayout(arch.GetByteOrder()))),
+              freebsd_kernel::CreatePowerPCRegisterLayout(arch,
+                                                          m_kernel_thread_addr),
               m_pcb_addr);
       break;
     case llvm::Triple::riscv64:

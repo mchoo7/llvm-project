@@ -14,7 +14,8 @@
 class ThreadFreeBSDKernelCore : public lldb_private::Thread {
 public:
   ThreadFreeBSDKernelCore(lldb_private::Process &process, lldb::tid_t tid,
-                          lldb::addr_t pcb_addr, std::string thread_name);
+                          lldb::addr_t pcb_addr, std::string thread_name,
+                          lldb::addr_t kernel_thread_addr);
 
   ~ThreadFreeBSDKernelCore() override;
 
@@ -46,6 +47,7 @@ private:
   std::string m_thread_name;
   lldb::ThreadRegisterContextSP m_thread_reg_ctx_sp;
   lldb::addr_t m_pcb_addr;
+  lldb::addr_t m_kernel_thread_addr;
   bool m_is_crashed = false;
 };
 

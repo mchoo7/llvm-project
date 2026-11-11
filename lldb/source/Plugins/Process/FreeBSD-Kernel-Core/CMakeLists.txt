@@ -16,7 +16,7 @@ if (CMAKE_SYSTEM_NAME MATCHES "FreeBSD")
     RegisterContextFreeBSDKernelCore_arm.cpp
     RegisterContextFreeBSDKernelCore_arm64.cpp
     RegisterContextFreeBSDKernelCore_i386.cpp
-    RegisterContextFreeBSDKernelCore_ppc64le.cpp
+    RegisterContextFreeBSDKernelCore_powerpc.cpp
     RegisterContextFreeBSDKernelCore_riscv64.cpp
     RegisterContextFreeBSDKernelCore_x86_64.cpp
     ThreadFreeBSDKernelCore.cpp
