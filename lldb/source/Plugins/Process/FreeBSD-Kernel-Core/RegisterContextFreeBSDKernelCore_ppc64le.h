@@ -9,9 +9,74 @@
 #ifndef LLDB_SOURCE_PLUGINS_PROCESS_FREEBSDKERNEL_REGISTERCONTEXTFREEBSDKERNELCORE_PPC64LE_H
 #define LLDB_SOURCE_PLUGINS_PROCESS_FREEBSDKERNEL_REGISTERCONTEXTFREEBSDKERNELCORE_PPC64LE_H
 
-#include "lldb/Register/Arch/lldb-ppc64le-dwarf-register-enums.h"
-#include "lldb/Register/Arch/lldb-ppc64le-register-enums.h"
+#include "lldb/Register/Descriptions/RegisterDescription_ppc64le.h"
+#include "lldb/Register/RegisterLayout.h"
 #include "lldb/Target/ThreadRegisterContext.h"
+#include "lldb/Utility/ArchSpec.h"
+
+#include <cassert>
+#include <cstddef>
+#include <cstdint>
+
+namespace lldb_private::freebsd_kernel {
+
+// The prefix saved by cpu_switch and savectx, decoded in target byte order.
+struct PPC64LEPCB {
+  uint64_t context[20]; // r12-r31
+  uint64_t cr, sp, toc, lr;
+};
+
+inline RegisterLayout
+CreateRegisterLayoutFreeBSDKernelCore_ppc64le(const ArchSpec &arch,
+                                              lldb::addr_t thread_address) {
+  assert(arch.GetMachine() == llvm::Triple::ppc64le);
+  auto description = RegisterDescription_ppc64le::GetShared();
+  using PCB = PPC64LEPCB;
+  RegisterLayout layout;
+  llvm::cantFail(layout.AddBank(0, sizeof(PCB)));
+  auto add = [&](const std::string &name, uint32_t offset) {
+    const auto *reg = description->Find(name);
+    assert(reg && "unknown PPC64LE register");
+    RegisterLocation location;
+    location.kind = RegisterLocation::Stored;
+    location.pieces.push_back({0, offset, reg->byte_size});
+    llvm::cantFail(layout.Add(reg->id, std::move(location)));
+  };
+  for (unsigned i = 12; i != 32; ++i) {
+    // The 64-bit kernel keeps curthread in r13 instead of saving it here.
+    if (i == 13)
+      continue;
+
+    add("r" + std::to_string(i),
+        offsetof(PCB, context) + (i - 12) * sizeof(uint64_t));
+  }
+
+  if (thread_address != LLDB_INVALID_ADDRESS) {
+    RegisterLocation curthread;
+    curthread.kind = RegisterLocation::Constant;
+    curthread.constant.resize(8);
+    for (unsigned i = 0; i != 8; ++i) {
+      unsigned byte = arch.GetByteOrder() == lldb::eByteOrderBig ? 7 - i : i;
+      curthread.constant[byte] =
+          static_cast<uint8_t>(thread_address >> (i * 8));
+    }
+
+    llvm::cantFail(
+        layout.Add(description->Find("r13")->id, std::move(curthread)));
+  }
+
+  add("r1", offsetof(PCB, sp));
+  add("r2", offsetof(PCB, toc));
+  add("cr", offsetof(PCB, cr));
+  add("lr", offsetof(PCB, lr));
+  // savectx saves the continuation PC in the link register.
+  add("pc", offsetof(PCB, lr));
+
+  llvm::cantFail(layout.Finalize(std::move(description), arch.GetByteOrder()));
+  return layout;
+}
+
+} // namespace lldb_private::freebsd_kernel
 
 class RegisterContextFreeBSDKernelCore_ppc64le
     : public lldb_private::ThreadRegisterContext {

@@ -23,6 +23,7 @@ add_lldb_unittest(RegisterTests
   Descriptions/RegisterDescription_riscvTest.cpp
   Descriptions/RegisterDescription_x86Test.cpp
   Layouts/RegisterLayoutDarwinTest.cpp
+  Layouts/RegisterLayoutFreeBSDKernelCore_ppcTest.cpp
   Layouts/RegisterLayoutFreeBSD_arm32Test.cpp
   Layouts/RegisterLayoutFreeBSD_riscv64Test.cpp
   Layouts/RegisterLayoutLinux_s390xTest.cpp
