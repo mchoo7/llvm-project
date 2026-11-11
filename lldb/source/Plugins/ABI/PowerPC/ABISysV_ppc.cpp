@@ -863,9 +863,11 @@ ValueObjectSP ABISysV_ppc::GetReturnValueObjectImpl(
 }
 
 UnwindPlanSP ABISysV_ppc::CreateFunctionEntryUnwindPlan() {
-  uint32_t lr_reg_num = dwarf_lr;
-  uint32_t sp_reg_num = dwarf_r1;
-  uint32_t pc_reg_num = dwarf_pc;
+  // Register roles also work when a backend uses ELF rather than the older
+  // PowerPC DWARF numbering scheme.
+  uint32_t lr_reg_num = LLDB_REGNUM_GENERIC_RA;
+  uint32_t sp_reg_num = LLDB_REGNUM_GENERIC_SP;
+  uint32_t pc_reg_num = LLDB_REGNUM_GENERIC_PC;
 
   UnwindPlan::Row row;
 
@@ -875,7 +877,7 @@ UnwindPlanSP ABISysV_ppc::CreateFunctionEntryUnwindPlan() {
   // The previous PC is in the LR, all other registers are the same.
   row.SetRegisterLocationToRegister(pc_reg_num, lr_reg_num, true);
 
-  auto plan_sp = std::make_shared<UnwindPlan>(eRegisterKindDWARF);
+  auto plan_sp = std::make_shared<UnwindPlan>(eRegisterKindGeneric);
   plan_sp->AppendRow(std::move(row));
   plan_sp->SetSourceName("ppc at-func-entry default");
   plan_sp->SetSourcedFromCompiler(eLazyBoolNo);
@@ -884,8 +886,8 @@ UnwindPlanSP ABISysV_ppc::CreateFunctionEntryUnwindPlan() {
 
 UnwindPlanSP ABISysV_ppc::CreateDefaultUnwindPlan() {
 
-  uint32_t sp_reg_num = dwarf_r1;
-  uint32_t pc_reg_num = dwarf_lr;
+  uint32_t sp_reg_num = LLDB_REGNUM_GENERIC_SP;
+  uint32_t pc_reg_num = LLDB_REGNUM_GENERIC_RA;
 
   UnwindPlan::Row row;
 
@@ -896,13 +898,13 @@ UnwindPlanSP ABISysV_ppc::CreateDefaultUnwindPlan() {
   row.SetRegisterLocationToAtCFAPlusOffset(pc_reg_num, ptr_size * 1, true);
   row.SetRegisterLocationToIsCFAPlusOffset(sp_reg_num, 0, true);
 
-  auto plan_sp = std::make_shared<UnwindPlan>(eRegisterKindDWARF);
+  auto plan_sp = std::make_shared<UnwindPlan>(eRegisterKindGeneric);
   plan_sp->AppendRow(std::move(row));
   plan_sp->SetSourceName("ppc default unwind plan");
   plan_sp->SetSourcedFromCompiler(eLazyBoolNo);
   plan_sp->SetUnwindPlanValidAtAllInstructions(eLazyBoolNo);
   plan_sp->SetUnwindPlanForSignalTrap(eLazyBoolNo);
-  plan_sp->SetReturnAddressRegister(dwarf_lr);
+  plan_sp->SetReturnAddressRegister(LLDB_REGNUM_GENERIC_RA);
   return plan_sp;
 }
 

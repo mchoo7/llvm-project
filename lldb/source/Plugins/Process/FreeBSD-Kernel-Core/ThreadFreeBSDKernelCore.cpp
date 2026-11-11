@@ -81,6 +81,7 @@ ThreadFreeBSDKernelCore::CreateRegisterContextForFrame(StackFrame *frame) {
                                          RegisterLayout(arch.GetByteOrder()))),
               m_pcb_addr);
       break;
+    case llvm::Triple::ppc:
     case llvm::Triple::ppc64:
     case llvm::Triple::ppc64le:
       m_thread_reg_ctx_sp =

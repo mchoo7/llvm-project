@@ -11,11 +11,11 @@
 #include "lldb/Target/Thread.h"
 #include <vector>
 
-#if defined(__FreeBSD__) && defined(__powerpc64__)
+#if defined(__FreeBSD__) && defined(__powerpc__)
 #include <sys/types.h>
 #include <machine/pcb.h>
 
-using PCBLayout = lldb_private::freebsd_kernel::PowerPCPCB64;
+using PCBLayout = lldb_private::freebsd_kernel::PowerPCPCB<register_t>;
 static_assert(offsetof(struct pcb, pcb_context) ==
               offsetof(PCBLayout, context));
 static_assert(offsetof(struct pcb, pcb_cr) == offsetof(PCBLayout, cr));

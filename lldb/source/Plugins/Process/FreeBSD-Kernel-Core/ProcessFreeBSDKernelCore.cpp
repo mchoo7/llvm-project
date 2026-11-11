@@ -332,6 +332,7 @@ bool ProcessFreeBSDKernelCore::DoUpdateThreadList(ThreadList &old_thread_list,
     switch (GetTarget().GetArchitecture().GetMachine()) {
     case llvm::Triple::arm:
     case llvm::Triple::aarch64:
+    case llvm::Triple::ppc:
     case llvm::Triple::ppc64:
     case llvm::Triple::ppc64le:
     case llvm::Triple::riscv64:

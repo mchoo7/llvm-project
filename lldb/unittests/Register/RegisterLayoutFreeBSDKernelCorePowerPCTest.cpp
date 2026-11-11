@@ -62,3 +62,42 @@ TEST(RegisterLayoutFreeBSDKernelCorePowerPCTest,
                          Failed());
   }
 }
+
+TEST(RegisterLayoutFreeBSDKernelCorePowerPCTest, PPC32PCBDoesNotContainTOC) {
+  auto layout = freebsd_kernel::CreatePowerPCRegisterLayout(
+      ArchSpec("powerpc-unknown-freebsd"), LLDB_INVALID_ADDRESS);
+  auto description = layout.GetDescription();
+  std::array<uint8_t, 24 * 4> pcb{};
+  for (unsigned i = 0; i != 24; ++i)
+    support::endian::write32be(pcb.data() + i * 4, 0x87654300u + i);
+  RegisterData data{0, pcb};
+  auto check = [&](const std::string &name, unsigned slot) {
+    const auto *reg = description->Find(name);
+    ASSERT_NE(reg, nullptr);
+    EXPECT_EQ(reg->byte_size, 4u);
+    auto value = layout.Read(reg->id, data);
+    ASSERT_THAT_EXPECTED(value, Succeeded());
+    EXPECT_EQ(value->GetAsUInt32(), 0x87654300u + slot);
+  };
+  EXPECT_EQ(layout.GetBankSize(0), 96u);
+  for (unsigned i = 12; i != 32; ++i)
+    check("r" + std::to_string(i), i - 12);
+  check("cr", 20);
+  check("r1", 21);
+  check("lr", 23);
+  check("pc", 23);
+  EXPECT_THAT_EXPECTED(layout.Read(description->Find("r2")->id, data),
+                       Failed());
+  EXPECT_THAT_EXPECTED(layout.Read(description->Find("r0")->id, data),
+                       Failed());
+  EXPECT_EQ(description->Find("lr")->numbers[lldb::eRegisterKindDWARF], 65u);
+  EXPECT_EQ(description->Find("r1")->numbers[lldb::eRegisterKindGeneric],
+            LLDB_REGNUM_GENERIC_SP);
+  EXPECT_EQ(description->Find("lr")->numbers[lldb::eRegisterKindGeneric],
+            LLDB_REGNUM_GENERIC_RA);
+  EXPECT_EQ(description->Find("pc")->numbers[lldb::eRegisterKindGeneric],
+            LLDB_REGNUM_GENERIC_PC);
+  RegisterData short_data{0, ArrayRef<uint8_t>(pcb).drop_back()};
+  EXPECT_THAT_EXPECTED(layout.Read(description->Find("pc")->id, short_data),
+                       Failed());
+}
